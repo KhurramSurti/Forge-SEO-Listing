@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surti Listing Forge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#07070a; --ink2:#0f0f12; --ink3:#161619; --ink4:#1e1e23;
+  --wire:#28282f; --wire2:#333340; --dim:#55556a; --fog:#8888a0;
+  --mist:#b0b0c0; --snow:#ececf4; --white:#f8f8fc;
+  --gold:#d4a847; --gold2:#f0c060; --gold3:#a07828;
+  --teal:#2dd4bf; --rose:#fb7185; --violet:#a78bfa;
+  --shopify:#96bf48; --shopify2:#c8f07a;
+  --r:10px; --r2:16px; --r3:22px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+.amb1{position:fixed;top:-15vh;left:-10vw;width:55vw;height:55vh;background:radial-gradient(ellipse,rgba(212,168,71,0.055) 0%,transparent 68%);pointer-events:none;z-index:0;}
+.amb2{position:fixed;bottom:-20vh;right:-8vw;width:45vw;height:50vh;background:radial-gradient(ellipse,rgba(45,212,191,0.04) 0%,transparent 68%);pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr;grid-template-rows:64px 1fr;height:100vh;overflow:hidden;}
+.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(7,7,10,0.92);border-bottom:1px solid var(--wire);backdrop-filter:blur(24px);position:relative;z-index:100;}
+.wordmark{display:flex;flex-direction:column;gap:1px;}
+.wordmark-name{font-family:'Playfair Display',serif;font-style:italic;font-size:21px;font-weight:700;background:linear-gradient(90deg,#c8902a 0%,#f0c060 45%,#c8902a 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.3px;line-height:1;}
+.wordmark-bar{width:36px;height:1.5px;background:var(--gold);margin-bottom:2px;}
+.wordmark-sub{font-family:'Geist',sans-serif;font-size:8.5px;font-weight:500;letter-spacing:4px;color:var(--dim);text-transform:uppercase;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.key-wrap{display:flex;align-items:center;gap:9px;padding:7px 13px;background:var(--ink3);border:1px solid var(--wire);border-radius:9px;transition:border-color 0.2s;}
+.key-wrap:focus-within{border-color:rgba(212,168,71,0.4);}
+.key-led{width:6px;height:6px;border-radius:50%;background:var(--wire2);flex-shrink:0;transition:all 0.3s;}
+.key-led.on{background:var(--teal);box-shadow:0 0 7px rgba(45,212,191,0.5);}
+.key-inp{background:none;border:none;outline:none;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11px;width:210px;}
+.key-inp::placeholder{color:var(--dim);}
+.s-chip{display:flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:11px;font-weight:500;letter-spacing:0.03em;transition:all 0.3s;}
+.s-idle{background:rgba(85,85,106,0.15);color:var(--dim);border:1px solid var(--wire);}
+.s-work{background:rgba(212,168,71,0.1);color:var(--gold);border:1px solid rgba(212,168,71,0.25);}
+.s-done{background:rgba(45,212,191,0.1);color:var(--teal);border:1px solid rgba(45,212,191,0.25);}
+.s-err{background:rgba(251,113,133,0.1);color:var(--rose);border:1px solid rgba(251,113,133,0.25);}
+.sidebar{background:var(--ink2);border-right:1px solid var(--wire);padding:22px 18px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;height:calc(100vh - 64px);}
+.sidebar::-webkit-scrollbar{width:0;}
+.sb-sec{display:flex;flex-direction:column;gap:8px;}
+.sb-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:var(--dim);padding-bottom:6px;border-bottom:1px solid var(--wire);}
+.p-opts{display:flex;flex-direction:column;gap:3px;}
+.p-opt{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--r);border:1px solid transparent;background:transparent;color:var(--fog);font-family:'Geist',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s;text-align:left;width:100%;}
+.p-opt:hover{background:var(--ink3);color:var(--snow);}
+.p-opt.on{background:var(--ink4);border-color:var(--wire2);color:var(--snow);}
+.p-opt.on .p-em{color:var(--gold);}
+.p-em{font-size:13px;transition:color 0.18s;}
+.p-chk{margin-left:auto;width:15px;height:15px;border-radius:50%;background:var(--gold);display:none;align-items:center;justify-content:center;font-size:8px;color:var(--ink);font-weight:700;}
+.p-opt.on .p-chk{display:flex;}
+.th-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.th-opt{padding:9px 6px;border-radius:var(--r);border:1px solid var(--wire);background:var(--ink3);cursor:pointer;transition:all 0.18s;text-align:center;font-size:10px;color:var(--fog);}
+.th-opt:hover{border-color:rgba(212,168,71,0.4);color:var(--snow);}
+.th-opt.on{border-color:var(--gold);background:rgba(212,168,71,0.07);color:var(--gold);}
+.th-sw{height:24px;border-radius:5px;margin-bottom:5px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.kw-list{display:flex;flex-direction:column;gap:3px;}
+.kw-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:7px;background:var(--ink3);border:1px solid var(--wire);font-size:11px;color:var(--fog);transition:all 0.25s;}
+.kw-row.kw-ok{border-color:rgba(45,212,191,0.25);color:var(--teal);background:rgba(45,212,191,0.04);}
+.kw-row.kw-go{border-color:rgba(212,168,71,0.25);color:var(--gold);}
+.kw-row.kw-no{opacity:0.35;}
+.kw-nm{display:flex;align-items:center;gap:6px;}
+.kw-d{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.kw-d.sp{animation:kblink 0.9s ease infinite;}
+@keyframes kblink{0%,100%{opacity:1;}50%{opacity:0.15;}}
+.kw-ct{font-family:'Geist Mono',monospace;font-size:10px;}
+.sb-inp{width:100%;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:9px 11px;color:var(--snow);font-family:'Geist',sans-serif;font-size:12px;outline:none;transition:border-color 0.2s;}
+.sb-inp:focus{border-color:rgba(212,168,71,0.35);}
+.sb-inp::placeholder{color:var(--dim);}
+.sb-ta{width:100%;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:10px 11px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:10px;line-height:1.65;resize:vertical;outline:none;transition:border-color 0.2s;}
+.sb-ta:focus{border-color:rgba(212,168,71,0.35);}
+.theme-section{transition:opacity 0.2s;}
+.theme-section.hidden{opacity:0.25;pointer-events:none;}
+/* MAIN: full height scrollable column */
+.main{display:flex;flex-direction:column;height:calc(100vh - 64px);overflow-y:auto;}
+.input-zone{padding:24px 28px 18px;border-bottom:1px solid var(--wire);flex-shrink:0;}
+.iz-head{margin-bottom:12px;}
+.iz-title{font-family:'Playfair Display',serif;font-style:italic;font-size:17px;color:var(--white);margin-bottom:2px;}
+.iz-sub{font-size:11px;color:var(--dim);}
+.product-ta{width:100%;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r2);padding:15px 17px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.75;resize:none;height:120px;outline:none;transition:border-color 0.2s;}
+.product-ta:focus{border-color:rgba(212,168,71,0.35);}
+.product-ta::placeholder{color:var(--dim);font-size:11px;}
+.kw-found{display:none;margin-top:10px;padding:10px 13px;background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.15);border-radius:var(--r);}
+.kw-found.show{display:block;}
+.kw-ft{font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--teal);font-weight:600;margin-bottom:6px;}
+.kw-pill{display:inline-block;padding:2px 7px;margin:2px 2px 2px 0;background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.18);border-radius:4px;font-size:10px;color:#5eead4;font-family:'Geist Mono',monospace;}
+.act-row{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.gen-btn{display:flex;align-items:center;gap:9px;padding:11px 26px;background:linear-gradient(135deg,var(--gold),#b88020);border:none;border-radius:var(--r);color:var(--ink);font-family:'Geist',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;box-shadow:0 3px 18px rgba(212,168,71,0.22);}
+.gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 7px 26px rgba(212,168,71,0.38);}
+.gen-btn:disabled{opacity:0.38;cursor:not-allowed;transform:none;box-shadow:none;}
+.clr-btn{padding:10px 16px;background:transparent;border:1px solid var(--wire);border-radius:var(--r);color:var(--fog);font-family:'Geist',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s;}
+.clr-btn:hover{border-color:var(--rose);color:var(--rose);}
+.char-ct{margin-left:auto;font-size:10px;color:var(--dim);font-family:'Geist Mono',monospace;}
+.spinner{width:14px;height:14px;border:2px solid rgba(7,7,10,0.3);border-top-color:var(--ink);border-radius:50%;animation:spin 0.6s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.err-bar{display:none;margin-top:9px;padding:9px 13px;background:rgba(251,113,133,0.07);border:1px solid rgba(251,113,133,0.22);border-radius:var(--r);color:var(--rose);font-size:11px;}
+.prog{display:none;margin-top:12px;padding:12px 14px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);}
+.prog.show{display:block;}
+.prog-steps{display:flex;align-items:center;gap:0;}
+.ps{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim);flex:1;padding-right:8px;}
+.ps::after{content:'→';margin-left:auto;color:var(--wire2);font-size:11px;}
+.ps:last-child::after{display:none;}
+.ps.done{color:var(--teal);}
+.ps.act{color:var(--gold);}
+.ps-ic{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--ink4);border:1px solid var(--wire);font-size:9px;flex-shrink:0;font-family:'Geist Mono',monospace;}
+.ps.done .ps-ic{background:rgba(45,212,191,0.14);border-color:var(--teal);}
+.ps.act .ps-ic{background:rgba(212,168,71,0.14);border-color:var(--gold);animation:pulse 1s ease infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
+
+/* =============================================
+   BUG FIX #1: Output visibility
+   Use display:block for wrapper, grid is on out-split
+   Added !important to beat any inline style
+   ============================================= */
+.output{display:none;flex-shrink:0;}
+.output.show{display:block !important;}
+
+.out-split{display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 64px);}
+.out-split.shopify-only{grid-template-columns:1fr;}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;}
+.empty-ic{width:60px;height:60px;border-radius:14px;background:var(--ink3);border:1px solid var(--wire);display:flex;align-items:center;justify-content:center;font-size:26px;opacity:0.5;}
+.empty-t{font-family:'Playfair Display',serif;font-style:italic;font-size:17px;color:var(--mist);}
+.empty-s{font-size:12px;color:var(--dim);text-align:center;max-width:240px;line-height:1.65;}
+.l-pane{border-right:1px solid var(--wire);display:flex;flex-direction:column;overflow:hidden;height:calc(100vh - 64px);position:sticky;top:0;}
+.l-pane.full-width{border-right:none;}
+.pane-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--wire);flex-shrink:0;background:rgba(7,7,10,0.7);}
+.pane-ttl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--fog);}
+.pane-acts{display:flex;gap:6px;}
+.stabs{display:flex;gap:2px;padding:9px 14px;border-bottom:1px solid var(--wire);flex-shrink:0;overflow-x:auto;scrollbar-width:none;background:rgba(7,7,10,0.4);}
+.stabs::-webkit-scrollbar{display:none;}
+.stab{padding:5px 11px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dim);font-family:'Geist',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.14s;white-space:nowrap;letter-spacing:0.02em;}
+.stab:hover{color:var(--fog);}
+.stab.on{background:var(--ink4);border-color:var(--wire2);color:var(--snow);}
+.stab.shopify-tab{border-color:rgba(150,191,72,0.3);color:var(--shopify);}
+.stab.shopify-tab.on{background:rgba(150,191,72,0.09);border-color:var(--shopify);color:var(--shopify2);}
+.sec-cnt{flex:1;overflow-y:auto;padding:16px 18px;}
+.sec-cnt::-webkit-scrollbar{width:3px;}
+.sec-cnt::-webkit-scrollbar-thumb{background:var(--wire);border-radius:3px;}
+.ssec{display:none;}
+.ssec.on{display:block;animation:fadeUp 0.22s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.ob{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin-bottom:10px;}
+.ob-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--wire);background:rgba(255,255,255,0.018);}
+.ob-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;}
+.c1{color:var(--gold);}
+.c2{color:var(--teal);}
+.c3{color:#c084fc;}
+.c4{color:#6ee7b7;}
+.c5{color:var(--rose);}
+.cS{color:var(--shopify);}
+.ob-body{padding:12px;font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--snow);white-space:pre-wrap;word-break:break-word;}
+.ob-body strong{color:var(--gold2);font-weight:500;}
+.shopify-preview-box{background:var(--ink3);border:1px solid rgba(150,191,72,0.25);border-radius:var(--r2);overflow:hidden;margin-bottom:10px;}
+.shopify-preview-box .ob-hdr{border-color:rgba(150,191,72,0.2);background:rgba(150,191,72,0.04);}
+.shopify-copy-area{padding:16px 18px;font-family:'Geist Mono',monospace;font-size:11px;line-height:1.85;color:#c8d8b8;white-space:pre-wrap;word-break:break-word;background:transparent;}
+.shopify-banner{padding:10px 14px;background:rgba(150,191,72,0.06);border:1px solid rgba(150,191,72,0.2);border-radius:var(--r);font-size:11px;color:var(--shopify);margin-bottom:12px;line-height:1.5;}
+.shopify-banner strong{color:var(--shopify2);}
+.h-pane{display:flex;flex-direction:column;overflow:hidden;height:calc(100vh - 64px);position:sticky;top:0;}
+.vtabs{display:flex;gap:2px;padding:9px 14px;border-bottom:1px solid var(--wire);flex-shrink:0;background:rgba(7,7,10,0.4);}
+.vtab{padding:5px 13px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dim);font-family:'Geist',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.14s;}
+.vtab:hover{color:var(--fog);}
+.vtab.on{background:var(--ink4);border-color:var(--wire2);color:var(--snow);}
+.h-frame-w{flex:1;overflow:hidden;}
+.h-frame{width:100%;height:100%;border:none;background:#fff;display:block;}
+.h-src-w{flex:1;overflow-y:auto;display:none;}
+.h-src-w::-webkit-scrollbar{width:3px;}
+.h-src-w::-webkit-scrollbar-thumb{background:var(--wire);border-radius:3px;}
+.h-src{padding:15px;font-family:'Geist Mono',monospace;font-size:10.5px;line-height:1.7;color:#7a9ab8;white-space:pre;background:var(--ink);min-height:100%;}
+.ib{display:flex;align-items:center;gap:5px;padding:5px 11px;background:var(--ink4);border:1px solid var(--wire);border-radius:7px;color:var(--fog);font-family:'Geist',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.14s;white-space:nowrap;}
+.ib:hover{border-color:var(--fog);color:var(--snow);}
+.ib.gold{border-color:rgba(212,168,71,0.35);color:var(--gold);}
+.ib.gold:hover{background:rgba(212,168,71,0.08);}
+.ib.teal{border-color:rgba(45,212,191,0.35);color:var(--teal);}
+.ib.teal:hover{background:rgba(45,212,191,0.07);}
+.ib.green{border-color:rgba(150,191,72,0.4);color:var(--shopify);}
+.ib.green:hover{background:rgba(150,191,72,0.08);}
+.ib.cp{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,0.07);}
+@media(max-width:860px){.app{grid-template-columns:1fr;}.sidebar{display:none;}.out-split{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="amb1"></div>
+<div class="amb2"></div>
+<div class="app">
+
+<header class="topbar">
+  <div class="wordmark">
+    <div class="wordmark-bar"></div>
+    <div class="wordmark-name">Khurram Surti</div>
+    <div class="wordmark-sub">Surti Listing Forge</div>
+  </div>
+  <div class="topbar-right">
+    <div class="key-wrap">
+      <div class="key-led" id="keyLed"></div>
+      <input class="key-inp" type="password" id="apiKey" placeholder="Paste Claude API key here..." oninput="onKey()"/>
+    </div>
+    <div class="s-chip s-idle" id="chip">Ready</div>
+  </div>
+</header>
+
+<aside class="sidebar">
+  <div class="sb-sec">
+    <div class="sb-lbl">Platform</div>
+    <div class="p-opts" id="platOpts">
+      <button class="p-opt on" onclick="setPlatform('ebay',this)">
+        <span class="p-em">🏪</span><span>eBay Only</span><div class="p-chk">✓</div>
+      </button>
+      <button class="p-opt" onclick="setPlatform('shopify',this)">
+        <span class="p-em">🛍</span><span>Shopify Only</span><div class="p-chk">✓</div>
+      </button>
+    </div>
+  </div>
+  <div class="sb-sec theme-section" id="themeSection">
+    <div class="sb-lbl">HTML Theme <span style="font-size:8px;color:var(--dim);margin-left:4px;">(eBay only)</span></div>
+    <div class="th-grid" id="thGrid">
+      <button class="th-opt on" onclick="setTheme('heritage',this)">
+        <div class="th-sw" style="background:linear-gradient(135deg,#4A6B3A,#B87B3A)">🌿</div>Heritage
+      </button>
+      <button class="th-opt" onclick="setTheme('modern',this)">
+        <div class="th-sw" style="background:linear-gradient(135deg,#1a1a2e,#7c6af7)">🌙</div>Modern
+      </button>
+      <button class="th-opt" onclick="setTheme('clean',this)">
+        <div class="th-sw" style="background:linear-gradient(135deg,#1a56db,#0891b2)">☀</div>Clean
+      </button>
+      <button class="th-opt" onclick="setTheme('luxury',this)">
+        <div class="th-sw" style="background:linear-gradient(135deg,#111,#d4af37)">✨</div>Luxury
+      </button>
+    </div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Keyword Sources</div>
+    <div class="kw-list">
+      <div class="kw-row" id="ks-ebay"><div class="kw-nm"><div class="kw-d"></div>eBay</div><div class="kw-ct" id="kc-ebay">—</div></div>
+      <div class="kw-row" id="ks-amazon"><div class="kw-nm"><div class="kw-d"></div>Amazon</div><div class="kw-ct" id="kc-amazon">—</div></div>
+      <div class="kw-row" id="ks-walmart"><div class="kw-nm"><div class="kw-d"></div>Walmart</div><div class="kw-ct" id="kc-walmart">—</div></div>
+      <div class="kw-row" id="ks-google"><div class="kw-nm"><div class="kw-d"></div>Google</div><div class="kw-ct" id="kc-google">—</div></div>
+    </div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Store Name</div>
+    <input class="sb-inp" type="text" id="storeName" placeholder="Your store name..." value="Surti Store"/>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Policies</div>
+    <textarea class="sb-ta" id="policyText" rows="5">Fast Shipping: 2-3 business days.
+Free Shipping: No hidden fees.
+30-Day Returns: Full refund guaranteed.</textarea>
+  </div>
+</aside>
+
+<main class="main" id="mainArea">
+  <div class="input-zone">
+    <div class="iz-head">
+      <div class="iz-title">Product Details</div>
+      <div class="iz-sub">Paste the full title, description and specs from Amazon / Walmart / any sourcing platform</div>
+    </div>
+    <textarea class="product-ta" id="productInput"
+      placeholder="TITLE: [Product title from sourcing platform]
+
+DESCRIPTION:
+[Paste original description here...]
+
+SPECS:
+- Brand:
+- Weight:
+- Material:
+- Pack Size:"></textarea>
+    <div class="kw-found" id="kwFound"></div>
+    <div class="act-row">
+      <button class="gen-btn" id="genBtn" onclick="generate()">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnTxt">Generate Listing</span>
+      </button>
+      <button class="clr-btn" onclick="clearAll()">Clear</button>
+      <div class="char-ct" id="charCt">0 chars</div>
+    </div>
+    <div class="err-bar" id="errBar"></div>
+    <div class="prog" id="prog">
+      <div class="prog-steps">
+        <div class="ps" id="ps1"><div class="ps-ic">1</div>Keywords</div>
+        <div class="ps" id="ps2"><div class="ps-ic">2</div>SEO Listing</div>
+        <div class="ps" id="ps3"><div class="ps-ic">3</div>Output</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="emptyState" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:300px;">
+    <div class="empty">
+      <div class="empty-ic">✦</div>
+      <div class="empty-t">Ready to forge your listing</div>
+      <div class="empty-s">Paste sourcing product details above and hit Generate Listing</div>
+    </div>
+  </div>
+
+  <!-- BUG FIX #2: Removed inline style="display:none" — CSS class .output handles visibility -->
+  <div class="output" id="output">
+    <div class="out-split" id="outSplit">
+      <div class="l-pane" id="lPane">
+        <div class="pane-hdr">
+          <div class="pane-ttl" id="lPaneTitle">📋 SEO Listing</div>
+          <div class="pane-acts">
+            <button class="ib teal" onclick="copyAllTxt()">Copy All</button>
+          </div>
+        </div>
+        <div class="stabs" id="stabs"></div>
+        <div class="sec-cnt" id="secCnt"></div>
+      </div>
+      <div class="h-pane" id="hPane">
+        <div class="pane-hdr">
+          <div class="pane-ttl">🌐 HTML Listing — eBay Paste Ready</div>
+          <div class="pane-acts">
+            <button class="ib gold" id="cpHtmlBtn" onclick="copyHtml()">Copy HTML</button>
+            <button class="ib" onclick="dlHtml()">⬇ Download</button>
+          </div>
+        </div>
+        <div class="vtabs">
+          <button class="vtab on" id="vtP" onclick="showPreview()">Live Preview</button>
+          <button class="vtab" id="vtS" onclick="showSrc()">HTML Source</button>
+        </div>
+        <div class="h-frame-w" id="frameW">
+          <iframe class="h-frame" id="htmlFrame"></iframe>
+        </div>
+        <div class="h-src-w" id="srcW">
+          <div class="h-src" id="htmlSrc"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+var platform='ebay', theme='heritage', fullTxt='', genHtml='', allKws=[], shopifyTxt='';
+var srcKws={ebay:[],amazon:[],walmart:[],google:[]};
+
+window.onload=function(){
+  var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
+  var th=localStorage.getItem('slf_th'); if(th){theme=th; document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');}); var idx={'heritage':0,'modern':1,'clean':2,'luxury':3}; var thBtns=document.querySelectorAll('#thGrid .th-opt'); if(thBtns[idx[th]])thBtns[idx[th]].classList.add('on');}
+  var sn=localStorage.getItem('slf_sn'); if(sn) document.getElementById('storeName').value=sn;
+  var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
+  document.getElementById('productInput').addEventListener('input',function(){
+    document.getElementById('charCt').textContent=this.value.length+' chars';
+  });
+};
+
+function onKey(){
+  var k=document.getElementById('apiKey').value.trim();
+  localStorage.setItem('slf_k',k);
+  document.getElementById('keyLed').classList.toggle('on',k.indexOf('sk-ant')===0);
+}
+
+function setPlatform(p,btn){
+  platform=p;
+  document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  var thSec=document.getElementById('themeSection');
+  if(p==='shopify'){thSec.classList.add('hidden');}else{thSec.classList.remove('hidden');}
+}
+
+function setTheme(t,btn){
+  theme=t; localStorage.setItem('slf_th',t);
+  document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+}
+function setChip(s,t){var c=document.getElementById('chip');c.className='s-chip s-'+s;c.textContent=t;}
+function setStep(n){
+  for(var i=1;i<=3;i++){
+    var el=document.getElementById('ps'+i);
+    el.classList.remove('done','act');
+    var ic=el.querySelector('.ps-ic');
+    if(i<n){el.classList.add('done');ic.textContent='✓';}
+    else if(i===n){el.classList.add('act');ic.textContent=i;}
+    else{ic.textContent=i;}
+  }
+}
+function kwSt(id,st,ct){
+  var r=document.getElementById('ks-'+id),c=document.getElementById('kc-'+id);
+  var d=r.querySelector('.kw-d');
+  r.classList.remove('kw-ok','kw-go','kw-no');
+  d.classList.remove('sp');
+  if(st==='go'){r.classList.add('kw-go');d.classList.add('sp');}
+  else if(st==='ok'){r.classList.add('kw-ok');}
+  else if(st==='no'){r.classList.add('kw-no');}
+  if(ct!==undefined) c.textContent=ct>0?ct+'kws':'0';
+}
+
+async function fetchAllKeywords(apiKey, productTitle){
+  var prompt='You are a keyword research expert for ecommerce.\n\n'
+  +'Product: "'+productTitle+'"\n\n'
+  +'Research the TOP buyer search keywords for this product from each platform.\n'
+  +'Use your knowledge of what buyers actually search on each platform.\n\n'
+  +'Return ONLY a valid JSON object, no explanation, no markdown:\n'
+  +'{\n'
+  +'"ebay": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"],\n'
+  +'"amazon": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"],\n'
+  +'"walmart": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"],\n'
+  +'"google": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"]\n'
+  +'}\n\n'
+  +'Rules:\n'
+  +'- Each platform must have EXACTLY 10 keywords\n'
+  +'- Keywords must be real buyer search phrases (2-6 words each)\n'
+  +'- eBay: focus on product type + specs + condition + brand\n'
+  +'- Amazon: focus on product benefits + use case + brand\n'
+  +'- Walmart: focus on everyday value + product type + size\n'
+  +'- Google: focus on informational + buying intent phrases\n'
+  +'- NO generic words like "buy" or "cheap" alone\n'
+  +'- Return ONLY the JSON, starting with {';
+
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    var d=await r.json();
+    if(d.error) throw new Error(d.error.message);
+    var txt=d.content[0].text.trim();
+    txt=txt.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+    var parsed=JSON.parse(txt);
+    return {ebay:parsed.ebay||[],amazon:parsed.amazon||[],walmart:parsed.walmart||[],google:parsed.google||[]};
+  }catch(e){
+    console.error('Keyword fetch error:',e);
+    return {ebay:[],amazon:[],walmart:[],google:[]};
+  }
+}
+
+async function claude(apiKey,prompt,maxTok){
+  var r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTok,messages:[{role:'user',content:prompt}]})
+  });
+  var d=await r.json();
+  if(d.error) throw new Error(d.error.message);
+  return d.content[0].text;
+}
+
+async function generate(){
+  var apiKey=document.getElementById('apiKey').value.trim();
+  var product=document.getElementById('productInput').value.trim();
+  var policy=document.getElementById('policyText').value.trim();
+  var store=document.getElementById('storeName').value.trim()||'Surti Store';
+  localStorage.setItem('slf_sn',store); localStorage.setItem('slf_po',policy);
+
+  if(!apiKey||apiKey.indexOf('sk-ant')!==0){showErr('⚠ API key missing. Paste your Claude key in the top bar.');return;}
+  if(!product||product.length<15){showErr('⚠ Please paste product title, description and specs.');return;}
+
+  hideErr(); setLoading(true);
+  document.getElementById('prog').classList.add('show');
+  document.getElementById('kwFound').classList.remove('show');
+  document.getElementById('emptyState').style.display='none';
+
+  // BUG FIX #3: Use classList instead of inline style to hide output
+  // inline style overrides CSS classes, so we only use classList
+  document.getElementById('output').classList.remove('show');
+
+  fullTxt=''; genHtml=''; allKws=[]; shopifyTxt='';
+
+  // STEP 1: Keywords
+  setStep(1); setChip('work','Researching keywords...');
+  ['ebay','amazon','walmart','google'].forEach(function(id){kwSt(id,'go');});
+  var q=product.split('\n')[0].replace(/title:/i,'').trim().split(' ').slice(0,7).join(' ');
+  var kwResult=await fetchAllKeywords(apiKey, q);
+  srcKws.ebay=kwResult.ebay; srcKws.amazon=kwResult.amazon;
+  srcKws.walmart=kwResult.walmart; srcKws.google=kwResult.google;
+  kwSt('ebay',  kwResult.ebay.length>0?'ok':'no', kwResult.ebay.length);
+  kwSt('amazon',kwResult.amazon.length>0?'ok':'no', kwResult.amazon.length);
+  kwSt('walmart',kwResult.walmart.length>0?'ok':'no', kwResult.walmart.length);
+  kwSt('google',kwResult.google.length>0?'ok':'no', kwResult.google.length);
+  var seen={},merged=[];
+  [kwResult.ebay,kwResult.amazon,kwResult.walmart,kwResult.google].forEach(function(arr){
+    arr.forEach(function(kw){var k=kw.toLowerCase().trim();if(!seen[k]&&k.length>2){seen[k]=1;merged.push(kw);}});
+  });
+  allKws=merged.slice(0,30);
+
+  if(allKws.length>0){
+    var totalRaw=srcKws.ebay.length+srcKws.amazon.length+srcKws.walmart.length+srcKws.google.length;
+    var kf=document.getElementById('kwFound');
+    kf.innerHTML='<div class="kw-ft">✓ '+totalRaw+' Keywords Fetched ('+allKws.length+' Unique After Removing Duplicates)</div>'
+      +allKws.map(function(k){return '<span class="kw-pill">'+k+'</span>';}).join('');
+    kf.classList.add('show');
+  }
+
+  // STEP 2: Generate listing based on platform
+  setStep(2); setChip('work','Writing SEO listing...');
+
+  var ebayListingText='', shopifyListingText='';
+
+  // eBay generation
+  if(platform==='ebay'){
+    var kwLine=allKws.length>0?'\n\nREAL BUYER KEYWORDS (use these naturally):\n'+allKws.join(' | '):'';
+    var ebayPrompt='You are a world-class E-commerce SEO Copywriter for dropshipping. Everything must be 2026-ready.\n\n'
+    +'TARGET PLATFORM: eBay ONLY. Optimize for eBay Cassini algorithm. No Shopify content.'
+    +kwLine+'\n\n'
+    +'Transform the raw sourcing data below into a polished, 100% SEO-optimized listing.\n'
+    +'Use EXACTLY these section headers with === markers:\n\n'
+    +'=== BRAND CHECK ===\n'
+    +'Brand: [name] | Recognition: [Global/Regional/Unknown] | Decision: [Keep in title / Removed — replaced with keywords]\n\n'
+    +'=== TITLE ===\n'
+    +'eBay Title (75-80 chars exactly, NO punctuation at all, keyword stacking):\n[title]\n\n'
+    +'=== DESCRIPTION ===\n'
+    +'Two compelling paragraphs. Hook para: address buyer pain point, **bold the product name** and **2-3 key benefits**, mention 2026. Value para: use cases, why buy now.\n\n'
+    +'=== KEY FEATURES ===\n'
+    +'Exactly 8 bullets: ✅ [Buyer Benefit] — [Technical Detail]\n\n'
+    +'=== SPECIFICATIONS ===\n'
+    +'IMPORTANT: Write each spec on its own line using ONLY this format: "Label: Value"\n'
+    +'Do NOT use markdown tables, pipes, or dashes. Example:\n'
+    +'Brand: Golden Rewards\n'
+    +'Material: Natural Duck\n'
+    +'Weight: 16oz\n'
+    +'Color: Brown\n'
+    +'Pack Size: 1 Pack\n\n'
+    +'=== PRO TIPS ===\n'
+    +'5 specific, practical tips. Build confidence, reduce return anxiety.\n\n'
+    +'=== IDEAL FOR ===\n'
+    +'12 use-case tags, one per line with — prefix\n\n'
+    +'=== POLICIES ===\n'
+    +policy+'\n\n'
+    +'=== SEO METADATA ===\n'
+    +'Meta Title: (under 60 chars, primary keyword first)\n'
+    +'Meta Description: (50-160 chars, strong CTA)\n'
+    +'URL Handle: (under 60 chars, lowercase, dashes only)\n\n'
+    +'=== TAGS ===\n'
+    +'eBay Backend Keywords: (10 high-buyer-intent terms, comma separated)\n'
+    +'Social Hashtags: (10 hashtags for Instagram/TikTok/Pinterest)\n\n'
+    +'=== RAW SOURCE DATA ===\n'+product;
+
+    try{ebayListingText=await claude(apiKey,ebayPrompt,3000);fullTxt=ebayListingText;}
+    catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
+  }
+
+  // Shopify generation
+  if(platform==='shopify'){
+    var kwLineShopify=allKws.length>0?'\n\nTRENDING BUYER KEYWORDS TO INTEGRATE:\n'+allKws.join(', '):'';
+    var shopifyPrompt='You are a world-class Shopify SEO Copywriter for 2026.\n\n'
+    +'TARGET PLATFORM: Shopify ONLY.\n'
+    +kwLineShopify+'\n\n'
+    +'ABSOLUTE FORMATTING RULES — ZERO EXCEPTIONS:\n'
+    +'1. NO markdown whatsoever. Not a single *, **, #, >, `, ~, _\n'
+    +'2. NO hyphens or dashes as list markers. Not "- item", not "-- item"\n'
+    +'3. NO em dashes or en dashes (no — or –) anywhere in the text\n'
+    +'4. NO decorative symbols or emoji in headings\n'
+    +'5. Section headings: ALL CAPS on their own line, blank line after\n'
+    +'6. Feature and spec lists: use plain numbers with a dot: "1. text", "2. text"\n'
+    +'7. Everything else: plain sentences, no formatting at all\n\n'
+    +'Write the listing in this exact structure:\n\n'
+    +'SHOPIFY TITLE\n\n'
+    +'[50-70 char title. Natural language. Primary keyword first. No punctuation tricks.]\n\n'
+    +'DESCRIPTION\n\n'
+    +'[Para 1: Open with main buyer pain point. Naturally mention product name and top 2-3 benefits. Include year 2026. Plain sentences only.]\n\n'
+    +'[Para 2: Use cases and buying reasons. Plain sentences only.]\n\n'
+    +'KEY FEATURES\n\n'
+    +'1. [Benefit: Technical detail]\n'
+    +'2. [Benefit: Technical detail]\n'
+    +'3. [Benefit: Technical detail]\n'
+    +'4. [Benefit: Technical detail]\n'
+    +'5. [Benefit: Technical detail]\n'
+    +'6. [Benefit: Technical detail]\n'
+    +'7. [Benefit: Technical detail]\n'
+    +'8. [Benefit: Technical detail]\n\n'
+    +'SPECIFICATIONS\n\n'
+    +'Brand: [value]\n'
+    +'Material: [value]\n'
+    +'Weight: [value]\n'
+    +'Color: [value]\n'
+    +'Dimensions: [value]\n'
+    +'Pack Size: [value]\n'
+    +'[Add all relevant specs from source data in "Label: Value" format]\n\n'
+    +'SHIPPING AND RETURNS\n\n'
+    +policy.replace(/[🚚🆓🔄*_#]/g,'').trim()+'\n\n'
+    +'SEO METADATA\n\n'
+    +'Meta Title: [STRICT: under 30 characters. Count carefully. Primary keyword first.]\n'
+    +'Meta Description: [STRICT: over 160 characters. Strong CTA. Keyword-rich. Count carefully.]\n'
+    +'URL Handle: [lowercase, hyphens only, under 60 chars]\n\n'
+    +'SHOPIFY TAGS\n\n'
+    +'[15-20 comma-separated tags. Product type, use cases, material, brand, buyer intent. No hashtags. Example: dog treats, natural dog food, grain free treats]\n\n'
+    +'SOCIAL HASHTAGS\n\n'
+    +'[10 hashtags for Instagram TikTok Pinterest. Example: #dogtreats #petlovers #dogsofinstagram]\n\n'
+    +'RAW SOURCE DATA:\n'+product;
+
+    try{shopifyListingText=await claude(apiKey,shopifyPrompt,2500);shopifyTxt=shopifyListingText;}
+    catch(e){showErr('API Error (Shopify): '+e.message);setLoading(false);return;}
+  }
+
+  // STEP 3: Build HTML (eBay only)
+  setStep(3); setChip('work','Building output...');
+
+  if(platform==='ebay'){
+    try{genHtml=buildHtmlFromListing(ebayListingText, store, theme);}
+    catch(e){genHtml='<html><body style="font-family:sans-serif;padding:40px;color:#333"><h2>HTML build error</h2><p>'+e.message+'</p></body></html>';}
+  }
+
+  // Render output
+  if(platform==='ebay'){
+    renderEbayOnly(ebayListingText);
+  } else {
+    renderShopifyOnly(shopifyListingText);
+  }
+
+  renderKeywords();
+
+  setLoading(false);
+  document.getElementById('prog').classList.remove('show');
+
+  // BUG FIX #4: Show output using ONLY classList (no inline style interference)
+  document.getElementById('output').classList.add('show');
+
+  setChip('done','Done!');
+
+  // Scroll to output
+  setTimeout(function(){
+    var mainEl=document.getElementById('mainArea');
+    var outputEl=document.getElementById('output');
+    mainEl.scrollTo({top: outputEl.offsetTop - 10, behavior:'smooth'});
+  },80);
+}
+
+function renderEbayOnly(listingText){
+  document.getElementById('outSplit').classList.remove('shopify-only');
+  document.getElementById('lPane').classList.remove('full-width');
+  document.getElementById('hPane').style.display='flex';
+  document.getElementById('lPaneTitle').textContent='📋 eBay SEO Listing';
+  renderListing(listingText);
+  renderHtml(genHtml);
+}
+
+function renderShopifyOnly(shopifyText){
+  document.getElementById('outSplit').classList.add('shopify-only');
+  document.getElementById('lPane').classList.add('full-width');
+  document.getElementById('hPane').style.display='none';
+  document.getElementById('lPaneTitle').textContent='🛍 Shopify Listing — Copy & Paste Ready';
+  renderShopifyListing(shopifyText);
+}
+
+function parseShopifySections(text){
+  var KEYS=['SHOPIFY TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','SHIPPING AND RETURNS','SEO METADATA','SHOPIFY TAGS','SOCIAL HASHTAGS'];
+  var out={};
+  var cur=null, buf=[];
+  var lines=text.split('\n');
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    var trimmed=line.trim().toUpperCase();
+    var matched=false;
+    for(var ki=0;ki<KEYS.length;ki++){
+      if(trimmed===KEYS[ki]){
+        if(cur) out[cur]=buf.join('\n').trim();
+        cur=KEYS[ki]; buf=[]; matched=true; break;
+      }
+    }
+    if(!matched&&cur) buf.push(line);
+  }
+  if(cur) out[cur]=buf.join('\n').trim();
+  return out;
+}
+
+function cleanShopifyText(text){
+  if(!text) return '';
+  return text
+    .replace(/\*\*(.*?)\*\*/g,'$1')
+    .replace(/\*(.*?)\*/g,'$1')
+    .replace(/^#+\s*/gm,'')
+    .replace(/^>\s*/gm,'')
+    .replace(/`([^`]*)`/g,'$1')
+    .replace(/^\s*[-]{2,}\s*$/gm,'')
+    .replace(/^(\s*)[-–—]\s+/gm,'$1')
+    .replace(/\s*[—–]\s*/g,' ')
+    .trim();
+}
+
+function renderShopifyListing(shopifyText){
+  var tabsEl=document.getElementById('stabs');
+  var cntEl=document.getElementById('secCnt');
+  tabsEl.innerHTML=''; cntEl.innerHTML='';
+
+  var S=parseShopifySections(shopifyText);
+  Object.keys(S).forEach(function(k){S[k]=cleanShopifyText(S[k]);});
+
+  var bannerHtml='<div class="shopify-banner">'
+    +'<strong>Shopify Ready</strong> — Yeh content seedha Shopify description field mein paste karein. '
+    +'Plain text hai, koi formatting symbols nahi. Aap khud Shopify mein headings bold aur features ko bullet points de sakte hain.'
+    +'</div>';
+
+  var fullShopifyClean=buildShopifyPlainText(S);
+  shopifyTxt=fullShopifyClean;
+
+  var sectionDefs=[
+    {key:'SHOPIFY TITLE',        label:'Title',       color:'cS'},
+    {key:'DESCRIPTION',          label:'Description', color:'c2'},
+    {key:'KEY FEATURES',         label:'Features',    color:'c3'},
+    {key:'SPECIFICATIONS',       label:'Specs',       color:'c4'},
+    {key:'SHIPPING AND RETURNS', label:'Shipping',    color:'c5'},
+    {key:'SEO METADATA',         label:'SEO Meta',    color:'cS'},
+    {key:'SHOPIFY TAGS',         label:'Tags',        color:'c1'},
+    {key:'SOCIAL HASHTAGS',      label:'Hashtags',    color:'c2'},
+  ];
+
+  var allTab=document.createElement('button');
+  allTab.className='stab shopify-tab on';
+  allTab.textContent='Full Listing';
+  allTab.onclick=(function(b){return function(){
+    document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
+    document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
+    b.classList.add('on');
+    document.getElementById('shopify-all-sec').classList.add('on');
+  };})(allTab);
+  tabsEl.appendChild(allTab);
+
+  var allDiv=document.createElement('div');
+  allDiv.className='ssec on'; allDiv.id='shopify-all-sec';
+  allDiv.innerHTML=bannerHtml
+    +'<div class="shopify-preview-box">'
+    +'<div class="ob-hdr"><span class="ob-lbl cS">Complete Shopify Listing</span>'
+    +'<button class="ib green" onclick="cpTxt(shopifyTxt,this)">Copy All</button></div>'
+    +'<div class="shopify-copy-area">'+escHtml(fullShopifyClean)+'</div>'
+    +'</div>';
+  cntEl.appendChild(allDiv);
+
+  sectionDefs.forEach(function(sd, i){
+    var content=S[sd.key];
+    if(!content) return;
+
+    var tb=document.createElement('button');
+    tb.className='stab shopify-tab';
+    tb.textContent=sd.label;
+    tb.onclick=(function(b, sid){return function(){
+      document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
+      document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
+      b.classList.add('on');
+      document.getElementById(sid).classList.add('on');
+    };})(tb, 'shopify-sec-'+i);
+    tabsEl.appendChild(tb);
+
+    var div=document.createElement('div');
+    div.className='ssec'; div.id='shopify-sec-'+i;
+
+    var displayContent=content;
+    if(sd.key==='SEO METADATA'){
+      var lines=content.split('\n');
+      var annotated=lines.map(function(line){
+        var mt=line.match(/^Meta Title:\s*(.+)/i);
+        var md=line.match(/^Meta Description:\s*(.+)/i);
+        if(mt){var len=mt[1].trim().length;var ok=len<30;return line+'\n('+len+' chars — '+(ok?'GOOD':'TOO LONG, must be under 30')+')';}
+        if(md){var len2=md[1].trim().length;var ok2=len2>160;return line+'\n('+len2+' chars — '+(ok2?'GOOD':'TOO SHORT, must be over 160')+')';}
+        return line;
+      });
+      displayContent=annotated.join('\n');
+    }
+
+    var safeContent=content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+    div.innerHTML='<div class="shopify-preview-box">'
+      +'<div class="ob-hdr"><span class="ob-lbl '+sd.color+'">'+sd.label+'</span>'
+      +'<button class="ib green" onclick="cpTxt(`'+safeContent+'`,this)">Copy</button></div>'
+      +'<div class="shopify-copy-area">'+escHtml(displayContent)+'</div>'
+      +'</div>';
+    cntEl.appendChild(div);
+  });
+}
+
+function buildShopifyPlainText(S){
+  var parts=[];
+  var order=['SHOPIFY TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','SHIPPING AND RETURNS','SEO METADATA','SHOPIFY TAGS','SOCIAL HASHTAGS'];
+  var labels={
+    'SHOPIFY TITLE':'TITLE',
+    'DESCRIPTION':'DESCRIPTION',
+    'KEY FEATURES':'KEY FEATURES',
+    'SPECIFICATIONS':'SPECIFICATIONS',
+    'SHIPPING AND RETURNS':'SHIPPING AND RETURNS',
+    'SEO METADATA':'SEO METADATA',
+    'SHOPIFY TAGS':'SHOPIFY TAGS',
+    'SOCIAL HASHTAGS':'SOCIAL HASHTAGS'
+  };
+  order.forEach(function(key){
+    if(S[key]){
+      parts.push(labels[key]);
+      parts.push('');
+      parts.push(S[key]);
+      parts.push('');
+      parts.push('');
+    }
+  });
+  return parts.join('\n');
+}
+
+function parseListingSections(text){
+  var KEYS=['BRAND CHECK','TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var out={};
+  var cur=null, buf=[];
+  text.split('\n').forEach(function(line){
+    var cl = line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
+    if(KEYS.indexOf(cl) > -1){if(cur) out[cur] = buf.join('\n').trim(); cur = cl; buf = [];}
+    else if(cur){ buf.push(line); }
+  });
+  if(cur) out[cur] = buf.join('\n').trim();
+  return out;
+}
+
+function parseSpecs(specsRaw){
+  var lines = specsRaw.split('\n');
+  var result = [];
+  lines.forEach(function(line){
+    var l = line.trim();
+    if(!l || l.length < 3) return;
+    if(/^[\|\s\-:]+$/.test(l)) return;
+    if(l.charAt(0) === '|'){
+      var cells = l.split('|').map(function(c){return c.trim();}).filter(function(c){return c.length > 0;});
+      if(cells.length >= 2){
+        var label = cells[0].replace(/\*\*/g,'');
+        var val = cells[1].replace(/\*\*/g,'');
+        if(label.toLowerCase() === 'specification' || label.toLowerCase() === 'spec' || label.toLowerCase() === 'label') return;
+        if(label && val && val !== '-' && val !== '—'){result.push({label: label, value: val});}
+      }
+      return;
+    }
+    if(l.indexOf(':') > -1){
+      var idx = l.indexOf(':');
+      var label2 = l.slice(0, idx).replace(/^[-•*]\s*/,'').replace(/\*\*/g,'').trim();
+      var val2 = l.slice(idx+1).trim();
+      if(label2 && val2 && label2.length < 40 && val2.length > 0){result.push({label: label2, value: val2});}
+      return;
+    }
+  });
+  return result;
+}
+
+function escHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildHtmlFromListing(listingText, storeName, themeName){
+  var S = parseListingSections(listingText);
+  var themes={
+    heritage:{bg:'#0A0F12',card:'#111C16',borderColor:'rgba(74,107,58,0.35)',acc:'#6aA550',acc2:'#B87B3A',txt:'#C9D8C5',h1grad:'#FFFFFF,#B8D4A8',badge:'rgba(74,107,58,0.18)',badgeTxt:'#7EC062',rowBorder:'rgba(74,107,58,0.22)',name:'Heritage'},
+    modern:  {bg:'#0A0A14',card:'#101020',borderColor:'rgba(139,124,248,0.3)',acc:'#8b7cf8',acc2:'#4fd1c5',txt:'#C9CDE8',h1grad:'#FFFFFF,#C4BCFA',badge:'rgba(139,124,248,0.15)',badgeTxt:'#A89BFA',rowBorder:'rgba(139,124,248,0.2)',name:'Modern'},
+    clean:   {bg:'#0A0F1A',card:'#121926',borderColor:'rgba(220,90,30,0.25)',acc:'#DC5A1E',acc2:'#0891b2',txt:'#C9D1DF',h1grad:'#FFFFFF,#DCBC9A',badge:'rgba(220,90,30,0.15)',badgeTxt:'#DC5A1E',rowBorder:'rgba(220,90,30,0.18)',name:'Clean'},
+    luxury:  {bg:'#06060A',card:'#0E0E10',borderColor:'rgba(212,175,55,0.3)',acc:'#d4af37',acc2:'#c8963c',txt:'#C8C4A8',h1grad:'#FFFFFF,#D4AF37',badge:'rgba(212,175,55,0.15)',badgeTxt:'#D4AF37',rowBorder:'rgba(212,175,55,0.2)',name:'Luxury'},
+  };
+  var T = themes[themeName] || themes.heritage;
+
+  var titleBlock = S['TITLE'] || '';
+  var ebayTitle = '';
+  function cleanTitleCandidate(s){
+    return s.replace(/```+/g,'').replace(/\*\*/g,'').replace(/^(ebay\s+)?title\s*(\(.*?\))?\s*[:\-]\s*/i,'').replace(/^\(.*?\)\s*/,'').trim();
+  }
+  var titleLines = titleBlock.split('\n');
+  var foundAfterLabel = false;
+  for(var ti=0; ti < titleLines.length; ti++){
+    var tl = titleLines[ti];
+    if(/eBay\s+Title/i.test(tl) || /^Title\s*[:\(]/i.test(tl)){
+      var inlineM = tl.match(/(?:eBay\s+Title|Title)\s*(?:\(.*?\))?\s*[:\-]\s*(.+)/i);
+      if(inlineM){var candidate = cleanTitleCandidate(inlineM[1]);if(candidate.length > 5 && !/chars|keyword stacking|NO punctuation|natural language/i.test(candidate)){ebayTitle = candidate; foundAfterLabel = true; break;}}
+      for(var tj=ti+1; tj < titleLines.length; tj++){var nextLine = cleanTitleCandidate(titleLines[tj]);if(nextLine.length > 5 && !/chars|keyword stacking|NO punctuation|natural language|\[/i.test(nextLine)){ebayTitle = nextLine; foundAfterLabel = true; break;}}
+      if(foundAfterLabel) break;
+    }
+  }
+  if(!ebayTitle){for(var ti2=0; ti2 < titleLines.length; ti2++){var candidate2 = cleanTitleCandidate(titleLines[ti2]);if(candidate2.length > 15 && !/chars|keyword stacking|NO punctuation|natural language|\[ebay|\[shopify|\[title/i.test(candidate2)){ebayTitle = candidate2; break;}}}
+  if(!ebayTitle) ebayTitle = 'Premium Product';
+
+  var descRaw = S['DESCRIPTION'] || '';
+  var descParas = descRaw.split(/\n\n+/).filter(function(p){return p.trim().length > 20;}).slice(0,2);
+  function fmtDesc(p){return p.trim().replace(/\*\*(.*?)\*\*/g,'<strong style="color:'+T.acc+'">$1</strong>');}
+  var featLines = (S['KEY FEATURES'] || '').split('\n').filter(function(l){return l.trim().length > 5;}).slice(0,8);
+  var specParsed = parseSpecs(S['SPECIFICATIONS'] || '');
+  var tipsRaw = S['PRO TIPS'] || '';
+  var tipBlocks = [];
+  var currentBlock = [];
+  tipsRaw.split('\n').forEach(function(line){
+    var l = line.trim(); if(!l) return;
+    var isNewTip = /^\d+[\.\)]\s+/.test(l) || (/^\*\*/.test(l) && currentBlock.length > 0);
+    if(isNewTip && currentBlock.length > 0){tipBlocks.push(currentBlock.join(' ')); currentBlock = [l];} else {currentBlock.push(l);}
+  });
+  if(currentBlock.length > 0) tipBlocks.push(currentBlock.join(' '));
+  tipBlocks = tipBlocks.slice(0,5);
+  var parsedTips = tipBlocks.map(function(raw){
+    var clean = raw.replace(/^\d+[\.\)]\s*/,'').replace(/\*\*/g,'').trim();
+    var sepIdx = clean.search(/\s[—–]\s|\s:\s/);
+    var title, body;
+    if(sepIdx > -1){title = clean.slice(0, sepIdx).trim(); body = clean.slice(sepIdx).replace(/^\s*[—–:]\s*/,'').trim();}
+    else{var dotIdx = clean.indexOf('. ');if(dotIdx > 10){title = clean.slice(0, dotIdx+1).trim(); body = clean.slice(dotIdx+1).trim();}else{title = clean; body = '';}}
+    return {title: title, body: body};
+  });
+  var tagLines = (S['IDEAL FOR'] || '').split('\n').map(function(l){return l.replace(/^[-–•]\s*/,'').trim();}).filter(function(l){return l.length > 2;}).slice(0,12);
+  var polLines = (S['POLICIES'] || '').split('\n').filter(function(l){return l.trim().length > 5;}).slice(0,4);
+  var brandCheck = S['BRAND CHECK'] || '';
+  var badgeTxt = '✦ PREMIUM QUALITY · 2026';
+  var bm2 = brandCheck.match(/Brand:\s*([^|]+)/i);
+  if(bm2) badgeTxt = '🏷 ' + bm2[1].trim().toUpperCase() + ' · VERIFIED 2026';
+
+  var css = '*{margin:0;padding:0;box-sizing:border-box;}'
+  +'body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:'+T.bg+';color:'+T.txt+';line-height:1.5;}'
+  +'.wrap{max-width:1280px;margin:0 auto;padding:2rem 1.5rem;}'
+  +'.section{margin-bottom:2rem;background:'+T.card+';border-radius:28px;padding:1.8rem 2rem;border:1px solid '+T.borderColor+';box-shadow:0 20px 35px -10px rgba(0,0,0,0.5);}'
+  +'.sec-title{font-size:1.6rem;font-weight:700;letter-spacing:-0.3px;margin-bottom:1.2rem;display:inline-block;background:linear-gradient(135deg,'+T.h1grad+');-webkit-background-clip:text;background-clip:text;color:transparent;border-left:4px solid '+T.acc+';padding-left:1rem;}'
+  +'.desc-text{font-size:1rem;line-height:1.65;color:'+T.txt+';margin-bottom:1rem;}'
+  +'.features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.9rem;margin-top:0.5rem;}'
+  +'.feature-item{display:flex;align-items:center;gap:12px;background:'+T.bg+';padding:0.9rem 1.2rem;border-radius:20px;border:1px solid '+T.rowBorder+';transition:border-color 0.2s;}'
+  +'.feature-item:hover{border-color:'+T.acc+';}'
+  +'.specs-container{background:'+T.bg+';border-radius:24px;border:1px solid '+T.rowBorder+';overflow:hidden;}'
+  +'.spec-row{display:flex;flex-wrap:wrap;padding:1rem 1.4rem;border-bottom:1px solid '+T.rowBorder+';}'
+  +'.spec-row:last-child{border-bottom:none;}'
+  +'.spec-label{width:34%;font-weight:700;color:'+T.acc+';font-size:0.88rem;}'
+  +'.spec-value{width:66%;color:'+T.txt+';font-size:0.88rem;}'
+  +'.pro-tip-card{background:'+T.bg+';border-radius:20px;padding:1.1rem 1.5rem;margin-bottom:1rem;border-left:4px solid '+T.acc+';display:flex;gap:14px;}'
+  +'.tip-num{font-weight:800;font-size:1.2rem;color:'+T.acc+';opacity:0.9;min-width:36px;flex-shrink:0;}'
+  +'.tip-body{font-size:0.9rem;color:'+T.txt+';line-height:1.65;}'
+  +'.tip-body strong{color:'+T.acc+';}'
+  +'.tag-cloud{display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:0.8rem;}'
+  +'.tag{background:'+T.bg+';padding:0.35rem 1rem;border-radius:30px;font-size:0.7rem;font-weight:500;color:'+T.txt+';border:1px solid '+T.rowBorder+';transition:0.1s;cursor:default;}'
+  +'.tag:hover{border-color:'+T.acc+';color:'+T.acc+';}'
+  +'.policy-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;background:'+T.bg+';border-radius:28px;padding:1rem 1.8rem;border:1px solid '+T.rowBorder+';margin-top:0.5rem;}'
+  +'.policy-item{display:flex;align-items:center;gap:8px;font-weight:500;font-size:0.85rem;color:'+T.txt+';}'
+  +'@media(max-width:780px){.features-grid{grid-template-columns:1fr;}.spec-label,.spec-value{width:100%;}.spec-row{flex-direction:column;}.wrap{padding:1rem;}.section{padding:1.2rem;}}';
+
+  var heroHtml = '<div class="section" style="background:linear-gradient(125deg,'+T.card+' 0%,'+T.bg+' 100%);border:1px solid '+T.borderColor+';box-shadow:0 25px 40px -12px rgba(0,0,0,0.55);">'
+  +'<div style="display:inline-flex;align-items:center;gap:8px;background:'+T.badge+';backdrop-filter:blur(4px);padding:0.25rem 1.2rem;border-radius:40px;font-size:0.7rem;font-weight:700;letter-spacing:1px;color:'+T.badgeTxt+';text-transform:uppercase;margin-bottom:1rem;border:1px solid '+T.borderColor+';">'+escHtml(badgeTxt)+'</div>'
+  +'<h1 style="font-size:2.6rem;font-weight:800;line-height:1.25;background:linear-gradient(135deg,'+T.h1grad+');-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:1rem;">'+escHtml(ebayTitle)+'</h1>'
+  +'</div>';
+
+  var descHtml = '';
+  if(descParas.length > 0){
+    descHtml = '<div class="section"><div class="sec-title">⟡ DESCRIPTION</div>'
+      + descParas.map(function(p){return '<p class="desc-text">'+fmtDesc(p)+'</p>';}).join('')
+      + '</div>';
+  }
+
+  var featSectionHtml = '';
+  if(featLines.length > 0){
+    var fGrid = '<div class="features-grid">';
+    featLines.forEach(function(f){
+      var clean = f.replace(/^✅\s*/,'').replace(/^[-•]\s*/,'');
+      var parts = clean.split(/\s*—\s*/);
+      var benefit = parts[0] || clean;
+      var detail = parts[1] || '';
+      var icon = f.indexOf('✅') > -1 ? '✅' : '🔩';
+      fGrid += '<div class="feature-item">'
+        +'<span style="font-size:1.2rem;color:'+T.acc+';flex-shrink:0;">'+icon+'</span>'
+        +'<span style="font-weight:500;color:'+T.txt+';font-size:0.92rem;"><strong style="color:'+T.acc+';">'+escHtml(benefit)+'</strong>'+(detail?' — <span style="opacity:0.8;">'+escHtml(detail)+'</span>':'')+'</span>'
+        +'</div>';
+    });
+    fGrid += '</div>';
+    featSectionHtml = '<div class="section"><div class="sec-title">⟡ KEY FEATURES</div>'+fGrid+'</div>';
+  }
+
+  var specsSectionHtml = '';
+  if(specParsed.length > 0){
+    var sRows = '<div class="specs-container">';
+    specParsed.forEach(function(sp){
+      sRows += '<div class="spec-row"><div class="spec-label">'+escHtml(sp.label)+'</div><div class="spec-value">'+escHtml(sp.value)+'</div></div>';
+    });
+    sRows += '</div>';
+    specsSectionHtml = '<div class="section"><div class="sec-title">⟡ TECHNICAL SPECIFICATIONS</div>'+sRows+'</div>';
+  }
+
+  var tipsSectionHtml = '';
+  if(parsedTips.length > 0){
+    var tCards = parsedTips.map(function(tip, i){
+      return '<div class="pro-tip-card">'
+        +'<div class="tip-num">0'+(i+1)+'</div>'
+        +'<div class="tip-body"><strong>'+escHtml(tip.title)+'</strong>'+(tip.body?' — '+escHtml(tip.body):'')+'</div>'
+        +'</div>';
+    }).join('');
+    tipsSectionHtml = '<div class="section"><div class="sec-title">⟡ PROFESSIONAL USAGE TIPS</div>'+tCards+'</div>';
+  }
+
+  var idealSectionHtml = '';
+  if(tagLines.length > 0){
+    idealSectionHtml = '<div class="section"><div class="sec-title">⟡ IDEAL FOR</div><div class="tag-cloud">'
+      + tagLines.map(function(t){return '<span class="tag">'+escHtml(t)+'</span>';}).join('')
+      + '</div></div>';
+  }
+
+  var polSectionHtml = '';
+  if(polLines.length > 0){
+    var pItems = polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('');
+    polSectionHtml = '<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+pItems+'</div></div>';
+  }
+
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+  +'<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
+  +'<title>'+escHtml(ebayTitle)+'</title>\n'
+  +'<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+  +'<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n'
+  +'<style>'+css+'</style>\n'
+  +'</head>\n<body>\n<div class="wrap">\n'
+  + heroHtml + descHtml + featSectionHtml + specsSectionHtml + tipsSectionHtml + idealSectionHtml + polSectionHtml
+  +'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rowBorder+';margin-top:0.5rem;">© 2026 — '+escHtml(storeName)+' | Premium Quality Products</div>'
+  +'\n</div>\n</body>\n</html>';
+}
+
+function renderKeywords(){
+  var sources=[
+    {id:'ebay',  label:'eBay',    icon:'🏪', color:'#f0c060', bg:'rgba(240,192,96,0.07)',  bdr:'rgba(240,192,96,0.2)'},
+    {id:'amazon',label:'Amazon',  icon:'📦', color:'#fb923c', bg:'rgba(251,146,60,0.07)',  bdr:'rgba(251,146,60,0.2)'},
+    {id:'walmart',label:'Walmart',icon:'🛒', color:'#60a5fa', bg:'rgba(96,165,250,0.07)',  bdr:'rgba(96,165,250,0.2)'},
+    {id:'google', label:'Google', icon:'🔍', color:'#4ade80', bg:'rgba(74,222,128,0.07)',  bdr:'rgba(74,222,128,0.2)'},
+  ];
+  var tabsEl=document.getElementById('stabs');
+  var cntEl=document.getElementById('secCnt');
+  var oldTab=document.getElementById('kw-tab-btn');
+  var oldSec=document.getElementById('kw-tab-sec');
+  if(oldTab) oldTab.remove();
+  if(oldSec) oldSec.remove();
+
+  var tb=document.createElement('button');
+  tb.className='stab';
+  tb.id='kw-tab-btn';
+  tb.innerHTML='🔑 Keywords';
+  tb.style.borderColor='rgba(212,168,71,0.4)';
+  tb.style.color='var(--gold)';
+  tb.onclick=function(){
+    document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
+    document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
+    tb.classList.add('on');
+    document.getElementById('kw-tab-sec').classList.add('on');
+  };
+  tabsEl.appendChild(tb);
+
+  var totalRaw=srcKws.ebay.length+srcKws.amazon.length+srcKws.walmart.length+srcKws.google.length;
+  var totalFound=allKws.length;
+  var html='<div class="ssec" id="kw-tab-sec">';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:10px 14px;background:rgba(212,168,71,0.07);border:1px solid rgba(212,168,71,0.2);border-radius:10px;">'
+    +'<div style="font-size:11px;color:var(--gold);font-weight:600;">✦ '+totalRaw+' Keywords Fetched (4 platforms x 10 each)</div>'
+    +'<div style="font-size:10px;color:var(--dim);">'+totalFound+' unique used</div>'
+    +'</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+  sources.forEach(function(src){
+    var kws=srcKws[src.id]||[];
+    html+='<div style="background:'+src.bg+';border:1px solid '+src.bdr+';border-radius:10px;padding:13px;">';
+    html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">';
+    html+='<span style="font-size:15px;">'+src.icon+'</span>';
+    html+='<span style="font-size:11px;font-weight:600;color:'+src.color+';text-transform:uppercase;letter-spacing:0.1em;">'+src.label+'</span>';
+    html+='<span style="margin-left:auto;font-size:10px;color:var(--dim);font-family:\'Geist Mono\',monospace;">'+kws.length+' kws</span>';
+    html+='</div>';
+    if(kws.length>0){
+      kws.slice(0,10).forEach(function(kw,i){
+        html+='<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+          +'<span style="font-size:9px;color:var(--dim);font-family:\'Geist Mono\',monospace;width:14px;">'+(i+1)+'.</span>'
+          +'<span style="font-size:11px;color:var(--snow);">'+kw+'</span>'
+          +'</div>';
+      });
+    } else {
+      html+='<div style="font-size:11px;color:var(--dim);padding:8px 0;">No keywords fetched</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  if(platform==='ebay'){
+    html+='<div style="margin-top:14px;padding:10px 14px;background:rgba(45,212,191,0.05);border:1px solid rgba(45,212,191,0.15);border-radius:8px;font-size:11px;color:var(--teal);">'
+      +'<span style="font-weight:600;">Verification:</span> Open the Description tab — fetched keywords appear highlighted in gold bold inside the listing copy.'
+      +'</div>';
+  }
+  html+='</div>';
+  cntEl.insertAdjacentHTML('beforeend', html);
+}
+
+function highlightKeywords(text, keywords){
+  if(!keywords||keywords.length===0||allKws.length===0) return text;
+  var sorted=keywords.slice().sort(function(a,b){return b.length-a.length;});
+  sorted.forEach(function(kw){
+    if(kw.length<4) return;
+    var escaped=kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    var re=new RegExp('(?![^<]*>)(?![^<]*<\/strong)\\b('+escaped+')\\b','gi');
+    text=text.replace(re,'<strong style="color:var(--gold2);background:rgba(212,168,71,0.12);padding:0 3px;border-radius:3px;font-family:\'Geist Mono\',monospace;font-size:11px;">$1</strong>');
+  });
+  return text;
+}
+
+function renderListing(text){
+  var KEYS=['BRAND CHECK','TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var META={
+    'BRAND CHECK':{l:'Brand',c:'c4'},
+    'TITLE':{l:'Title',c:'c1'},
+    'DESCRIPTION':{l:'Description',c:'c2'},
+    'KEY FEATURES':{l:'Features',c:'c3'},
+    'SPECIFICATIONS':{l:'Specs',c:'c4'},
+    'PRO TIPS':{l:'Pro Tips',c:'c5'},
+    'IDEAL FOR':{l:'Ideal For',c:'c2'},
+    'POLICIES':{l:'Policies',c:'c3'},
+    'SEO METADATA':{l:'SEO Meta',c:'c5'},
+    'TAGS':{l:'Tags',c:'c1'}
+  };
+
+  var parsed=[], cur=null, buf=[];
+  text.split('\n').forEach(function(line){
+    var cl = line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
+    if(KEYS.indexOf(cl) > -1){if(cur) parsed.push({key:cur, content:buf.join('\n').trim()}); cur=cl; buf=[];}
+    else if(cur){ buf.push(line); }
+  });
+  if(cur) parsed.push({key:cur, content:buf.join('\n').trim()});
+  if(parsed.length===0) parsed.push({key:'LISTING',content:text});
+
+  var tabsEl=document.getElementById('stabs'), cntEl=document.getElementById('secCnt');
+  tabsEl.innerHTML=''; cntEl.innerHTML='';
+
+  parsed.forEach(function(sec,i){
+    if(!sec.content) return;
+    var m=META[sec.key]||{l:sec.key,c:'c2'};
+    var tb=document.createElement('button');
+    tb.className='stab'+(i===0?' on':'');
+    tb.textContent=m.l;
+    tb.onclick=(function(idx,b){return function(){
+      document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
+      document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
+      b.classList.add('on');
+      document.getElementById('ss'+idx).classList.add('on');
+    };})(i,tb);
+    tabsEl.appendChild(tb);
+
+    var div=document.createElement('div');
+    div.className='ssec'+(i===0?' on':'');
+    div.id='ss'+i;
+
+    var escaped=sec.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var fmt=escaped.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/✅/g,'<span style="color:var(--teal)">✅</span>');
+    if(sec.key==='DESCRIPTION'||sec.key==='KEY FEATURES'){fmt=highlightKeywords(fmt, allKws);}
+
+    var safe=sec.content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+    div.innerHTML='<div class="ob"><div class="ob-hdr"><span class="ob-lbl '+m.c+'">'+m.l+'</span>'
+      +'<button class="ib" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div>'
+      +'<div class="ob-body">'+fmt+'</div></div>';
+    cntEl.appendChild(div);
+  });
+}
+
+function renderHtml(html){
+  var blob=new Blob([html],{type:'text/html'});
+  document.getElementById('htmlFrame').src=URL.createObjectURL(blob);
+  document.getElementById('htmlSrc').textContent=html;
+}
+function showPreview(){
+  document.getElementById('frameW').style.display='block';
+  document.getElementById('srcW').style.display='none';
+  document.getElementById('vtP').classList.add('on');
+  document.getElementById('vtS').classList.remove('on');
+}
+function showSrc(){
+  document.getElementById('frameW').style.display='none';
+  document.getElementById('srcW').style.display='block';
+  document.getElementById('vtS').classList.add('on');
+  document.getElementById('vtP').classList.remove('on');
+}
+function cpTxt(t,btn){
+  navigator.clipboard.writeText(t).then(function(){btn.textContent='✓ Copied';btn.classList.add('cp');setTimeout(function(){btn.textContent='Copy';btn.classList.remove('cp');},2000);});
+}
+function copyAllTxt(){
+  var textToCopy = platform==='shopify' ? shopifyTxt : fullTxt;
+  navigator.clipboard.writeText(textToCopy).then(function(){alert('Full listing copied!');});
+}
+function copyHtml(){
+  if(!genHtml){alert('HTML not ready.');return;}
+  navigator.clipboard.writeText(genHtml).then(function(){
+    var b=document.getElementById('cpHtmlBtn');b.textContent='✓ Copied!';b.classList.add('cp');
+    setTimeout(function(){b.textContent='Copy HTML';b.classList.remove('cp');},2500);
+  });
+}
+function dlHtml(){
+  if(!genHtml){alert('Generate listing first.');return;}
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([genHtml],{type:'text/html'}));
+  a.download='surti-listing.html';a.click();
+}
+function clearAll(){
+  document.getElementById('productInput').value='';
+  document.getElementById('charCt').textContent='0 chars';
+  document.getElementById('kwFound').classList.remove('show');
+  document.getElementById('emptyState').style.display='flex';
+  // BUG FIX #5: Use classList to hide, not inline style
+  document.getElementById('output').classList.remove('show');
+  ['ebay','amazon','walmart','google'].forEach(function(id){
+    var r=document.getElementById('ks-'+id);
+    r.classList.remove('kw-ok','kw-go','kw-no');
+    r.querySelector('.kw-d').classList.remove('sp');
+    document.getElementById('kc-'+id).textContent='—';
+  });
+  setChip('idle','Ready');
+  fullTxt=''; genHtml=''; shopifyTxt='';
+  document.getElementById('mainArea').scrollTo({top:0,behavior:'smooth'});
+}
+function setLoading(on){
+  document.getElementById('genBtn').disabled=on;
+  document.getElementById('spinner').style.display=on?'block':'none';
+  document.getElementById('btnTxt').textContent=on?'Generating...':'Generate Listing';
+}
+function showErr(m){var e=document.getElementById('errBar');e.textContent=m;e.style.display='block';}
+function hideErr(){document.getElementById('errBar').style.display='none';}
+</script>
+</body>
+</html>
