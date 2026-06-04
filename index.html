@@ -14,6 +14,7 @@
   --gold:#d4a847; --gold2:#f0c060; --gold3:#a07828;
   --teal:#2dd4bf; --rose:#fb7185; --violet:#a78bfa;
   --shopify:#96bf48; --shopify2:#c8f07a;
+  --seo:#f472b6; --seo2:#fda4af;
   --r:10px; --r2:16px; --r3:22px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -73,7 +74,6 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .sb-ta:focus{border-color:rgba(212,168,71,0.35);}
 .theme-section{transition:opacity 0.2s;}
 .theme-section.hidden{opacity:0.25;pointer-events:none;}
-/* MAIN: full height scrollable column */
 .main{display:flex;flex-direction:column;height:calc(100vh - 64px);overflow-y:auto;}
 .input-zone{padding:24px 28px 18px;border-bottom:1px solid var(--wire);flex-shrink:0;}
 .iz-head{margin-bottom:12px;}
@@ -86,14 +86,18 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .kw-found.show{display:block;}
 .kw-ft{font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--teal);font-weight:600;margin-bottom:6px;}
 .kw-pill{display:inline-block;padding:2px 7px;margin:2px 2px 2px 0;background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.18);border-radius:4px;font-size:10px;color:#5eead4;font-family:'Geist Mono',monospace;}
-.act-row{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.act-row{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
 .gen-btn{display:flex;align-items:center;gap:9px;padding:11px 26px;background:linear-gradient(135deg,var(--gold),#b88020);border:none;border-radius:var(--r);color:var(--ink);font-family:'Geist',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;box-shadow:0 3px 18px rgba(212,168,71,0.22);}
 .gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 7px 26px rgba(212,168,71,0.38);}
 .gen-btn:disabled{opacity:0.38;cursor:not-allowed;transform:none;box-shadow:none;}
+.seo-btn{display:flex;align-items:center;gap:9px;padding:11px 20px;background:linear-gradient(135deg,rgba(244,114,182,0.15),rgba(244,114,182,0.08));border:1px solid rgba(244,114,182,0.4);border-radius:var(--r);color:var(--seo);font-family:'Geist',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.seo-btn:hover:not(:disabled){background:rgba(244,114,182,0.2);transform:translateY(-1px);}
+.seo-btn:disabled{opacity:0.38;cursor:not-allowed;transform:none;}
 .clr-btn{padding:10px 16px;background:transparent;border:1px solid var(--wire);border-radius:var(--r);color:var(--fog);font-family:'Geist',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s;}
 .clr-btn:hover{border-color:var(--rose);color:var(--rose);}
 .char-ct{margin-left:auto;font-size:10px;color:var(--dim);font-family:'Geist Mono',monospace;}
 .spinner{width:14px;height:14px;border:2px solid rgba(7,7,10,0.3);border-top-color:var(--ink);border-radius:50%;animation:spin 0.6s linear infinite;display:none;}
+.spinner-pink{width:14px;height:14px;border:2px solid rgba(244,114,182,0.3);border-top-color:var(--seo);border-radius:50%;animation:spin 0.6s linear infinite;display:none;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .err-bar{display:none;margin-top:9px;padding:9px 13px;background:rgba(251,113,133,0.07);border:1px solid rgba(251,113,133,0.22);border-radius:var(--r);color:var(--rose);font-size:11px;}
 .prog{display:none;margin-top:12px;padding:12px 14px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);}
@@ -108,17 +112,11 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .ps.done .ps-ic{background:rgba(45,212,191,0.14);border-color:var(--teal);}
 .ps.act .ps-ic{background:rgba(212,168,71,0.14);border-color:var(--gold);animation:pulse 1s ease infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
-
-/* =============================================
-   BUG FIX #1: Output visibility
-   Use display:block for wrapper, grid is on out-split
-   Added !important to beat any inline style
-   ============================================= */
 .output{display:none;flex-shrink:0;}
 .output.show{display:block !important;}
-
 .out-split{display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 64px);}
 .out-split.shopify-only{grid-template-columns:1fr;}
+.out-split.seo-only{grid-template-columns:1fr;}
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;}
 .empty-ic{width:60px;height:60px;border-radius:14px;background:var(--ink3);border:1px solid var(--wire);display:flex;align-items:center;justify-content:center;font-size:26px;opacity:0.5;}
 .empty-t{font-family:'Playfair Display',serif;font-style:italic;font-size:17px;color:var(--mist);}
@@ -135,6 +133,8 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .stab.on{background:var(--ink4);border-color:var(--wire2);color:var(--snow);}
 .stab.shopify-tab{border-color:rgba(150,191,72,0.3);color:var(--shopify);}
 .stab.shopify-tab.on{background:rgba(150,191,72,0.09);border-color:var(--shopify);color:var(--shopify2);}
+.stab.seo-tab{border-color:rgba(244,114,182,0.3);color:var(--seo);}
+.stab.seo-tab.on{background:rgba(244,114,182,0.09);border-color:var(--seo);color:var(--seo2);}
 .sec-cnt{flex:1;overflow-y:auto;padding:16px 18px;}
 .sec-cnt::-webkit-scrollbar{width:3px;}
 .sec-cnt::-webkit-scrollbar-thumb{background:var(--wire);border-radius:3px;}
@@ -144,12 +144,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .ob{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin-bottom:10px;}
 .ob-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--wire);background:rgba(255,255,255,0.018);}
 .ob-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;}
-.c1{color:var(--gold);}
-.c2{color:var(--teal);}
-.c3{color:#c084fc;}
-.c4{color:#6ee7b7;}
-.c5{color:var(--rose);}
-.cS{color:var(--shopify);}
+.c1{color:var(--gold);}.c2{color:var(--teal);}.c3{color:#c084fc;}.c4{color:#6ee7b7;}.c5{color:var(--rose);}.cS{color:var(--shopify);}.cP{color:var(--seo);}
 .ob-body{padding:12px;font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--snow);white-space:pre-wrap;word-break:break-word;}
 .ob-body strong{color:var(--gold2);font-weight:500;}
 .shopify-preview-box{background:var(--ink3);border:1px solid rgba(150,191,72,0.25);border-radius:var(--r2);overflow:hidden;margin-bottom:10px;}
@@ -157,6 +152,20 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .shopify-copy-area{padding:16px 18px;font-family:'Geist Mono',monospace;font-size:11px;line-height:1.85;color:#c8d8b8;white-space:pre-wrap;word-break:break-word;background:transparent;}
 .shopify-banner{padding:10px 14px;background:rgba(150,191,72,0.06);border:1px solid rgba(150,191,72,0.2);border-radius:var(--r);font-size:11px;color:var(--shopify);margin-bottom:12px;line-height:1.5;}
 .shopify-banner strong{color:var(--shopify2);}
+/* SEO card styles */
+.seo-card{background:var(--ink3);border:1px solid rgba(244,114,182,0.2);border-radius:var(--r2);overflow:hidden;margin-bottom:12px;}
+.seo-card-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(244,114,182,0.15);background:rgba(244,114,182,0.04);}
+.seo-card-icon{font-size:18px;flex-shrink:0;}
+.seo-card-title{font-size:12px;font-weight:600;color:var(--seo2);}
+.seo-card-body{padding:14px 16px;}
+.seo-item{display:flex;flex-direction:column;gap:4px;padding:9px 0;border-bottom:1px solid var(--wire);}
+.seo-item:last-child{border-bottom:none;}
+.seo-item-label{font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--seo);font-weight:600;}
+.seo-item-val{font-size:11.5px;color:var(--snow);line-height:1.6;font-family:'Geist Mono',monospace;}
+.seo-score{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;}
+.score-high{background:rgba(74,222,128,0.12);color:#4ade80;border:1px solid rgba(74,222,128,0.25);}
+.score-med{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);}
+.score-low{background:rgba(251,113,133,0.12);color:var(--rose);border:1px solid rgba(251,113,133,0.25);}
 .h-pane{display:flex;flex-direction:column;overflow:hidden;height:calc(100vh - 64px);position:sticky;top:0;}
 .vtabs{display:flex;gap:2px;padding:9px 14px;border-bottom:1px solid var(--wire);flex-shrink:0;background:rgba(7,7,10,0.4);}
 .vtab{padding:5px 13px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dim);font-family:'Geist',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.14s;}
@@ -176,16 +185,63 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .ib.teal:hover{background:rgba(45,212,191,0.07);}
 .ib.green{border-color:rgba(150,191,72,0.4);color:var(--shopify);}
 .ib.green:hover{background:rgba(150,191,72,0.08);}
+.ib.pink{border-color:rgba(244,114,182,0.4);color:var(--seo);}
+.ib.pink:hover{background:rgba(244,114,182,0.08);}
 .ib.cp{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,0.07);}
-@media(max-width:860px){.app{grid-template-columns:1fr;}.sidebar{display:none;}.out-split{grid-template-columns:1fr;}}
+/* ─── MOBILE MENU TOGGLE ─── */
+.menu-toggle{display:none;width:38px;height:38px;border-radius:9px;background:var(--ink3);border:1px solid var(--wire);color:var(--gold);font-size:18px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;backdrop-filter:blur(3px);}
+.sidebar-overlay.show{display:block;}
+
+@media(max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:58px 1fr;}
+  /* Sidebar becomes a slide-in drawer */
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:85vw;height:100vh;z-index:100;transform:translateX(-100%);transition:transform 0.28s ease;padding-top:20px;}
+  .sidebar.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,0.5);}
+  .menu-toggle{display:flex;}
+  /* Topbar adjustments */
+  .topbar{padding:0 14px;gap:10px;}
+  .wordmark-name{font-size:17px;}
+  .wordmark-sub{font-size:7px;letter-spacing:2.5px;}
+  .key-wrap{padding:6px 10px;}
+  .key-inp{width:110px;font-size:10px;}
+  .s-chip{display:none;}
+  /* Output stacks vertically */
+  .out-split{grid-template-columns:1fr !important;}
+  .l-pane{border-right:none;border-bottom:1px solid var(--wire);height:auto;position:relative;max-height:none;}
+  .h-pane{height:auto;position:relative;}
+  .h-frame-w{min-height:500px;}
+  .l-pane .sec-cnt{max-height:600px;}
+  /* Input zone padding */
+  .input-zone{padding:18px 16px 14px;}
+  .iz-title{font-size:15px;}
+  /* Progress steps wrap */
+  .prog-steps{flex-wrap:wrap;gap:8px;}
+  .ps{flex:1 1 100%;}
+  .ps::after{display:none;}
+  /* Action buttons full width stack */
+  .act-row{flex-direction:column;align-items:stretch;}
+  .gen-btn,.seo-btn,.clr-btn{width:100%;justify-content:center;}
+  .char-ct{margin-left:0;text-align:center;margin-top:4px;}
+}
+
+@media(max-width:480px){
+  .topbar{height:54px;}
+  .wordmark-name{font-size:15px;}
+  .key-inp{width:80px;}
+  .menu-toggle{width:34px;height:34px;font-size:16px;}
+  .stab{font-size:9px;padding:5px 9px;}
+  .product-ta{height:140px;font-size:11px;}
+  .h-frame-w{min-height:420px;}
+}
 </style>
 </head>
 <body>
-<div class="amb1"></div>
-<div class="amb2"></div>
+<div class="amb1"></div><div class="amb2"></div>
 <div class="app">
 
 <header class="topbar">
+  <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">☰</button>
   <div class="wordmark">
     <div class="wordmark-bar"></div>
     <div class="wordmark-name">Khurram Surti</div>
@@ -200,7 +256,9 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   </div>
 </header>
 
-<aside class="sidebar">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
   <div class="sb-sec">
     <div class="sb-lbl">Platform</div>
     <div class="p-opts" id="platOpts">
@@ -215,18 +273,10 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   <div class="sb-sec theme-section" id="themeSection">
     <div class="sb-lbl">HTML Theme <span style="font-size:8px;color:var(--dim);margin-left:4px;">(eBay only)</span></div>
     <div class="th-grid" id="thGrid">
-      <button class="th-opt on" onclick="setTheme('heritage',this)">
-        <div class="th-sw" style="background:linear-gradient(135deg,#4A6B3A,#B87B3A)">🌿</div>Heritage
-      </button>
-      <button class="th-opt" onclick="setTheme('modern',this)">
-        <div class="th-sw" style="background:linear-gradient(135deg,#1a1a2e,#7c6af7)">🌙</div>Modern
-      </button>
-      <button class="th-opt" onclick="setTheme('clean',this)">
-        <div class="th-sw" style="background:linear-gradient(135deg,#1a56db,#0891b2)">☀</div>Clean
-      </button>
-      <button class="th-opt" onclick="setTheme('luxury',this)">
-        <div class="th-sw" style="background:linear-gradient(135deg,#111,#d4af37)">✨</div>Luxury
-      </button>
+      <button class="th-opt on" onclick="setTheme('heritage',this)"><div class="th-sw" style="background:linear-gradient(135deg,#4A6B3A,#B87B3A)">🌿</div>Heritage</button>
+      <button class="th-opt" onclick="setTheme('modern',this)"><div class="th-sw" style="background:linear-gradient(135deg,#1a1a2e,#7c6af7)">🌙</div>Modern</button>
+      <button class="th-opt" onclick="setTheme('clean',this)"><div class="th-sw" style="background:linear-gradient(135deg,#1a56db,#0891b2)">☀</div>Clean</button>
+      <button class="th-opt" onclick="setTheme('luxury',this)"><div class="th-sw" style="background:linear-gradient(135deg,#111,#d4af37)">✨</div>Luxury</button>
     </div>
   </div>
   <div class="sb-sec">
@@ -256,22 +306,16 @@ Free Shipping: No hidden fees.
       <div class="iz-title">Product Details</div>
       <div class="iz-sub">Paste the full title, description and specs from Amazon / Walmart / any sourcing platform</div>
     </div>
-    <textarea class="product-ta" id="productInput"
-      placeholder="TITLE: [Product title from sourcing platform]
-
-DESCRIPTION:
-[Paste original description here...]
-
-SPECS:
-- Brand:
-- Weight:
-- Material:
-- Pack Size:"></textarea>
+    <textarea class="product-ta" id="productInput" placeholder="TITLE: [Product title]&#10;&#10;DESCRIPTION:&#10;[Paste description...]&#10;&#10;SPECS:&#10;- Brand:&#10;- Weight:"></textarea>
     <div class="kw-found" id="kwFound"></div>
     <div class="act-row">
       <button class="gen-btn" id="genBtn" onclick="generate()">
         <div class="spinner" id="spinner"></div>
         <span id="btnTxt">Generate Listing</span>
+      </button>
+      <button class="seo-btn" id="seoBtn" onclick="generateOffPageSEO()">
+        <div class="spinner-pink" id="seoSpinner"></div>
+        <span id="seoBtnTxt">🚀 Off-Page SEO</span>
       </button>
       <button class="clr-btn" onclick="clearAll()">Clear</button>
       <div class="char-ct" id="charCt">0 chars</div>
@@ -290,11 +334,10 @@ SPECS:
     <div class="empty">
       <div class="empty-ic">✦</div>
       <div class="empty-t">Ready to forge your listing</div>
-      <div class="empty-s">Paste sourcing product details above and hit Generate Listing</div>
+      <div class="empty-s">Generate listing first, then run Off-Page SEO for a complete strategy</div>
     </div>
   </div>
 
-  <!-- BUG FIX #2: Removed inline style="display:none" — CSS class .output handles visibility -->
   <div class="output" id="output">
     <div class="out-split" id="outSplit">
       <div class="l-pane" id="lPane">
@@ -309,22 +352,18 @@ SPECS:
       </div>
       <div class="h-pane" id="hPane">
         <div class="pane-hdr">
-          <div class="pane-ttl">🌐 HTML Listing — eBay Paste Ready</div>
-          <div class="pane-acts">
+          <div class="pane-ttl" id="hPaneTitle">🌐 HTML Listing — eBay Paste Ready</div>
+          <div class="pane-acts" id="hPaneActs">
             <button class="ib gold" id="cpHtmlBtn" onclick="copyHtml()">Copy HTML</button>
             <button class="ib" onclick="dlHtml()">⬇ Download</button>
           </div>
         </div>
-        <div class="vtabs">
+        <div class="vtabs" id="vtabsRow">
           <button class="vtab on" id="vtP" onclick="showPreview()">Live Preview</button>
           <button class="vtab" id="vtS" onclick="showSrc()">HTML Source</button>
         </div>
-        <div class="h-frame-w" id="frameW">
-          <iframe class="h-frame" id="htmlFrame"></iframe>
-        </div>
-        <div class="h-src-w" id="srcW">
-          <div class="h-src" id="htmlSrc"></div>
-        </div>
+        <div class="h-frame-w" id="frameW"><iframe class="h-frame" id="htmlFrame"></iframe></div>
+        <div class="h-src-w" id="srcW"><div class="h-src" id="htmlSrc"></div></div>
       </div>
     </div>
   </div>
@@ -332,856 +371,675 @@ SPECS:
 </div>
 
 <script>
-var platform='ebay', theme='heritage', fullTxt='', genHtml='', allKws=[], shopifyTxt='';
+var platform='ebay', theme='heritage', fullTxt='', genHtml='', allKws=[], shopifyTxt='', seoTxt='';
 var srcKws={ebay:[],amazon:[],walmart:[],google:[]};
+var srcReal={ebay:false,amazon:false,walmart:false,google:false};
+var lastProduct='', lastStore='';
 
 window.onload=function(){
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
-  var th=localStorage.getItem('slf_th'); if(th){theme=th; document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');}); var idx={'heritage':0,'modern':1,'clean':2,'luxury':3}; var thBtns=document.querySelectorAll('#thGrid .th-opt'); if(thBtns[idx[th]])thBtns[idx[th]].classList.add('on');}
+  var th=localStorage.getItem('slf_th'); if(th){theme=th;document.querySelectorAll('#thGrid .th-opt').forEach(function(b,i){b.classList.remove('on');});var map={heritage:0,modern:1,clean:2,luxury:3};var btns=document.querySelectorAll('#thGrid .th-opt');if(btns[map[th]])btns[map[th]].classList.add('on');}
   var sn=localStorage.getItem('slf_sn'); if(sn) document.getElementById('storeName').value=sn;
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
-  document.getElementById('productInput').addEventListener('input',function(){
-    document.getElementById('charCt').textContent=this.value.length+' chars';
-  });
+  document.getElementById('productInput').addEventListener('input',function(){document.getElementById('charCt').textContent=this.value.length+' chars';});
 };
 
-function onKey(){
-  var k=document.getElementById('apiKey').value.trim();
-  localStorage.setItem('slf_k',k);
-  document.getElementById('keyLed').classList.toggle('on',k.indexOf('sk-ant')===0);
+function onKey(){var k=document.getElementById('apiKey').value.trim();localStorage.setItem('slf_k',k);document.getElementById('keyLed').classList.toggle('on',k.indexOf('sk-ant')===0);}
+
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+function closeSidebarMobile(){
+  if(window.innerWidth<=860){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
 }
 
-function setPlatform(p,btn){
-  platform=p;
-  document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});
-  btn.classList.add('on');
-  var thSec=document.getElementById('themeSection');
-  if(p==='shopify'){thSec.classList.add('hidden');}else{thSec.classList.remove('hidden');}
-}
-
-function setTheme(t,btn){
-  theme=t; localStorage.setItem('slf_th',t);
-  document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});
-  btn.classList.add('on');
-}
+function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p==='shopify');}
+function setTheme(t,btn){theme=t;localStorage.setItem('slf_th',t);document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');}
 function setChip(s,t){var c=document.getElementById('chip');c.className='s-chip s-'+s;c.textContent=t;}
-function setStep(n){
-  for(var i=1;i<=3;i++){
-    var el=document.getElementById('ps'+i);
-    el.classList.remove('done','act');
-    var ic=el.querySelector('.ps-ic');
-    if(i<n){el.classList.add('done');ic.textContent='✓';}
-    else if(i===n){el.classList.add('act');ic.textContent=i;}
-    else{ic.textContent=i;}
-  }
-}
-function kwSt(id,st,ct){
-  var r=document.getElementById('ks-'+id),c=document.getElementById('kc-'+id);
-  var d=r.querySelector('.kw-d');
-  r.classList.remove('kw-ok','kw-go','kw-no');
-  d.classList.remove('sp');
-  if(st==='go'){r.classList.add('kw-go');d.classList.add('sp');}
-  else if(st==='ok'){r.classList.add('kw-ok');}
-  else if(st==='no'){r.classList.add('kw-no');}
-  if(ct!==undefined) c.textContent=ct>0?ct+'kws':'0';
-}
+function setStep(n){for(var i=1;i<=3;i++){var el=document.getElementById('ps'+i);el.classList.remove('done','act');var ic=el.querySelector('.ps-ic');if(i<n){el.classList.add('done');ic.textContent='✓';}else if(i===n){el.classList.add('act');ic.textContent=i;}else{ic.textContent=i;}}}
+function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getElementById('kc-'+id),d=r.querySelector('.kw-d');r.classList.remove('kw-ok','kw-go','kw-no');d.classList.remove('sp');if(st==='go'){r.classList.add('kw-go');d.classList.add('sp');}else if(st==='ok')r.classList.add('kw-ok');else if(st==='no')r.classList.add('kw-no');if(ct!==undefined)c.textContent=ct>0?ct+'kws':'0';}
 
-async function fetchAllKeywords(apiKey, productTitle){
-  var prompt='You are a keyword research expert for ecommerce.\n\n'
-  +'Product: "'+productTitle+'"\n\n'
-  +'Research the TOP buyer search keywords for this product from each platform.\n'
-  +'Use your knowledge of what buyers actually search on each platform.\n\n'
-  +'Return ONLY a valid JSON object, no explanation, no markdown:\n'
-  +'{\n'
-  +'"ebay": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"],\n'
-  +'"amazon": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"],\n'
-  +'"walmart": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"],\n'
-  +'"google": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8","keyword9","keyword10"]\n'
-  +'}\n\n'
-  +'Rules:\n'
-  +'- Each platform must have EXACTLY 10 keywords\n'
-  +'- Keywords must be real buyer search phrases (2-6 words each)\n'
-  +'- eBay: focus on product type + specs + condition + brand\n'
-  +'- Amazon: focus on product benefits + use case + brand\n'
-  +'- Walmart: focus on everyday value + product type + size\n'
-  +'- Google: focus on informational + buying intent phrases\n'
-  +'- NO generic words like "buy" or "cheap" alone\n'
-  +'- Return ONLY the JSON, starting with {';
+// Backend URL — your deployed Vercel server for REAL keywords
+var BACKEND_URL = 'https://keyword-backend-zeta.vercel.app/api/keywords';
 
+async function fetchAllKeywords(apiKey,productTitle){
+  var realData = {google:[], amazon:[], walmart:[], ebay:[]};
+
+  // STEP 1: Get REAL keywords from backend (Google + Amazon + Walmart)
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]})
-    });
-    var d=await r.json();
-    if(d.error) throw new Error(d.error.message);
-    var txt=d.content[0].text.trim();
-    txt=txt.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
-    var parsed=JSON.parse(txt);
-    return {ebay:parsed.ebay||[],amazon:parsed.amazon||[],walmart:parsed.walmart||[],google:parsed.google||[]};
-  }catch(e){
-    console.error('Keyword fetch error:',e);
-    return {ebay:[],amazon:[],walmart:[],google:[]};
+    var r = await fetch(BACKEND_URL + '?q=' + encodeURIComponent(productTitle), {signal:AbortSignal.timeout(12000)});
+    var d = await r.json();
+    realData.google = (d.google||[]).slice(0,10);
+    realData.amazon = (d.amazon||[]).slice(0,10);
+    realData.walmart = (d.walmart||[]).slice(0,10);
+    // Mark which sources gave REAL data
+    srcReal.google = realData.google.length>0;
+    srcReal.amazon = realData.amazon.length>0;
+    srcReal.walmart = realData.walmart.length>0;
+  }catch(e){ console.error('Backend error:', e.message); }
+
+  // STEP 2: For any source that came back empty, use Claude as intelligent fallback
+  // Also generate eBay keywords (backend doesn't cover eBay reliably)
+  var needFallback = [];
+  if(realData.google.length===0) needFallback.push('google');
+  if(realData.amazon.length===0) needFallback.push('amazon');
+  if(realData.walmart.length===0) needFallback.push('walmart');
+  needFallback.push('ebay'); // always generate eBay via Claude
+
+  if(needFallback.length>0 && apiKey && apiKey.indexOf('sk-ant')===0){
+    try{
+      var fbPrompt='You are an ecommerce keyword research expert.\nProduct: "'+productTitle+'"\n'
+        +'Generate 10 real buyer search keywords (2-6 words each) for EACH of these platforms: '+needFallback.join(', ')+'.\n'
+        +'Return ONLY valid JSON, no markdown, starting with {:\n{'
+        +needFallback.map(function(p){return '"'+p+'":["kw1","kw2","kw3","kw4","kw5","kw6","kw7","kw8","kw9","kw10"]';}).join(',')
+        +'}';
+      var resp=await claudeCall(apiKey,fbPrompt,700);
+      var txt=resp.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+      var idx=txt.indexOf('{'); if(idx>0) txt=txt.slice(idx);
+      var fb=JSON.parse(txt);
+      needFallback.forEach(function(p){
+        if(fb[p] && fb[p].length>0 && realData[p].length===0){
+          realData[p]=fb[p].slice(0,10);
+        }
+      });
+    }catch(e){ console.error('Fallback error:', e.message); }
   }
+
+  return realData;
 }
 
-async function claude(apiKey,prompt,maxTok){
-  var r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTok,messages:[{role:'user',content:prompt}]})
-  });
+async function claudeCall(apiKey,prompt,maxTok){
+  var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTok,messages:[{role:'user',content:prompt}]})});
   var d=await r.json();
   if(d.error) throw new Error(d.error.message);
   return d.content[0].text;
 }
 
+// ─── OFF PAGE SEO GENERATOR ───────────────────────────────
+async function generateOffPageSEO(){
+  var apiKey=document.getElementById('apiKey').value.trim();
+  var product=document.getElementById('productInput').value.trim();
+  var store=document.getElementById('storeName').value.trim()||'Surti Store';
+
+  if(!apiKey||apiKey.indexOf('sk-ant')!==0){showErr('⚠ API key daalo pehle.');return;}
+  if(!product||product.length<15){showErr('⚠ Pehle product details daalo.');return;}
+
+  closeSidebarMobile();
+  hideErr();
+  document.getElementById('seoBtn').disabled=true;
+  document.getElementById('seoSpinner').style.display='block';
+  document.getElementById('seoBtnTxt').textContent='Researching...';
+  setChip('work','Off-Page SEO research...');
+
+  var productTitle=product.split('\n')[0].replace(/title:/i,'').trim().slice(0,80);
+
+  var seoPrompt='You are an expert Off-Page SEO Strategist for ecommerce (Shopify + eBay dropshipping).\n\n'
+  +'PRODUCT: "'+productTitle+'"\nSTORE: "'+store+'"\n\n'
+  +'CRITICAL RULES:\n'
+  +'1. Return ONLY the exact section headers shown below, each on its own line in ALL CAPS\n'
+  +'2. NO markdown (no *, **, #, -, `)\n'
+  +'3. Number lists with "1." "2." format only\n'
+  +'4. Every recommendation must be SPECIFIC to this exact product\n\n'
+  +'Write a complete off-page SEO strategy using EXACTLY these sections:\n\n'
+  +'OPPORTUNITY SCORE\n'
+  +'[Write: "Score: X/10" then on next line explain why in 1-2 sentences]\n\n'
+  +'TOP BUYER KEYWORDS FOR LINK BUILDING\n'
+  +'[10 keywords, numbered, that you should build backlinks around for this product]\n\n'
+  +'HIGH VALUE BACKLINK TARGETS\n'
+  +'[8 specific website types + example site names relevant to this product niche. Format: "1. [Site Type]: [Example sites] — [Why it helps]"]\n\n'
+  +'PINTEREST STRATEGY\n'
+  +'[5 specific board names to create + 3 pin title templates for this exact product]\n\n'
+  +'REDDIT AND QUORA TARGETS\n'
+  +'[6 specific subreddits or Quora topics where this product is relevant. Format: "1. r/[name] or Quora: [topic] — [how to use it]"]\n\n'
+  +'SOCIAL MEDIA CONTENT CALENDAR\n'
+  +'[7 day post plan. Format: "Day 1 (Platform): [Post idea]" — be specific to this product]\n\n'
+  +'EMAIL OUTREACH TEMPLATE\n'
+  +'[A ready-to-send email to bloggers/influencers asking for product mention. Make it about THIS product.]\n\n'
+  +'COMPETITOR BACKLINK STRATEGY\n'
+  +'[5 types of sites your competitors are likely getting links from + how to get the same]\n\n'
+  +'QUICK WIN ACTIONS\n'
+  +'[Top 5 things to do THIS WEEK for fastest off-page SEO results for this product. Numbered.]\n\n'
+  +'PRODUCT: "'+productTitle+'"';
+
+  try{
+    var result=await claudeCall(apiKey,seoPrompt,2500);
+    seoTxt=result;
+    renderOffPageSEO(result, productTitle);
+    document.getElementById('emptyState').style.display='none';
+    document.getElementById('output').classList.add('show');
+    setChip('done','SEO Done!');
+    setTimeout(function(){document.getElementById('mainArea').scrollTo({top:document.getElementById('output').offsetTop-10,behavior:'smooth'});},80);
+  }catch(e){
+    showErr('SEO Error: '+e.message);
+    setChip('err','Error');
+  }
+
+  document.getElementById('seoBtn').disabled=false;
+  document.getElementById('seoSpinner').style.display='none';
+  document.getElementById('seoBtnTxt').textContent='🚀 Off-Page SEO';
+}
+
+function renderOffPageSEO(text, productTitle){
+  // Switch to SEO-only layout
+  document.getElementById('outSplit').className='out-split seo-only';
+  document.getElementById('lPane').classList.add('full-width');
+  document.getElementById('hPane').style.display='none';
+  document.getElementById('lPaneTitle').textContent='🚀 Off-Page SEO Strategy — '+productTitle.slice(0,40);
+
+  var tabsEl=document.getElementById('stabs');
+  var cntEl=document.getElementById('secCnt');
+  tabsEl.innerHTML=''; cntEl.innerHTML='';
+
+  var SECTIONS=[
+    {key:'OPPORTUNITY SCORE',           label:'Score',        icon:'⭐', color:'cP'},
+    {key:'TOP BUYER KEYWORDS FOR LINK BUILDING', label:'KW Targets', icon:'🔑', color:'c1'},
+    {key:'HIGH VALUE BACKLINK TARGETS', label:'Backlinks',    icon:'🔗', color:'c2'},
+    {key:'PINTEREST STRATEGY',          label:'Pinterest',    icon:'📌', color:'c5'},
+    {key:'REDDIT AND QUORA TARGETS',    label:'Reddit/Quora', icon:'💬', color:'c3'},
+    {key:'SOCIAL MEDIA CONTENT CALENDAR',label:'Social Cal', icon:'📅', color:'c4'},
+    {key:'EMAIL OUTREACH TEMPLATE',     label:'Outreach',     icon:'📧', color:'cP'},
+    {key:'COMPETITOR BACKLINK STRATEGY',label:'Competitors',  icon:'🎯', color:'c1'},
+    {key:'QUICK WIN ACTIONS',           label:'Quick Wins',   icon:'⚡', color:'cS'},
+  ];
+
+  // Parse sections
+  var parsed={};
+  var cur=null, buf=[];
+  var keys=SECTIONS.map(function(s){return s.key;});
+  text.split('\n').forEach(function(line){
+    var cl=line.trim().toUpperCase();
+    if(keys.indexOf(cl)>-1){if(cur)parsed[cur]=buf.join('\n').trim();cur=cl;buf=[];}
+    else if(cur){buf.push(line);}
+  });
+  if(cur) parsed[cur]=buf.join('\n').trim();
+
+  // Build ALL tab first
+  var allTab=document.createElement('button');
+  allTab.className='stab seo-tab on';
+  allTab.textContent='📋 Full Report';
+  var allSec=document.createElement('div');
+  allSec.className='ssec on'; allSec.id='seo-all';
+  allTab.onclick=function(){switchSeoTab(allTab,'seo-all');};
+  tabsEl.appendChild(allTab);
+
+  // Full report content
+  var fullHtml='<div style="padding:10px 14px;background:rgba(244,114,182,0.06);border:1px solid rgba(244,114,182,0.2);border-radius:var(--r);margin-bottom:14px;font-size:11px;color:var(--seo);line-height:1.6;">'
+    +'<strong style="color:var(--seo2);">🚀 Off-Page SEO Strategy</strong> — Product: <em>'+escHtml(productTitle.slice(0,60))+'</em><br>'
+    +'Complete strategy for building authority, backlinks and organic traffic outside your listing.'
+    +'</div>';
+
+  SECTIONS.forEach(function(sec){
+    var content=parsed[sec.key];
+    if(!content) return;
+    fullHtml+='<div class="seo-card">'
+      +'<div class="seo-card-hdr"><span class="seo-card-icon">'+sec.icon+'</span><span class="seo-card-title">'+sec.label+'</span></div>'
+      +'<div class="seo-card-body"><div class="ob-body" style="padding:0;">'+formatSeoContent(content, sec.key)+'</div></div>'
+      +'</div>';
+  });
+
+  // Copy all button
+  fullHtml+='<div style="display:flex;gap:8px;margin-top:4px;">'
+    +'<button class="ib pink" style="width:100%;justify-content:center;" onclick="cpTxt(seoTxt,this)">📋 Copy Full SEO Report</button>'
+    +'</div>';
+  allSec.innerHTML=fullHtml;
+  cntEl.appendChild(allSec);
+
+  // Individual tabs
+  SECTIONS.forEach(function(sec,i){
+    var content=parsed[sec.key];
+    if(!content) return;
+    var tb=document.createElement('button');
+    tb.className='stab seo-tab';
+    tb.textContent=sec.icon+' '+sec.label;
+    var secId='seo-sec-'+i;
+    tb.onclick=function(){switchSeoTab(tb,secId);};
+    tabsEl.appendChild(tb);
+
+    var div=document.createElement('div');
+    div.className='ssec'; div.id=secId;
+    var safe=content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+    div.innerHTML='<div class="seo-card">'
+      +'<div class="seo-card-hdr"><span class="seo-card-icon">'+sec.icon+'</span><span class="seo-card-title">'+sec.label+'</span>'
+      +'<button class="ib pink" style="margin-left:auto;" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div>'
+      +'<div class="seo-card-body"><div class="ob-body" style="padding:0;">'+formatSeoContent(content, sec.key)+'</div></div>'
+      +'</div>';
+    cntEl.appendChild(div);
+  });
+}
+
+function formatSeoContent(text, key){
+  var esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Score special formatting
+  if(key==='OPPORTUNITY SCORE'){
+    var scoreM=esc.match(/Score:\s*(\d+)\/10/i);
+    if(scoreM){
+      var score=parseInt(scoreM[1]);
+      var cls=score>=8?'score-high':score>=5?'score-med':'score-low';
+      var label=score>=8?'HIGH OPPORTUNITY':score>=5?'MEDIUM':'LOW';
+      esc=esc.replace(/Score:\s*(\d+)\/10/i,'<span class="seo-score '+cls+'">'+scoreM[1]+'/10 — '+label+'</span>');
+    }
+  }
+  // Highlight numbered items
+  esc=esc.replace(/^(\d+\.)\s+/gm,'<span style="color:var(--seo);font-weight:600;font-family:\'Geist Mono\',monospace;">$1</span> ');
+  // Bold anything in quotes or caps
+  esc=esc.replace(/\b(r\/\w+)\b/g,'<span style="color:var(--teal);">$1</span>');
+  return esc;
+}
+
+function switchSeoTab(btn,id){
+  document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
+  btn.classList.add('on');
+  var el=document.getElementById(id);
+  if(el) el.classList.add('on');
+}
+
+// ─── MAIN LISTING GENERATOR ──────────────────────────────
 async function generate(){
   var apiKey=document.getElementById('apiKey').value.trim();
   var product=document.getElementById('productInput').value.trim();
   var policy=document.getElementById('policyText').value.trim();
   var store=document.getElementById('storeName').value.trim()||'Surti Store';
   localStorage.setItem('slf_sn',store); localStorage.setItem('slf_po',policy);
+  lastProduct=product; lastStore=store;
 
-  if(!apiKey||apiKey.indexOf('sk-ant')!==0){showErr('⚠ API key missing. Paste your Claude key in the top bar.');return;}
-  if(!product||product.length<15){showErr('⚠ Please paste product title, description and specs.');return;}
+  if(!apiKey||apiKey.indexOf('sk-ant')!==0){showErr('⚠ API key missing.');return;}
+  if(!product||product.length<15){showErr('⚠ Please paste product details.');return;}
 
+  closeSidebarMobile();
   hideErr(); setLoading(true);
   document.getElementById('prog').classList.add('show');
   document.getElementById('kwFound').classList.remove('show');
   document.getElementById('emptyState').style.display='none';
-
-  // BUG FIX #3: Use classList instead of inline style to hide output
-  // inline style overrides CSS classes, so we only use classList
   document.getElementById('output').classList.remove('show');
-
   fullTxt=''; genHtml=''; allKws=[]; shopifyTxt='';
 
-  // STEP 1: Keywords
+  // STEP 1
   setStep(1); setChip('work','Researching keywords...');
+  srcReal={ebay:false,amazon:false,walmart:false,google:false};
   ['ebay','amazon','walmart','google'].forEach(function(id){kwSt(id,'go');});
   var q=product.split('\n')[0].replace(/title:/i,'').trim().split(' ').slice(0,7).join(' ');
-  var kwResult=await fetchAllKeywords(apiKey, q);
-  srcKws.ebay=kwResult.ebay; srcKws.amazon=kwResult.amazon;
-  srcKws.walmart=kwResult.walmart; srcKws.google=kwResult.google;
-  kwSt('ebay',  kwResult.ebay.length>0?'ok':'no', kwResult.ebay.length);
-  kwSt('amazon',kwResult.amazon.length>0?'ok':'no', kwResult.amazon.length);
-  kwSt('walmart',kwResult.walmart.length>0?'ok':'no', kwResult.walmart.length);
-  kwSt('google',kwResult.google.length>0?'ok':'no', kwResult.google.length);
+  var kwr=await fetchAllKeywords(apiKey,q);
+  srcKws.ebay=kwr.ebay; srcKws.amazon=kwr.amazon; srcKws.walmart=kwr.walmart; srcKws.google=kwr.google;
+  kwSt('ebay',kwr.ebay.length>0?'ok':'no',kwr.ebay.length);
+  kwSt('amazon',kwr.amazon.length>0?'ok':'no',kwr.amazon.length);
+  kwSt('walmart',kwr.walmart.length>0?'ok':'no',kwr.walmart.length);
+  kwSt('google',kwr.google.length>0?'ok':'no',kwr.google.length);
   var seen={},merged=[];
-  [kwResult.ebay,kwResult.amazon,kwResult.walmart,kwResult.google].forEach(function(arr){
-    arr.forEach(function(kw){var k=kw.toLowerCase().trim();if(!seen[k]&&k.length>2){seen[k]=1;merged.push(kw);}});
-  });
+  [kwr.ebay,kwr.amazon,kwr.walmart,kwr.google].forEach(function(arr){arr.forEach(function(kw){var k=kw.toLowerCase().trim();if(!seen[k]&&k.length>2){seen[k]=1;merged.push(kw);}});});
   allKws=merged.slice(0,30);
 
   if(allKws.length>0){
-    var totalRaw=srcKws.ebay.length+srcKws.amazon.length+srcKws.walmart.length+srcKws.google.length;
+    var totalRaw=kwr.ebay.length+kwr.amazon.length+kwr.walmart.length+kwr.google.length;
     var kf=document.getElementById('kwFound');
-    kf.innerHTML='<div class="kw-ft">✓ '+totalRaw+' Keywords Fetched ('+allKws.length+' Unique After Removing Duplicates)</div>'
-      +allKws.map(function(k){return '<span class="kw-pill">'+k+'</span>';}).join('');
+    kf.innerHTML='<div class="kw-ft">✓ '+totalRaw+' Keywords Fetched ('+allKws.length+' Unique)</div>'+allKws.map(function(k){return '<span class="kw-pill">'+k+'</span>';}).join('');
     kf.classList.add('show');
   }
 
-  // STEP 2: Generate listing based on platform
-  setStep(2); setChip('work','Writing SEO listing...');
+  // STEP 2
+  setStep(2); setChip('work','Writing listing...');
 
-  var ebayListingText='', shopifyListingText='';
-
-  // eBay generation
   if(platform==='ebay'){
-    var kwLine=allKws.length>0?'\n\nREAL BUYER KEYWORDS (use these naturally):\n'+allKws.join(' | '):'';
-    var ebayPrompt='You are a world-class E-commerce SEO Copywriter for dropshipping. Everything must be 2026-ready.\n\n'
-    +'TARGET PLATFORM: eBay ONLY. Optimize for eBay Cassini algorithm. No Shopify content.'
-    +kwLine+'\n\n'
-    +'Transform the raw sourcing data below into a polished, 100% SEO-optimized listing.\n'
-    +'Use EXACTLY these section headers with === markers:\n\n'
-    +'=== BRAND CHECK ===\n'
-    +'Brand: [name] | Recognition: [Global/Regional/Unknown] | Decision: [Keep in title / Removed — replaced with keywords]\n\n'
-    +'=== TITLE ===\n'
-    +'eBay Title (75-80 chars exactly, NO punctuation at all, keyword stacking):\n[title]\n\n'
-    +'=== DESCRIPTION ===\n'
-    +'Two compelling paragraphs. Hook para: address buyer pain point, **bold the product name** and **2-3 key benefits**, mention 2026. Value para: use cases, why buy now.\n\n'
-    +'=== KEY FEATURES ===\n'
-    +'Exactly 8 bullets: ✅ [Buyer Benefit] — [Technical Detail]\n\n'
-    +'=== SPECIFICATIONS ===\n'
-    +'IMPORTANT: Write each spec on its own line using ONLY this format: "Label: Value"\n'
-    +'Do NOT use markdown tables, pipes, or dashes. Example:\n'
-    +'Brand: Golden Rewards\n'
-    +'Material: Natural Duck\n'
-    +'Weight: 16oz\n'
-    +'Color: Brown\n'
-    +'Pack Size: 1 Pack\n\n'
-    +'=== PRO TIPS ===\n'
-    +'5 specific, practical tips. Build confidence, reduce return anxiety.\n\n'
-    +'=== IDEAL FOR ===\n'
-    +'12 use-case tags, one per line with — prefix\n\n'
-    +'=== POLICIES ===\n'
-    +policy+'\n\n'
-    +'=== SEO METADATA ===\n'
-    +'Meta Title: (under 60 chars, primary keyword first)\n'
-    +'Meta Description: (50-160 chars, strong CTA)\n'
-    +'URL Handle: (under 60 chars, lowercase, dashes only)\n\n'
-    +'=== TAGS ===\n'
-    +'eBay Backend Keywords: (10 high-buyer-intent terms, comma separated)\n'
-    +'Social Hashtags: (10 hashtags for Instagram/TikTok/Pinterest)\n\n'
+    var kwLine=allKws.length>0?'\n\nREAL BUYER KEYWORDS:\n'+allKws.join(' | '):'';
+    var ebayPrompt='You are a world-class E-commerce SEO Copywriter. 2026-ready.\n'
+    +'TARGET: eBay ONLY. Cassini algorithm optimized.'+kwLine+'\n\n'
+    +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
+    +'Use EXACTLY these === markers:\n\n'
+    +'=== BRAND CHECK ===\nBrand: [name] | Recognition: [Global/Regional/Unknown] | Decision: [Keep/Remove]\n\n'
+    +'=== TITLE ===\neBay Title (75-80 chars, NO punctuation, keyword stacking):\n[title here]\n\n'
+    +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases.\n\n'
+    +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
+    +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
+    +'=== PRO TIPS ===\n5 practical tips numbered: 1. tip\n\n'
+    +'=== IDEAL FOR ===\n12 tags, one per line with — prefix\n\n'
+    +'=== POLICIES ===\n'+policy+'\n\n'
+    +'=== SEO METADATA ===\nMeta Title: (under 60 chars)\nMeta Description: (50-160 chars)\nURL Handle: (dashes only)\n\n'
+    +'=== TAGS ===\neBay Keywords: (10 terms)\nSocial Hashtags: (10 hashtags)\n\n'
     +'=== RAW SOURCE DATA ===\n'+product;
-
-    try{ebayListingText=await claude(apiKey,ebayPrompt,3000);fullTxt=ebayListingText;}
+    try{var r=await claudeCall(apiKey,ebayPrompt,3000);fullTxt=r;}
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
-  // Shopify generation
   if(platform==='shopify'){
-    var kwLineShopify=allKws.length>0?'\n\nTRENDING BUYER KEYWORDS TO INTEGRATE:\n'+allKws.join(', '):'';
-    var shopifyPrompt='You are a world-class Shopify SEO Copywriter for 2026.\n\n'
-    +'TARGET PLATFORM: Shopify ONLY.\n'
-    +kwLineShopify+'\n\n'
-    +'ABSOLUTE FORMATTING RULES — ZERO EXCEPTIONS:\n'
-    +'1. NO markdown whatsoever. Not a single *, **, #, >, `, ~, _\n'
-    +'2. NO hyphens or dashes as list markers. Not "- item", not "-- item"\n'
-    +'3. NO em dashes or en dashes (no — or –) anywhere in the text\n'
-    +'4. NO decorative symbols or emoji in headings\n'
-    +'5. Section headings: ALL CAPS on their own line, blank line after\n'
-    +'6. Feature and spec lists: use plain numbers with a dot: "1. text", "2. text"\n'
-    +'7. Everything else: plain sentences, no formatting at all\n\n'
-    +'Write the listing in this exact structure:\n\n'
-    +'SHOPIFY TITLE\n\n'
-    +'[50-70 char title. Natural language. Primary keyword first. No punctuation tricks.]\n\n'
-    +'DESCRIPTION\n\n'
-    +'[Para 1: Open with main buyer pain point. Naturally mention product name and top 2-3 benefits. Include year 2026. Plain sentences only.]\n\n'
-    +'[Para 2: Use cases and buying reasons. Plain sentences only.]\n\n'
-    +'KEY FEATURES\n\n'
-    +'1. [Benefit: Technical detail]\n'
-    +'2. [Benefit: Technical detail]\n'
-    +'3. [Benefit: Technical detail]\n'
-    +'4. [Benefit: Technical detail]\n'
-    +'5. [Benefit: Technical detail]\n'
-    +'6. [Benefit: Technical detail]\n'
-    +'7. [Benefit: Technical detail]\n'
-    +'8. [Benefit: Technical detail]\n\n'
-    +'SPECIFICATIONS\n\n'
-    +'Brand: [value]\n'
-    +'Material: [value]\n'
-    +'Weight: [value]\n'
-    +'Color: [value]\n'
-    +'Dimensions: [value]\n'
-    +'Pack Size: [value]\n'
-    +'[Add all relevant specs from source data in "Label: Value" format]\n\n'
-    +'SHIPPING AND RETURNS\n\n'
-    +policy.replace(/[🚚🆓🔄*_#]/g,'').trim()+'\n\n'
-    +'SEO METADATA\n\n'
-    +'Meta Title: [STRICT: under 30 characters. Count carefully. Primary keyword first.]\n'
-    +'Meta Description: [STRICT: over 160 characters. Strong CTA. Keyword-rich. Count carefully.]\n'
-    +'URL Handle: [lowercase, hyphens only, under 60 chars]\n\n'
-    +'SHOPIFY TAGS\n\n'
-    +'[15-20 comma-separated tags. Product type, use cases, material, brand, buyer intent. No hashtags. Example: dog treats, natural dog food, grain free treats]\n\n'
-    +'SOCIAL HASHTAGS\n\n'
-    +'[10 hashtags for Instagram TikTok Pinterest. Example: #dogtreats #petlovers #dogsofinstagram]\n\n'
+    var kwLineS=allKws.length>0?'\n\nKEYWORDS TO USE:\n'+allKws.join(', '):'';
+    var shopifyPrompt='You are a Shopify SEO Copywriter for 2026.\n'
+    +'CRITICAL RULES: NO markdown (*,**,#,>,`,~,_). NO dashes as list markers. NO em/en dashes. Section headings ALL CAPS on own line.\n'
+    +kwLineS+'\n\n'
+    +'SHOPIFY TITLE\n\n[50-70 char title]\n\n'
+    +'DESCRIPTION\n\n[2 paragraphs plain text]\n\n'
+    +'KEY FEATURES\n\n1. Feature one\n2. Feature two\n[etc]\n\n'
+    +'SPECIFICATIONS\n\nBrand: value\nMaterial: value\n[etc]\n\n'
+    +'SHIPPING AND RETURNS\n\n'+policy.replace(/[🚚🆓🔄*_#]/g,'').trim()+'\n\n'
+    +'SEO METADATA\n\nMeta Title: [under 30 chars]\nMeta Description: [over 160 chars]\nURL Handle: [lowercase hyphens]\n\n'
+    +'SHOPIFY TAGS\n\n[15-20 comma-separated tags]\n\n'
+    +'SOCIAL HASHTAGS\n\n[10 hashtags]\n\n'
     +'RAW SOURCE DATA:\n'+product;
-
-    try{shopifyListingText=await claude(apiKey,shopifyPrompt,2500);shopifyTxt=shopifyListingText;}
-    catch(e){showErr('API Error (Shopify): '+e.message);setLoading(false);return;}
+    try{var rs=await claudeCall(apiKey,shopifyPrompt,2500);shopifyTxt=rs;}
+    catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
-  // STEP 3: Build HTML (eBay only)
+  // STEP 3
   setStep(3); setChip('work','Building output...');
 
   if(platform==='ebay'){
-    try{genHtml=buildHtmlFromListing(ebayListingText, store, theme);}
-    catch(e){genHtml='<html><body style="font-family:sans-serif;padding:40px;color:#333"><h2>HTML build error</h2><p>'+e.message+'</p></body></html>';}
-  }
-
-  // Render output
-  if(platform==='ebay'){
-    renderEbayOnly(ebayListingText);
+    try{genHtml=buildHtmlFromListing(fullTxt,store,theme);}
+    catch(e){genHtml='<html><body style="padding:40px;font-family:sans-serif;"><h2>Build error: '+e.message+'</h2></body></html>';}
+    renderEbayOnly(fullTxt);
   } else {
-    renderShopifyOnly(shopifyListingText);
+    renderShopifyOnly(shopifyTxt);
   }
 
   renderKeywords();
-
   setLoading(false);
   document.getElementById('prog').classList.remove('show');
-
-  // BUG FIX #4: Show output using ONLY classList (no inline style interference)
   document.getElementById('output').classList.add('show');
-
   setChip('done','Done!');
-
-  // Scroll to output
-  setTimeout(function(){
-    var mainEl=document.getElementById('mainArea');
-    var outputEl=document.getElementById('output');
-    mainEl.scrollTo({top: outputEl.offsetTop - 10, behavior:'smooth'});
-  },80);
+  setTimeout(function(){document.getElementById('mainArea').scrollTo({top:document.getElementById('output').offsetTop-10,behavior:'smooth'});},80);
 }
 
+// ─── RENDER FUNCTIONS ─────────────────────────────────────
 function renderEbayOnly(listingText){
-  document.getElementById('outSplit').classList.remove('shopify-only');
+  document.getElementById('outSplit').className='out-split';
   document.getElementById('lPane').classList.remove('full-width');
   document.getElementById('hPane').style.display='flex';
   document.getElementById('lPaneTitle').textContent='📋 eBay SEO Listing';
+  document.getElementById('hPaneTitle').textContent='🌐 HTML Listing — eBay Paste Ready';
+  document.getElementById('hPaneActs').innerHTML='<button class="ib gold" id="cpHtmlBtn" onclick="copyHtml()">Copy HTML</button><button class="ib" onclick="dlHtml()">⬇ Download</button>';
+  document.getElementById('vtabsRow').style.display='flex';
   renderListing(listingText);
   renderHtml(genHtml);
 }
 
 function renderShopifyOnly(shopifyText){
-  document.getElementById('outSplit').classList.add('shopify-only');
+  document.getElementById('outSplit').className='out-split shopify-only';
   document.getElementById('lPane').classList.add('full-width');
   document.getElementById('hPane').style.display='none';
-  document.getElementById('lPaneTitle').textContent='🛍 Shopify Listing — Copy & Paste Ready';
+  document.getElementById('lPaneTitle').textContent='🛍 Shopify Listing — Copy Ready';
   renderShopifyListing(shopifyText);
 }
 
 function parseShopifySections(text){
   var KEYS=['SHOPIFY TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','SHIPPING AND RETURNS','SEO METADATA','SHOPIFY TAGS','SOCIAL HASHTAGS'];
-  var out={};
-  var cur=null, buf=[];
-  var lines=text.split('\n');
-  for(var i=0;i<lines.length;i++){
-    var line=lines[i];
-    var trimmed=line.trim().toUpperCase();
-    var matched=false;
-    for(var ki=0;ki<KEYS.length;ki++){
-      if(trimmed===KEYS[ki]){
-        if(cur) out[cur]=buf.join('\n').trim();
-        cur=KEYS[ki]; buf=[]; matched=true; break;
-      }
-    }
-    if(!matched&&cur) buf.push(line);
-  }
-  if(cur) out[cur]=buf.join('\n').trim();
+  var out={},cur=null,buf=[];
+  text.split('\n').forEach(function(line){
+    var tr=line.trim().toUpperCase();
+    if(KEYS.indexOf(tr)>-1){if(cur)out[cur]=buf.join('\n').trim();cur=tr;buf=[];}
+    else if(cur)buf.push(line);
+  });
+  if(cur)out[cur]=buf.join('\n').trim();
   return out;
 }
 
-function cleanShopifyText(text){
-  if(!text) return '';
-  return text
-    .replace(/\*\*(.*?)\*\*/g,'$1')
-    .replace(/\*(.*?)\*/g,'$1')
-    .replace(/^#+\s*/gm,'')
-    .replace(/^>\s*/gm,'')
-    .replace(/`([^`]*)`/g,'$1')
-    .replace(/^\s*[-]{2,}\s*$/gm,'')
-    .replace(/^(\s*)[-–—]\s+/gm,'$1')
-    .replace(/\s*[—–]\s*/g,' ')
-    .trim();
+function cleanShopifyText(t){
+  if(!t) return '';
+  return t.replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/^#+\s*/gm,'').replace(/^>\s*/gm,'').replace(/`([^`]*)`/g,'$1').replace(/^\s*[-]{2,}\s*$/gm,'').replace(/^(\s*)[-–—]\s+/gm,'$1').replace(/\s*[—–]\s*/g,' ').trim();
 }
 
 function renderShopifyListing(shopifyText){
-  var tabsEl=document.getElementById('stabs');
-  var cntEl=document.getElementById('secCnt');
+  var tabsEl=document.getElementById('stabs'), cntEl=document.getElementById('secCnt');
   tabsEl.innerHTML=''; cntEl.innerHTML='';
-
   var S=parseShopifySections(shopifyText);
   Object.keys(S).forEach(function(k){S[k]=cleanShopifyText(S[k]);});
-
-  var bannerHtml='<div class="shopify-banner">'
-    +'<strong>Shopify Ready</strong> — Yeh content seedha Shopify description field mein paste karein. '
-    +'Plain text hai, koi formatting symbols nahi. Aap khud Shopify mein headings bold aur features ko bullet points de sakte hain.'
-    +'</div>';
-
-  var fullShopifyClean=buildShopifyPlainText(S);
-  shopifyTxt=fullShopifyClean;
-
-  var sectionDefs=[
-    {key:'SHOPIFY TITLE',        label:'Title',       color:'cS'},
-    {key:'DESCRIPTION',          label:'Description', color:'c2'},
-    {key:'KEY FEATURES',         label:'Features',    color:'c3'},
-    {key:'SPECIFICATIONS',       label:'Specs',       color:'c4'},
-    {key:'SHIPPING AND RETURNS', label:'Shipping',    color:'c5'},
-    {key:'SEO METADATA',         label:'SEO Meta',    color:'cS'},
-    {key:'SHOPIFY TAGS',         label:'Tags',        color:'c1'},
-    {key:'SOCIAL HASHTAGS',      label:'Hashtags',    color:'c2'},
-  ];
+  var fullClean=buildShopifyPlainText(S);
+  shopifyTxt=fullClean;
 
   var allTab=document.createElement('button');
   allTab.className='stab shopify-tab on';
   allTab.textContent='Full Listing';
-  allTab.onclick=(function(b){return function(){
-    document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
-    document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
-    b.classList.add('on');
-    document.getElementById('shopify-all-sec').classList.add('on');
-  };})(allTab);
   tabsEl.appendChild(allTab);
 
   var allDiv=document.createElement('div');
   allDiv.className='ssec on'; allDiv.id='shopify-all-sec';
-  allDiv.innerHTML=bannerHtml
-    +'<div class="shopify-preview-box">'
-    +'<div class="ob-hdr"><span class="ob-lbl cS">Complete Shopify Listing</span>'
-    +'<button class="ib green" onclick="cpTxt(shopifyTxt,this)">Copy All</button></div>'
-    +'<div class="shopify-copy-area">'+escHtml(fullShopifyClean)+'</div>'
-    +'</div>';
+  allDiv.innerHTML='<div class="shopify-banner"><strong>Shopify Ready</strong> — Seedha paste karein. Plain text, koi formatting nahi.</div>'
+    +'<div class="shopify-preview-box"><div class="ob-hdr"><span class="ob-lbl cS">Complete Listing</span><button class="ib green" onclick="cpTxt(shopifyTxt,this)">Copy All</button></div>'
+    +'<div class="shopify-copy-area">'+escHtml(fullClean)+'</div></div>';
   cntEl.appendChild(allDiv);
 
-  sectionDefs.forEach(function(sd, i){
-    var content=S[sd.key];
-    if(!content) return;
+  allTab.onclick=function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});allTab.classList.add('on');allDiv.classList.add('on');};
 
-    var tb=document.createElement('button');
-    tb.className='stab shopify-tab';
-    tb.textContent=sd.label;
-    tb.onclick=(function(b, sid){return function(){
-      document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
-      document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
-      b.classList.add('on');
-      document.getElementById(sid).classList.add('on');
-    };})(tb, 'shopify-sec-'+i);
+  var defs=[{key:'SHOPIFY TITLE',l:'Title',c:'cS'},{key:'DESCRIPTION',l:'Desc',c:'c2'},{key:'KEY FEATURES',l:'Features',c:'c3'},{key:'SPECIFICATIONS',l:'Specs',c:'c4'},{key:'SHIPPING AND RETURNS',l:'Shipping',c:'c5'},{key:'SEO METADATA',l:'SEO',c:'cS'},{key:'SHOPIFY TAGS',l:'Tags',c:'c1'},{key:'SOCIAL HASHTAGS',l:'Social',c:'c2'}];
+  defs.forEach(function(sd,i){
+    var content=S[sd.key]; if(!content) return;
+    var tb=document.createElement('button'); tb.className='stab shopify-tab'; tb.textContent=sd.l;
+    var sid='ss-shopify-'+i;
+    tb.onclick=(function(b,id){return function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});b.classList.add('on');document.getElementById(id).classList.add('on');};})(tb,sid);
     tabsEl.appendChild(tb);
-
-    var div=document.createElement('div');
-    div.className='ssec'; div.id='shopify-sec-'+i;
-
-    var displayContent=content;
-    if(sd.key==='SEO METADATA'){
-      var lines=content.split('\n');
-      var annotated=lines.map(function(line){
-        var mt=line.match(/^Meta Title:\s*(.+)/i);
-        var md=line.match(/^Meta Description:\s*(.+)/i);
-        if(mt){var len=mt[1].trim().length;var ok=len<30;return line+'\n('+len+' chars — '+(ok?'GOOD':'TOO LONG, must be under 30')+')';}
-        if(md){var len2=md[1].trim().length;var ok2=len2>160;return line+'\n('+len2+' chars — '+(ok2?'GOOD':'TOO SHORT, must be over 160')+')';}
-        return line;
-      });
-      displayContent=annotated.join('\n');
-    }
-
-    var safeContent=content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
-    div.innerHTML='<div class="shopify-preview-box">'
-      +'<div class="ob-hdr"><span class="ob-lbl '+sd.color+'">'+sd.label+'</span>'
-      +'<button class="ib green" onclick="cpTxt(`'+safeContent+'`,this)">Copy</button></div>'
-      +'<div class="shopify-copy-area">'+escHtml(displayContent)+'</div>'
-      +'</div>';
+    var safe=content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+    var div=document.createElement('div'); div.className='ssec'; div.id=sid;
+    div.innerHTML='<div class="shopify-preview-box"><div class="ob-hdr"><span class="ob-lbl '+sd.c+'">'+sd.l+'</span><button class="ib green" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div><div class="shopify-copy-area">'+escHtml(content)+'</div></div>';
     cntEl.appendChild(div);
   });
 }
 
 function buildShopifyPlainText(S){
   var parts=[];
-  var order=['SHOPIFY TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','SHIPPING AND RETURNS','SEO METADATA','SHOPIFY TAGS','SOCIAL HASHTAGS'];
-  var labels={
-    'SHOPIFY TITLE':'TITLE',
-    'DESCRIPTION':'DESCRIPTION',
-    'KEY FEATURES':'KEY FEATURES',
-    'SPECIFICATIONS':'SPECIFICATIONS',
-    'SHIPPING AND RETURNS':'SHIPPING AND RETURNS',
-    'SEO METADATA':'SEO METADATA',
-    'SHOPIFY TAGS':'SHOPIFY TAGS',
-    'SOCIAL HASHTAGS':'SOCIAL HASHTAGS'
-  };
-  order.forEach(function(key){
-    if(S[key]){
-      parts.push(labels[key]);
-      parts.push('');
-      parts.push(S[key]);
-      parts.push('');
-      parts.push('');
-    }
-  });
+  ['SHOPIFY TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','SHIPPING AND RETURNS','SEO METADATA','SHOPIFY TAGS','SOCIAL HASHTAGS'].forEach(function(k){if(S[k]){parts.push(k);parts.push('');parts.push(S[k]);parts.push('');parts.push('');}});
   return parts.join('\n');
 }
 
 function parseListingSections(text){
   var KEYS=['BRAND CHECK','TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
-  var out={};
-  var cur=null, buf=[];
+  var out={},cur=null,buf=[];
   text.split('\n').forEach(function(line){
-    var cl = line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
-    if(KEYS.indexOf(cl) > -1){if(cur) out[cur] = buf.join('\n').trim(); cur = cl; buf = [];}
-    else if(cur){ buf.push(line); }
+    var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
+    if(KEYS.indexOf(cl)>-1){if(cur)out[cur]=buf.join('\n').trim();cur=cl;buf=[];}
+    else if(cur)buf.push(line);
   });
-  if(cur) out[cur] = buf.join('\n').trim();
+  if(cur)out[cur]=buf.join('\n').trim();
   return out;
 }
 
-function parseSpecs(specsRaw){
-  var lines = specsRaw.split('\n');
-  var result = [];
+function parseSpecs(raw){
+  var lines=raw.split('\n'),result=[];
   lines.forEach(function(line){
-    var l = line.trim();
-    if(!l || l.length < 3) return;
+    var l=line.trim(); if(!l||l.length<3) return;
     if(/^[\|\s\-:]+$/.test(l)) return;
-    if(l.charAt(0) === '|'){
-      var cells = l.split('|').map(function(c){return c.trim();}).filter(function(c){return c.length > 0;});
-      if(cells.length >= 2){
-        var label = cells[0].replace(/\*\*/g,'');
-        var val = cells[1].replace(/\*\*/g,'');
-        if(label.toLowerCase() === 'specification' || label.toLowerCase() === 'spec' || label.toLowerCase() === 'label') return;
-        if(label && val && val !== '-' && val !== '—'){result.push({label: label, value: val});}
-      }
+    if(l.charAt(0)==='|'){
+      var cells=l.split('|').map(function(c){return c.trim();}).filter(function(c){return c.length>0;});
+      if(cells.length>=2){var label=cells[0].replace(/\*\*/g,''),val=cells[1].replace(/\*\*/g,'');if(label&&val&&val!=='-'&&val!=='—'&&!/spec|label/i.test(label))result.push({label:label,value:val});}
       return;
     }
-    if(l.indexOf(':') > -1){
-      var idx = l.indexOf(':');
-      var label2 = l.slice(0, idx).replace(/^[-•*]\s*/,'').replace(/\*\*/g,'').trim();
-      var val2 = l.slice(idx+1).trim();
-      if(label2 && val2 && label2.length < 40 && val2.length > 0){result.push({label: label2, value: val2});}
-      return;
-    }
+    if(l.indexOf(':')>-1){var idx=l.indexOf(':'),label2=l.slice(0,idx).replace(/^[-•*]\s*/,'').replace(/\*\*/g,'').trim(),val2=l.slice(idx+1).trim();if(label2&&val2&&label2.length<40)result.push({label:label2,value:val2});}
   });
   return result;
 }
 
-function escHtml(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-function buildHtmlFromListing(listingText, storeName, themeName){
-  var S = parseListingSections(listingText);
-  var themes={
-    heritage:{bg:'#0A0F12',card:'#111C16',borderColor:'rgba(74,107,58,0.35)',acc:'#6aA550',acc2:'#B87B3A',txt:'#C9D8C5',h1grad:'#FFFFFF,#B8D4A8',badge:'rgba(74,107,58,0.18)',badgeTxt:'#7EC062',rowBorder:'rgba(74,107,58,0.22)',name:'Heritage'},
-    modern:  {bg:'#0A0A14',card:'#101020',borderColor:'rgba(139,124,248,0.3)',acc:'#8b7cf8',acc2:'#4fd1c5',txt:'#C9CDE8',h1grad:'#FFFFFF,#C4BCFA',badge:'rgba(139,124,248,0.15)',badgeTxt:'#A89BFA',rowBorder:'rgba(139,124,248,0.2)',name:'Modern'},
-    clean:   {bg:'#0A0F1A',card:'#121926',borderColor:'rgba(220,90,30,0.25)',acc:'#DC5A1E',acc2:'#0891b2',txt:'#C9D1DF',h1grad:'#FFFFFF,#DCBC9A',badge:'rgba(220,90,30,0.15)',badgeTxt:'#DC5A1E',rowBorder:'rgba(220,90,30,0.18)',name:'Clean'},
-    luxury:  {bg:'#06060A',card:'#0E0E10',borderColor:'rgba(212,175,55,0.3)',acc:'#d4af37',acc2:'#c8963c',txt:'#C8C4A8',h1grad:'#FFFFFF,#D4AF37',badge:'rgba(212,175,55,0.15)',badgeTxt:'#D4AF37',rowBorder:'rgba(212,175,55,0.2)',name:'Luxury'},
+function buildHtmlFromListing(listingText,storeName,themeName){
+  var S=parseListingSections(listingText);
+  var TH={
+    heritage:{bg:'#0A0F1A',card:'#121926',bc:'rgba(220,90,30,0.25)',acc:'#DC5A1E',txt:'#C9D1DF',h1:'#FFFFFF,#DCBC9A',badge:'rgba(220,90,30,0.15)',badgeTxt:'#DC5A1E',rb:'rgba(220,90,30,0.18)'},
+    modern:{bg:'#0A0A14',card:'#101020',bc:'rgba(139,124,248,0.3)',acc:'#8b7cf8',txt:'#C9CDE8',h1:'#FFFFFF,#C4BCFA',badge:'rgba(139,124,248,0.15)',badgeTxt:'#A89BFA',rb:'rgba(139,124,248,0.2)'},
+    clean:{bg:'#F0F4FF',card:'#FFFFFF',bc:'rgba(29,78,219,0.2)',acc:'#1d4ed8',txt:'#374151',h1:'#111827,#1d4ed8',badge:'rgba(29,78,219,0.1)',badgeTxt:'#1d4ed8',rb:'rgba(29,78,219,0.15)'},
+    luxury:{bg:'#06060A',card:'#0E0E10',bc:'rgba(212,175,55,0.3)',acc:'#d4af37',txt:'#C8C4A8',h1:'#FFFFFF,#D4AF37',badge:'rgba(212,175,55,0.15)',badgeTxt:'#D4AF37',rb:'rgba(212,175,55,0.2)'},
   };
-  var T = themes[themeName] || themes.heritage;
+  var T=TH[themeName]||TH.heritage;
 
-  var titleBlock = S['TITLE'] || '';
-  var ebayTitle = '';
-  function cleanTitleCandidate(s){
-    return s.replace(/```+/g,'').replace(/\*\*/g,'').replace(/^(ebay\s+)?title\s*(\(.*?\))?\s*[:\-]\s*/i,'').replace(/^\(.*?\)\s*/,'').trim();
-  }
-  var titleLines = titleBlock.split('\n');
-  var foundAfterLabel = false;
-  for(var ti=0; ti < titleLines.length; ti++){
-    var tl = titleLines[ti];
-    if(/eBay\s+Title/i.test(tl) || /^Title\s*[:\(]/i.test(tl)){
-      var inlineM = tl.match(/(?:eBay\s+Title|Title)\s*(?:\(.*?\))?\s*[:\-]\s*(.+)/i);
-      if(inlineM){var candidate = cleanTitleCandidate(inlineM[1]);if(candidate.length > 5 && !/chars|keyword stacking|NO punctuation|natural language/i.test(candidate)){ebayTitle = candidate; foundAfterLabel = true; break;}}
-      for(var tj=ti+1; tj < titleLines.length; tj++){var nextLine = cleanTitleCandidate(titleLines[tj]);if(nextLine.length > 5 && !/chars|keyword stacking|NO punctuation|natural language|\[/i.test(nextLine)){ebayTitle = nextLine; foundAfterLabel = true; break;}}
-      if(foundAfterLabel) break;
+  // Extract title
+  var titleBlock=(S['TITLE']||'').replace(/```+/g,'').trim();
+  var ebayTitle='Premium Product';
+  var tlines=titleBlock.split('\n');
+  for(var i=0;i<tlines.length;i++){
+    var tl=tlines[i].trim();
+    if(/eBay\s+Title/i.test(tl)){
+      var inM=tl.match(/(?:eBay\s+Title)[^:]*:\s*(.+)/i);
+      if(inM&&inM[1].trim().length>5&&!/chars|keyword|stacking|\[/i.test(inM[1])){ebayTitle=inM[1].replace(/`/g,'').trim();break;}
+      for(var j=i+1;j<tlines.length;j++){var nl=tlines[j].replace(/`/g,'').trim();if(nl.length>10&&!/chars|stacking|keyword|\[/i.test(nl)){ebayTitle=nl;break;}}
+      break;
     }
   }
-  if(!ebayTitle){for(var ti2=0; ti2 < titleLines.length; ti2++){var candidate2 = cleanTitleCandidate(titleLines[ti2]);if(candidate2.length > 15 && !/chars|keyword stacking|NO punctuation|natural language|\[ebay|\[shopify|\[title/i.test(candidate2)){ebayTitle = candidate2; break;}}}
-  if(!ebayTitle) ebayTitle = 'Premium Product';
+  if(ebayTitle==='Premium Product'){
+    for(var i2=0;i2<tlines.length;i2++){var c=tlines[i2].replace(/`/g,'').replace(/^[^a-zA-Z]*/,'').trim();if(c.length>15&&!/chars|keyword|stacking|\[/i.test(c)){ebayTitle=c;break;}}
+  }
 
-  var descRaw = S['DESCRIPTION'] || '';
-  var descParas = descRaw.split(/\n\n+/).filter(function(p){return p.trim().length > 20;}).slice(0,2);
-  function fmtDesc(p){return p.trim().replace(/\*\*(.*?)\*\*/g,'<strong style="color:'+T.acc+'">$1</strong>');}
-  var featLines = (S['KEY FEATURES'] || '').split('\n').filter(function(l){return l.trim().length > 5;}).slice(0,8);
-  var specParsed = parseSpecs(S['SPECIFICATIONS'] || '');
-  var tipsRaw = S['PRO TIPS'] || '';
-  var tipBlocks = [];
-  var currentBlock = [];
-  tipsRaw.split('\n').forEach(function(line){
-    var l = line.trim(); if(!l) return;
-    var isNewTip = /^\d+[\.\)]\s+/.test(l) || (/^\*\*/.test(l) && currentBlock.length > 0);
-    if(isNewTip && currentBlock.length > 0){tipBlocks.push(currentBlock.join(' ')); currentBlock = [l];} else {currentBlock.push(l);}
-  });
-  if(currentBlock.length > 0) tipBlocks.push(currentBlock.join(' '));
-  tipBlocks = tipBlocks.slice(0,5);
-  var parsedTips = tipBlocks.map(function(raw){
-    var clean = raw.replace(/^\d+[\.\)]\s*/,'').replace(/\*\*/g,'').trim();
-    var sepIdx = clean.search(/\s[—–]\s|\s:\s/);
-    var title, body;
-    if(sepIdx > -1){title = clean.slice(0, sepIdx).trim(); body = clean.slice(sepIdx).replace(/^\s*[—–:]\s*/,'').trim();}
-    else{var dotIdx = clean.indexOf('. ');if(dotIdx > 10){title = clean.slice(0, dotIdx+1).trim(); body = clean.slice(dotIdx+1).trim();}else{title = clean; body = '';}}
-    return {title: title, body: body};
-  });
-  var tagLines = (S['IDEAL FOR'] || '').split('\n').map(function(l){return l.replace(/^[-–•]\s*/,'').trim();}).filter(function(l){return l.length > 2;}).slice(0,12);
-  var polLines = (S['POLICIES'] || '').split('\n').filter(function(l){return l.trim().length > 5;}).slice(0,4);
-  var brandCheck = S['BRAND CHECK'] || '';
-  var badgeTxt = '✦ PREMIUM QUALITY · 2026';
-  var bm2 = brandCheck.match(/Brand:\s*([^|]+)/i);
-  if(bm2) badgeTxt = '🏷 ' + bm2[1].trim().toUpperCase() + ' · VERIFIED 2026';
+  var descParas=(S['DESCRIPTION']||'').split(/\n\n+/).filter(function(p){return p.trim().length>20;}).slice(0,2);
+  var featLines=(S['KEY FEATURES']||'').split('\n').filter(function(l){return l.trim().length>5;}).slice(0,8);
+  var specParsed=parseSpecs(S['SPECIFICATIONS']||'');
+  var polLines=(S['POLICIES']||'').split('\n').filter(function(l){return l.trim().length>5;}).slice(0,4);
+  var tagLines=(S['IDEAL FOR']||'').split('\n').map(function(l){return l.replace(/^[-–•]\s*/,'').trim();}).filter(function(l){return l.length>2;}).slice(0,12);
 
-  var css = '*{margin:0;padding:0;box-sizing:border-box;}'
-  +'body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:'+T.bg+';color:'+T.txt+';line-height:1.5;}'
+  // Tips
+  var tipsRaw=S['PRO TIPS']||'';
+  var tipBlocks=[],curB=[];
+  tipsRaw.split('\n').forEach(function(line){var l=line.trim();if(!l)return;var isNew=/^\d+[\.\)]\s+/.test(l)&&curB.length>0;if(isNew){tipBlocks.push(curB.join(' '));curB=[l];}else{curB.push(l);}});
+  if(curB.length>0)tipBlocks.push(curB.join(' '));
+  var parsedTips=tipBlocks.slice(0,5).map(function(raw){
+    var c=raw.replace(/^\d+[\.\)]\s*/,'').replace(/\*\*/g,'').trim();
+    var sepIdx=c.search(/\s[—–:]\s/);
+    var title,body;
+    if(sepIdx>-1){title=c.slice(0,sepIdx).trim();body=c.slice(sepIdx).replace(/^\s*[—–:]\s*/,'').trim();}
+    else{var di=c.indexOf('. ');if(di>10){title=c.slice(0,di+1);body=c.slice(di+1).trim();}else{title=c;body='';}}
+    return{title:title,body:body};
+  });
+
+  function fd(p){return p.trim().replace(/\*\*(.*?)\*\*/g,'<strong style="color:'+T.acc+'">$1</strong>');}
+
+  var css='*{margin:0;padding:0;box-sizing:border-box;}'
+  +'body{font-family:Inter,-apple-system,sans-serif;background:'+T.bg+';color:'+T.txt+';line-height:1.5;}'
   +'.wrap{max-width:1280px;margin:0 auto;padding:2rem 1.5rem;}'
-  +'.section{margin-bottom:2rem;background:'+T.card+';border-radius:28px;padding:1.8rem 2rem;border:1px solid '+T.borderColor+';box-shadow:0 20px 35px -10px rgba(0,0,0,0.5);}'
-  +'.sec-title{font-size:1.6rem;font-weight:700;letter-spacing:-0.3px;margin-bottom:1.2rem;display:inline-block;background:linear-gradient(135deg,'+T.h1grad+');-webkit-background-clip:text;background-clip:text;color:transparent;border-left:4px solid '+T.acc+';padding-left:1rem;}'
+  +'.section{margin-bottom:2rem;background:'+T.card+';border-radius:28px;padding:1.8rem 2rem;border:1px solid '+T.bc+';box-shadow:0 20px 35px -10px rgba(0,0,0,0.5);}'
+  +'.sec-title{font-size:1.6rem;font-weight:700;margin-bottom:1.2rem;display:inline-block;background:linear-gradient(135deg,'+T.h1+');-webkit-background-clip:text;background-clip:text;color:transparent;border-left:4px solid '+T.acc+';padding-left:1rem;}'
   +'.desc-text{font-size:1rem;line-height:1.65;color:'+T.txt+';margin-bottom:1rem;}'
-  +'.features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.9rem;margin-top:0.5rem;}'
-  +'.feature-item{display:flex;align-items:center;gap:12px;background:'+T.bg+';padding:0.9rem 1.2rem;border-radius:20px;border:1px solid '+T.rowBorder+';transition:border-color 0.2s;}'
-  +'.feature-item:hover{border-color:'+T.acc+';}'
-  +'.specs-container{background:'+T.bg+';border-radius:24px;border:1px solid '+T.rowBorder+';overflow:hidden;}'
-  +'.spec-row{display:flex;flex-wrap:wrap;padding:1rem 1.4rem;border-bottom:1px solid '+T.rowBorder+';}'
+  +'.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.9rem;margin-top:0.5rem;}'
+  +'.feat-item{display:flex;align-items:flex-start;gap:12px;background:'+T.bg+';padding:0.9rem 1.2rem;border-radius:20px;border:1px solid '+T.rb+';}'
+  +'.specs-wrap{background:'+T.bg+';border-radius:24px;border:1px solid '+T.rb+';overflow:hidden;}'
+  +'.spec-row{display:flex;flex-wrap:wrap;padding:1rem 1.4rem;border-bottom:1px solid '+T.rb+';}'
   +'.spec-row:last-child{border-bottom:none;}'
-  +'.spec-label{width:34%;font-weight:700;color:'+T.acc+';font-size:0.88rem;}'
-  +'.spec-value{width:66%;color:'+T.txt+';font-size:0.88rem;}'
-  +'.pro-tip-card{background:'+T.bg+';border-radius:20px;padding:1.1rem 1.5rem;margin-bottom:1rem;border-left:4px solid '+T.acc+';display:flex;gap:14px;}'
-  +'.tip-num{font-weight:800;font-size:1.2rem;color:'+T.acc+';opacity:0.9;min-width:36px;flex-shrink:0;}'
+  +'.spec-l{width:34%;font-weight:700;color:'+T.acc+';font-size:0.88rem;}'
+  +'.spec-v{width:66%;color:'+T.txt+';font-size:0.88rem;}'
+  +'.tip-card{background:'+T.bg+';border-radius:20px;padding:1.1rem 1.5rem;margin-bottom:1rem;border-left:4px solid '+T.acc+';display:flex;gap:14px;}'
+  +'.tip-num{font-weight:800;font-size:1.2rem;color:'+T.acc+';min-width:36px;}'
   +'.tip-body{font-size:0.9rem;color:'+T.txt+';line-height:1.65;}'
   +'.tip-body strong{color:'+T.acc+';}'
   +'.tag-cloud{display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:0.8rem;}'
-  +'.tag{background:'+T.bg+';padding:0.35rem 1rem;border-radius:30px;font-size:0.7rem;font-weight:500;color:'+T.txt+';border:1px solid '+T.rowBorder+';transition:0.1s;cursor:default;}'
-  +'.tag:hover{border-color:'+T.acc+';color:'+T.acc+';}'
-  +'.policy-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;background:'+T.bg+';border-radius:28px;padding:1rem 1.8rem;border:1px solid '+T.rowBorder+';margin-top:0.5rem;}'
+  +'.tag{background:'+T.bg+';padding:0.35rem 1rem;border-radius:30px;font-size:0.7rem;font-weight:500;color:'+T.txt+';border:1px solid '+T.rb+';}'
+  +'.policy-row{display:flex;flex-wrap:wrap;gap:1rem;background:'+T.bg+';border-radius:28px;padding:1rem 1.8rem;border:1px solid '+T.rb+';margin-top:0.5rem;}'
   +'.policy-item{display:flex;align-items:center;gap:8px;font-weight:500;font-size:0.85rem;color:'+T.txt+';}'
-  +'@media(max-width:780px){.features-grid{grid-template-columns:1fr;}.spec-label,.spec-value{width:100%;}.spec-row{flex-direction:column;}.wrap{padding:1rem;}.section{padding:1.2rem;}}';
+  +'@media(max-width:780px){.feat-grid{grid-template-columns:1fr;}.spec-l,.spec-v{width:100%;}.spec-row{flex-direction:column;}.wrap{padding:1rem;}.section{padding:1.2rem;}}';
 
-  var heroHtml = '<div class="section" style="background:linear-gradient(125deg,'+T.card+' 0%,'+T.bg+' 100%);border:1px solid '+T.borderColor+';box-shadow:0 25px 40px -12px rgba(0,0,0,0.55);">'
-  +'<div style="display:inline-flex;align-items:center;gap:8px;background:'+T.badge+';backdrop-filter:blur(4px);padding:0.25rem 1.2rem;border-radius:40px;font-size:0.7rem;font-weight:700;letter-spacing:1px;color:'+T.badgeTxt+';text-transform:uppercase;margin-bottom:1rem;border:1px solid '+T.borderColor+';">'+escHtml(badgeTxt)+'</div>'
-  +'<h1 style="font-size:2.6rem;font-weight:800;line-height:1.25;background:linear-gradient(135deg,'+T.h1grad+');-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:1rem;">'+escHtml(ebayTitle)+'</h1>'
+  var heroH='<div class="section" style="background:linear-gradient(125deg,'+T.card+' 0%,'+T.bg+' 100%);border:1px solid '+T.bc+';">'
+  +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;background:linear-gradient(135deg,'+T.h1+');-webkit-background-clip:text;background-clip:text;color:transparent;">'+escHtml(ebayTitle)+'</h1>'
   +'</div>';
 
-  var descHtml = '';
-  if(descParas.length > 0){
-    descHtml = '<div class="section"><div class="sec-title">⟡ DESCRIPTION</div>'
-      + descParas.map(function(p){return '<p class="desc-text">'+fmtDesc(p)+'</p>';}).join('')
-      + '</div>';
+  var descH=descParas.length>0?'<div class="section"><div class="sec-title">⟡ DESCRIPTION</div>'+descParas.map(function(p){return '<p class="desc-text">'+fd(p)+'</p>';}).join('')+'</div>':'';
+
+  var featH='';
+  if(featLines.length>0){
+    var fg='<div class="feat-grid">';
+    featLines.forEach(function(f){var c=f.replace(/^✅\s*/,'').replace(/^[-•]\s*/,''),parts=c.split(/\s*—\s*/),b=parts[0]||c,d=parts[1]||'';fg+='<div class="feat-item"><span style="font-size:1.1rem;color:'+T.acc+';flex-shrink:0;">'+(f.indexOf('✅')>-1?'✅':'🔹')+'</span><span style="font-size:0.92rem;color:'+T.txt+';"><strong style="color:'+T.acc+';">'+escHtml(b)+'</strong>'+(d?' — <span style="opacity:0.8;">'+escHtml(d)+'</span>':'')+'</span></div>';});
+    fg+='</div>';
+    featH='<div class="section"><div class="sec-title">⟡ KEY FEATURES</div>'+fg+'</div>';
   }
 
-  var featSectionHtml = '';
-  if(featLines.length > 0){
-    var fGrid = '<div class="features-grid">';
-    featLines.forEach(function(f){
-      var clean = f.replace(/^✅\s*/,'').replace(/^[-•]\s*/,'');
-      var parts = clean.split(/\s*—\s*/);
-      var benefit = parts[0] || clean;
-      var detail = parts[1] || '';
-      var icon = f.indexOf('✅') > -1 ? '✅' : '🔩';
-      fGrid += '<div class="feature-item">'
-        +'<span style="font-size:1.2rem;color:'+T.acc+';flex-shrink:0;">'+icon+'</span>'
-        +'<span style="font-weight:500;color:'+T.txt+';font-size:0.92rem;"><strong style="color:'+T.acc+';">'+escHtml(benefit)+'</strong>'+(detail?' — <span style="opacity:0.8;">'+escHtml(detail)+'</span>':'')+'</span>'
-        +'</div>';
-    });
-    fGrid += '</div>';
-    featSectionHtml = '<div class="section"><div class="sec-title">⟡ KEY FEATURES</div>'+fGrid+'</div>';
-  }
+  var specsH='';
+  if(specParsed.length>0){var sr='<div class="specs-wrap">'+specParsed.map(function(s){return '<div class="spec-row"><div class="spec-l">'+escHtml(s.label)+'</div><div class="spec-v">'+escHtml(s.value)+'</div></div>';}).join('')+'</div>';specsH='<div class="section"><div class="sec-title">⟡ SPECIFICATIONS</div>'+sr+'</div>';}
 
-  var specsSectionHtml = '';
-  if(specParsed.length > 0){
-    var sRows = '<div class="specs-container">';
-    specParsed.forEach(function(sp){
-      sRows += '<div class="spec-row"><div class="spec-label">'+escHtml(sp.label)+'</div><div class="spec-value">'+escHtml(sp.value)+'</div></div>';
-    });
-    sRows += '</div>';
-    specsSectionHtml = '<div class="section"><div class="sec-title">⟡ TECHNICAL SPECIFICATIONS</div>'+sRows+'</div>';
-  }
+  var tipsH='';
+  if(parsedTips.length>0){tipsH='<div class="section"><div class="sec-title">⟡ PRO TIPS</div>'+parsedTips.map(function(t,i){return '<div class="tip-card"><div class="tip-num">0'+(i+1)+'</div><div class="tip-body"><strong>'+escHtml(t.title)+'</strong>'+(t.body?' — '+escHtml(t.body):'')+'</div></div>';}).join('')+'</div>';}
 
-  var tipsSectionHtml = '';
-  if(parsedTips.length > 0){
-    var tCards = parsedTips.map(function(tip, i){
-      return '<div class="pro-tip-card">'
-        +'<div class="tip-num">0'+(i+1)+'</div>'
-        +'<div class="tip-body"><strong>'+escHtml(tip.title)+'</strong>'+(tip.body?' — '+escHtml(tip.body):'')+'</div>'
-        +'</div>';
-    }).join('');
-    tipsSectionHtml = '<div class="section"><div class="sec-title">⟡ PROFESSIONAL USAGE TIPS</div>'+tCards+'</div>';
-  }
+  var idealH=tagLines.length>0?'<div class="section"><div class="sec-title">⟡ IDEAL FOR</div><div class="tag-cloud">'+tagLines.map(function(t){return '<span class="tag">'+escHtml(t)+'</span>';}).join('')+'</div></div>':'';
 
-  var idealSectionHtml = '';
-  if(tagLines.length > 0){
-    idealSectionHtml = '<div class="section"><div class="sec-title">⟡ IDEAL FOR</div><div class="tag-cloud">'
-      + tagLines.map(function(t){return '<span class="tag">'+escHtml(t)+'</span>';}).join('')
-      + '</div></div>';
-  }
+  var polH='';
+  if(polLines.length>0){polH='<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
 
-  var polSectionHtml = '';
-  if(polLines.length > 0){
-    var pItems = polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('');
-    polSectionHtml = '<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+pItems+'</div></div>';
-  }
-
-  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
-  +'<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
-  +'<title>'+escHtml(ebayTitle)+'</title>\n'
-  +'<link rel="preconnect" href="https://fonts.googleapis.com">\n'
-  +'<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n'
-  +'<style>'+css+'</style>\n'
-  +'</head>\n<body>\n<div class="wrap">\n'
-  + heroHtml + descHtml + featSectionHtml + specsSectionHtml + tipsSectionHtml + idealSectionHtml + polSectionHtml
-  +'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rowBorder+';margin-top:0.5rem;">© 2026 — '+escHtml(storeName)+' | Premium Quality Products</div>'
-  +'\n</div>\n</body>\n</html>';
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+descH+featH+specsH+tipsH+idealH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">© 2026 — '+escHtml(storeName)+'</div>\n</div>\n</body>\n</html>';
 }
 
 function renderKeywords(){
-  var sources=[
-    {id:'ebay',  label:'eBay',    icon:'🏪', color:'#f0c060', bg:'rgba(240,192,96,0.07)',  bdr:'rgba(240,192,96,0.2)'},
-    {id:'amazon',label:'Amazon',  icon:'📦', color:'#fb923c', bg:'rgba(251,146,60,0.07)',  bdr:'rgba(251,146,60,0.2)'},
-    {id:'walmart',label:'Walmart',icon:'🛒', color:'#60a5fa', bg:'rgba(96,165,250,0.07)',  bdr:'rgba(96,165,250,0.2)'},
-    {id:'google', label:'Google', icon:'🔍', color:'#4ade80', bg:'rgba(74,222,128,0.07)',  bdr:'rgba(74,222,128,0.2)'},
-  ];
-  var tabsEl=document.getElementById('stabs');
-  var cntEl=document.getElementById('secCnt');
-  var oldTab=document.getElementById('kw-tab-btn');
-  var oldSec=document.getElementById('kw-tab-sec');
-  if(oldTab) oldTab.remove();
-  if(oldSec) oldSec.remove();
-
+  var sources=[{id:'ebay',label:'eBay',icon:'🏪',color:'#f0c060',bg:'rgba(240,192,96,0.07)',bdr:'rgba(240,192,96,0.2)'},{id:'amazon',label:'Amazon',icon:'📦',color:'#fb923c',bg:'rgba(251,146,60,0.07)',bdr:'rgba(251,146,60,0.2)'},{id:'walmart',label:'Walmart',icon:'🛒',color:'#60a5fa',bg:'rgba(96,165,250,0.07)',bdr:'rgba(96,165,250,0.2)'},{id:'google',label:'Google',icon:'🔍',color:'#4ade80',bg:'rgba(74,222,128,0.07)',bdr:'rgba(74,222,128,0.2)'}];
+  var tabsEl=document.getElementById('stabs'),cntEl=document.getElementById('secCnt');
+  var ot=document.getElementById('kw-tab-btn'),os=document.getElementById('kw-tab-sec');
+  if(ot)ot.remove(); if(os)os.remove();
   var tb=document.createElement('button');
-  tb.className='stab';
-  tb.id='kw-tab-btn';
-  tb.innerHTML='🔑 Keywords';
-  tb.style.borderColor='rgba(212,168,71,0.4)';
-  tb.style.color='var(--gold)';
-  tb.onclick=function(){
-    document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
-    document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
-    tb.classList.add('on');
-    document.getElementById('kw-tab-sec').classList.add('on');
-  };
+  tb.className='stab'; tb.id='kw-tab-btn'; tb.innerHTML='🔑 Keywords';
+  tb.style.borderColor='rgba(212,168,71,0.4)'; tb.style.color='var(--gold)';
+  tb.onclick=function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});tb.classList.add('on');document.getElementById('kw-tab-sec').classList.add('on');};
   tabsEl.appendChild(tb);
-
   var totalRaw=srcKws.ebay.length+srcKws.amazon.length+srcKws.walmart.length+srcKws.google.length;
-  var totalFound=allKws.length;
   var html='<div class="ssec" id="kw-tab-sec">';
-  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:10px 14px;background:rgba(212,168,71,0.07);border:1px solid rgba(212,168,71,0.2);border-radius:10px;">'
-    +'<div style="font-size:11px;color:var(--gold);font-weight:600;">✦ '+totalRaw+' Keywords Fetched (4 platforms x 10 each)</div>'
-    +'<div style="font-size:10px;color:var(--dim);">'+totalFound+' unique used</div>'
-    +'</div>';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:10px 14px;background:rgba(212,168,71,0.07);border:1px solid rgba(212,168,71,0.2);border-radius:10px;"><div style="font-size:11px;color:var(--gold);font-weight:600;">✦ '+totalRaw+' Keywords (4 x 10)</div><div style="font-size:10px;color:var(--dim);">'+allKws.length+' unique used</div></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
   sources.forEach(function(src){
     var kws=srcKws[src.id]||[];
+    var isReal=srcReal[src.id];
+    var srcBadge = kws.length>0
+      ? (isReal
+          ? '<span style="font-size:8px;padding:2px 6px;border-radius:4px;background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.3);font-weight:600;">REAL DATA</span>'
+          : '<span style="font-size:8px;padding:2px 6px;border-radius:4px;background:rgba(168,139,250,0.15);color:#a78bfa;border:1px solid rgba(168,139,250,0.3);font-weight:600;">AI ASSIST</span>')
+      : '';
     html+='<div style="background:'+src.bg+';border:1px solid '+src.bdr+';border-radius:10px;padding:13px;">';
-    html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">';
-    html+='<span style="font-size:15px;">'+src.icon+'</span>';
-    html+='<span style="font-size:11px;font-weight:600;color:'+src.color+';text-transform:uppercase;letter-spacing:0.1em;">'+src.label+'</span>';
-    html+='<span style="margin-left:auto;font-size:10px;color:var(--dim);font-family:\'Geist Mono\',monospace;">'+kws.length+' kws</span>';
-    html+='</div>';
-    if(kws.length>0){
-      kws.slice(0,10).forEach(function(kw,i){
-        html+='<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
-          +'<span style="font-size:9px;color:var(--dim);font-family:\'Geist Mono\',monospace;width:14px;">'+(i+1)+'.</span>'
-          +'<span style="font-size:11px;color:var(--snow);">'+kw+'</span>'
-          +'</div>';
-      });
-    } else {
-      html+='<div style="font-size:11px;color:var(--dim);padding:8px 0;">No keywords fetched</div>';
-    }
+    html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><span>'+src.icon+'</span><span style="font-size:11px;font-weight:600;color:'+src.color+';text-transform:uppercase;letter-spacing:0.1em;">'+src.label+'</span>'+srcBadge+'<span style="margin-left:auto;font-size:10px;color:var(--dim);">'+kws.length+' kws</span></div>';
+    if(kws.length>0)kws.forEach(function(kw,i){html+='<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="font-size:9px;color:var(--dim);width:14px;">'+(i+1)+'.</span><span style="font-size:11px;color:var(--snow);">'+kw+'</span></div>';});
+    else html+='<div style="font-size:11px;color:var(--dim);padding:8px 0;">No keywords</div>';
     html+='</div>';
   });
   html+='</div>';
-  if(platform==='ebay'){
-    html+='<div style="margin-top:14px;padding:10px 14px;background:rgba(45,212,191,0.05);border:1px solid rgba(45,212,191,0.15);border-radius:8px;font-size:11px;color:var(--teal);">'
-      +'<span style="font-weight:600;">Verification:</span> Open the Description tab — fetched keywords appear highlighted in gold bold inside the listing copy.'
-      +'</div>';
-  }
-  html+='</div>';
-  cntEl.insertAdjacentHTML('beforeend', html);
+  // Legend
+  html+='<div style="margin-top:12px;padding:9px 13px;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;font-size:10px;color:var(--dim);line-height:1.6;">'
+    +'<span style="color:#4ade80;font-weight:600;">REAL DATA</span> = live autocomplete from the actual platform (Google/Amazon). '
+    +'<span style="color:#a78bfa;font-weight:600;">AI ASSIST</span> = intelligently generated when live data unavailable.'
+    +'</div></div>';
+  cntEl.insertAdjacentHTML('beforeend',html);
 }
 
-function highlightKeywords(text, keywords){
+function highlightKeywords(text,keywords){
   if(!keywords||keywords.length===0||allKws.length===0) return text;
-  var sorted=keywords.slice().sort(function(a,b){return b.length-a.length;});
-  sorted.forEach(function(kw){
-    if(kw.length<4) return;
-    var escaped=kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    var re=new RegExp('(?![^<]*>)(?![^<]*<\/strong)\\b('+escaped+')\\b','gi');
-    text=text.replace(re,'<strong style="color:var(--gold2);background:rgba(212,168,71,0.12);padding:0 3px;border-radius:3px;font-family:\'Geist Mono\',monospace;font-size:11px;">$1</strong>');
+  keywords.slice().sort(function(a,b){return b.length-a.length;}).forEach(function(kw){
+    if(kw.length<4)return;
+    var re=new RegExp('(?![^<]*>)\\b('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')\\b','gi');
+    text=text.replace(re,'<strong style="color:var(--gold2);background:rgba(212,168,71,0.12);padding:0 3px;border-radius:3px;">$1</strong>');
   });
   return text;
 }
 
 function renderListing(text){
   var KEYS=['BRAND CHECK','TITLE','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
-  var META={
-    'BRAND CHECK':{l:'Brand',c:'c4'},
-    'TITLE':{l:'Title',c:'c1'},
-    'DESCRIPTION':{l:'Description',c:'c2'},
-    'KEY FEATURES':{l:'Features',c:'c3'},
-    'SPECIFICATIONS':{l:'Specs',c:'c4'},
-    'PRO TIPS':{l:'Pro Tips',c:'c5'},
-    'IDEAL FOR':{l:'Ideal For',c:'c2'},
-    'POLICIES':{l:'Policies',c:'c3'},
-    'SEO METADATA':{l:'SEO Meta',c:'c5'},
-    'TAGS':{l:'Tags',c:'c1'}
-  };
-
-  var parsed=[], cur=null, buf=[];
-  text.split('\n').forEach(function(line){
-    var cl = line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
-    if(KEYS.indexOf(cl) > -1){if(cur) parsed.push({key:cur, content:buf.join('\n').trim()}); cur=cl; buf=[];}
-    else if(cur){ buf.push(line); }
-  });
-  if(cur) parsed.push({key:cur, content:buf.join('\n').trim()});
-  if(parsed.length===0) parsed.push({key:'LISTING',content:text});
-
-  var tabsEl=document.getElementById('stabs'), cntEl=document.getElementById('secCnt');
+  var META={'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
+  var parsed=[],cur=null,buf=[];
+  text.split('\n').forEach(function(line){var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();if(KEYS.indexOf(cl)>-1){if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});cur=cl;buf=[];}else if(cur)buf.push(line);});
+  if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});
+  if(parsed.length===0)parsed.push({key:'LISTING',content:text});
+  var tabsEl=document.getElementById('stabs'),cntEl=document.getElementById('secCnt');
   tabsEl.innerHTML=''; cntEl.innerHTML='';
-
   parsed.forEach(function(sec,i){
-    if(!sec.content) return;
+    if(!sec.content)return;
     var m=META[sec.key]||{l:sec.key,c:'c2'};
-    var tb=document.createElement('button');
-    tb.className='stab'+(i===0?' on':'');
-    tb.textContent=m.l;
-    tb.onclick=(function(idx,b){return function(){
-      document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});
-      document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});
-      b.classList.add('on');
-      document.getElementById('ss'+idx).classList.add('on');
-    };})(i,tb);
+    var tb=document.createElement('button'); tb.className='stab'+(i===0?' on':''); tb.textContent=m.l;
+    tb.onclick=(function(idx,b){return function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});b.classList.add('on');document.getElementById('ss'+idx).classList.add('on');};})(i,tb);
     tabsEl.appendChild(tb);
-
-    var div=document.createElement('div');
-    div.className='ssec'+(i===0?' on':'');
-    div.id='ss'+i;
-
-    var escaped=sec.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    var fmt=escaped.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/✅/g,'<span style="color:var(--teal)">✅</span>');
-    if(sec.key==='DESCRIPTION'||sec.key==='KEY FEATURES'){fmt=highlightKeywords(fmt, allKws);}
-
+    var div=document.createElement('div'); div.className='ssec'+(i===0?' on':''); div.id='ss'+i;
+    var esc2=sec.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var fmt=esc2.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/✅/g,'<span style="color:var(--teal)">✅</span>');
+    if(sec.key==='DESCRIPTION'||sec.key==='KEY FEATURES')fmt=highlightKeywords(fmt,allKws);
     var safe=sec.content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
-    div.innerHTML='<div class="ob"><div class="ob-hdr"><span class="ob-lbl '+m.c+'">'+m.l+'</span>'
-      +'<button class="ib" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div>'
-      +'<div class="ob-body">'+fmt+'</div></div>';
+    div.innerHTML='<div class="ob"><div class="ob-hdr"><span class="ob-lbl '+m.c+'">'+m.l+'</span><button class="ib" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div><div class="ob-body">'+fmt+'</div></div>';
     cntEl.appendChild(div);
   });
 }
 
-function renderHtml(html){
-  var blob=new Blob([html],{type:'text/html'});
-  document.getElementById('htmlFrame').src=URL.createObjectURL(blob);
-  document.getElementById('htmlSrc').textContent=html;
-}
-function showPreview(){
-  document.getElementById('frameW').style.display='block';
-  document.getElementById('srcW').style.display='none';
-  document.getElementById('vtP').classList.add('on');
-  document.getElementById('vtS').classList.remove('on');
-}
-function showSrc(){
-  document.getElementById('frameW').style.display='none';
-  document.getElementById('srcW').style.display='block';
-  document.getElementById('vtS').classList.add('on');
-  document.getElementById('vtP').classList.remove('on');
-}
-function cpTxt(t,btn){
-  navigator.clipboard.writeText(t).then(function(){btn.textContent='✓ Copied';btn.classList.add('cp');setTimeout(function(){btn.textContent='Copy';btn.classList.remove('cp');},2000);});
-}
-function copyAllTxt(){
-  var textToCopy = platform==='shopify' ? shopifyTxt : fullTxt;
-  navigator.clipboard.writeText(textToCopy).then(function(){alert('Full listing copied!');});
-}
-function copyHtml(){
-  if(!genHtml){alert('HTML not ready.');return;}
-  navigator.clipboard.writeText(genHtml).then(function(){
-    var b=document.getElementById('cpHtmlBtn');b.textContent='✓ Copied!';b.classList.add('cp');
-    setTimeout(function(){b.textContent='Copy HTML';b.classList.remove('cp');},2500);
-  });
-}
-function dlHtml(){
-  if(!genHtml){alert('Generate listing first.');return;}
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([genHtml],{type:'text/html'}));
-  a.download='surti-listing.html';a.click();
-}
+function renderHtml(html){var blob=new Blob([html],{type:'text/html'});document.getElementById('htmlFrame').src=URL.createObjectURL(blob);document.getElementById('htmlSrc').textContent=html;}
+function showPreview(){document.getElementById('frameW').style.display='block';document.getElementById('srcW').style.display='none';document.getElementById('vtP').classList.add('on');document.getElementById('vtS').classList.remove('on');}
+function showSrc(){document.getElementById('frameW').style.display='none';document.getElementById('srcW').style.display='block';document.getElementById('vtS').classList.add('on');document.getElementById('vtP').classList.remove('on');}
+function cpTxt(t,btn){navigator.clipboard.writeText(t).then(function(){btn.textContent='✓ Copied';btn.classList.add('cp');setTimeout(function(){btn.textContent='Copy';btn.classList.remove('cp');},2000);});}
+function copyAllTxt(){navigator.clipboard.writeText(platform==='shopify'?shopifyTxt:platform==='ebay'?fullTxt:seoTxt).then(function(){alert('Copied!');});}
+function copyHtml(){if(!genHtml){alert('No HTML.');return;}navigator.clipboard.writeText(genHtml).then(function(){var b=document.getElementById('cpHtmlBtn');b.textContent='✓ Copied!';b.classList.add('cp');setTimeout(function(){b.textContent='Copy HTML';b.classList.remove('cp');},2500);});}
+function dlHtml(){if(!genHtml)return;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([genHtml],{type:'text/html'}));a.download='surti-listing.html';a.click();}
 function clearAll(){
   document.getElementById('productInput').value='';
   document.getElementById('charCt').textContent='0 chars';
   document.getElementById('kwFound').classList.remove('show');
   document.getElementById('emptyState').style.display='flex';
-  // BUG FIX #5: Use classList to hide, not inline style
   document.getElementById('output').classList.remove('show');
-  ['ebay','amazon','walmart','google'].forEach(function(id){
-    var r=document.getElementById('ks-'+id);
-    r.classList.remove('kw-ok','kw-go','kw-no');
-    r.querySelector('.kw-d').classList.remove('sp');
-    document.getElementById('kc-'+id).textContent='—';
-  });
-  setChip('idle','Ready');
-  fullTxt=''; genHtml=''; shopifyTxt='';
+  ['ebay','amazon','walmart','google'].forEach(function(id){var r=document.getElementById('ks-'+id);r.classList.remove('kw-ok','kw-go','kw-no');r.querySelector('.kw-d').classList.remove('sp');document.getElementById('kc-'+id).textContent='—';});
+  setChip('idle','Ready'); fullTxt=''; genHtml=''; shopifyTxt=''; seoTxt='';
   document.getElementById('mainArea').scrollTo({top:0,behavior:'smooth'});
 }
-function setLoading(on){
-  document.getElementById('genBtn').disabled=on;
-  document.getElementById('spinner').style.display=on?'block':'none';
-  document.getElementById('btnTxt').textContent=on?'Generating...':'Generate Listing';
-}
+function setLoading(on){document.getElementById('genBtn').disabled=on;document.getElementById('spinner').style.display=on?'block':'none';document.getElementById('btnTxt').textContent=on?'Generating...':'Generate Listing';}
 function showErr(m){var e=document.getElementById('errBar');e.textContent=m;e.style.display='block';}
 function hideErr(){document.getElementById('errBar').style.display='none';}
 </script>
