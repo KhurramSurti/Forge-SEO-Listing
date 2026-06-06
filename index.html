@@ -473,32 +473,29 @@ async function generateOffPageSEO(){
 
   var productTitle=product.split('\n')[0].replace(/title:/i,'').trim().slice(0,80);
 
-  var seoPrompt='You are an expert Off-Page SEO Strategist for ecommerce (Shopify + eBay dropshipping).\n\n'
-  +'PRODUCT: "'+productTitle+'"\nSTORE: "'+store+'"\n\n'
+  var seoPrompt='You are a senior Off-Page SEO and social media marketing expert for ecommerce dropshipping (Shopify + eBay).\n\n'
+  +'PRODUCT: "'+productTitle+'"\n\n'
   +'CRITICAL RULES:\n'
   +'1. Return ONLY the exact section headers shown below, each on its own line in ALL CAPS\n'
   +'2. NO markdown (no *, **, #, -, `)\n'
   +'3. Number lists with "1." "2." format only\n'
-  +'4. Every recommendation must be SPECIFIC to this exact product\n\n'
-  +'Write a complete off-page SEO strategy using EXACTLY these sections:\n\n'
-  +'OPPORTUNITY SCORE\n'
-  +'[Write: "Score: X/10" then on next line explain why in 1-2 sentences]\n\n'
-  +'TOP BUYER KEYWORDS FOR LINK BUILDING\n'
-  +'[10 keywords, numbered, that you should build backlinks around for this product]\n\n'
-  +'HIGH VALUE BACKLINK TARGETS\n'
-  +'[8 specific website types + example site names relevant to this product niche. Format: "1. [Site Type]: [Example sites] — [Why it helps]"]\n\n'
-  +'PINTEREST STRATEGY\n'
-  +'[5 specific board names to create + 3 pin title templates for this exact product]\n\n'
-  +'REDDIT AND QUORA TARGETS\n'
-  +'[6 specific subreddits or Quora topics where this product is relevant. Format: "1. r/[name] or Quora: [topic] — [how to use it]"]\n\n'
-  +'SOCIAL MEDIA CONTENT CALENDAR\n'
-  +'[7 day post plan. Format: "Day 1 (Platform): [Post idea]" — be specific to this product]\n\n'
-  +'EMAIL OUTREACH TEMPLATE\n'
-  +'[A ready-to-send email to bloggers/influencers asking for product mention. Make it about THIS product.]\n\n'
-  +'COMPETITOR BACKLINK STRATEGY\n'
-  +'[5 types of sites your competitors are likely getting links from + how to get the same]\n\n'
-  +'QUICK WIN ACTIONS\n'
-  +'[Top 5 things to do THIS WEEK for fastest off-page SEO results for this product. Numbered.]\n\n'
+  +'4. Be SPECIFIC to this exact product — no generic filler\n'
+  +'5. Make every template COPY-PASTE READY (the user will paste it directly, so write the actual content, not instructions about it)\n\n'
+  +'Produce a practical, honest off-page SEO action plan using EXACTLY these sections:\n\n'
+  +'WHERE TO FOCUS\n'
+  +'[2-3 honest sentences: for THIS product, which off-page channels are actually worth the effort and which to skip. Be realistic about dropshipping — do not overpromise.]\n\n'
+  +'PINTEREST PINS (COPY READY)\n'
+  +'[Pinterest works well for ecommerce. Write 3 complete, ready-to-post pins. For each: "Pin Title:" (one line) then "Description:" (2-3 sentences with natural keywords) then "Hashtags:" (5 relevant hashtags). Make them about THIS product.]\n\n'
+  +'INSTAGRAM AND FACEBOOK POSTS (COPY READY)\n'
+  +'[Write 3 complete ready-to-post captions for this product. Each caption: a hook line, 2 benefit lines, a call to action, and 5 hashtags. Number them 1, 2, 3.]\n\n'
+  +'REDDIT AND QUORA (COPY READY)\n'
+  +'[List 5 specific subreddits or Quora topics where this product naturally fits. For each: "1. r/subreddit or Quora topic" then a one-line note on how to genuinely help (not spam). Then write 1 short sample helpful comment that mentions the product naturally without sounding like an ad.]\n\n'
+  +'BLOGGER OUTREACH EMAIL (COPY READY)\n'
+  +'[Write 1 complete, ready-to-send email to a blogger or micro-influencer in this product niche. Include subject line and body. Keep it short, genuine, and about THIS product. Use [Blogger Name] and [Your Name] as placeholders.]\n\n'
+  +'BACKLINK IDEAS\n'
+  +'[6 specific, realistic places to get backlinks or mentions for this product niche. Format: "1. [Place/site type]: [how to get a link there]". Focus on ones a small seller can actually achieve.]\n\n'
+  +'7-DAY ACTION CHECKLIST\n'
+  +'[A simple day-by-day checklist of small off-page tasks for one week. Format: "Day 1: [one specific task]". Keep each task small and doable in under 30 minutes.]\n\n'
   +'PRODUCT: "'+productTitle+'"';
 
   try{
@@ -531,15 +528,13 @@ function renderOffPageSEO(text, productTitle){
   tabsEl.innerHTML=''; cntEl.innerHTML='';
 
   var SECTIONS=[
-    {key:'OPPORTUNITY SCORE',           label:'Score',        icon:'⭐', color:'cP'},
-    {key:'TOP BUYER KEYWORDS FOR LINK BUILDING', label:'KW Targets', icon:'🔑', color:'c1'},
-    {key:'HIGH VALUE BACKLINK TARGETS', label:'Backlinks',    icon:'🔗', color:'c2'},
-    {key:'PINTEREST STRATEGY',          label:'Pinterest',    icon:'📌', color:'c5'},
-    {key:'REDDIT AND QUORA TARGETS',    label:'Reddit/Quora', icon:'💬', color:'c3'},
-    {key:'SOCIAL MEDIA CONTENT CALENDAR',label:'Social Cal', icon:'📅', color:'c4'},
-    {key:'EMAIL OUTREACH TEMPLATE',     label:'Outreach',     icon:'📧', color:'cP'},
-    {key:'COMPETITOR BACKLINK STRATEGY',label:'Competitors',  icon:'🎯', color:'c1'},
-    {key:'QUICK WIN ACTIONS',           label:'Quick Wins',   icon:'⚡', color:'cS'},
+    {key:'WHERE TO FOCUS',                       label:'Strategy',     icon:'🎯', color:'cP'},
+    {key:'PINTEREST PINS (COPY READY)',          label:'Pinterest',    icon:'📌', color:'c5'},
+    {key:'INSTAGRAM AND FACEBOOK POSTS (COPY READY)', label:'IG/FB Posts', icon:'📱', color:'c3'},
+    {key:'REDDIT AND QUORA (COPY READY)',        label:'Reddit/Quora', icon:'💬', color:'c4'},
+    {key:'BLOGGER OUTREACH EMAIL (COPY READY)',  label:'Outreach Email', icon:'📧', color:'cP'},
+    {key:'BACKLINK IDEAS',                       label:'Backlinks',    icon:'🔗', color:'c2'},
+    {key:'7-DAY ACTION CHECKLIST',               label:'7-Day Plan',   icon:'✅', color:'cS'},
   ];
 
   // Parse sections
@@ -609,20 +604,14 @@ function renderOffPageSEO(text, productTitle){
 
 function formatSeoContent(text, key){
   var esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // Score special formatting
-  if(key==='OPPORTUNITY SCORE'){
-    var scoreM=esc.match(/Score:\s*(\d+)\/10/i);
-    if(scoreM){
-      var score=parseInt(scoreM[1]);
-      var cls=score>=8?'score-high':score>=5?'score-med':'score-low';
-      var label=score>=8?'HIGH OPPORTUNITY':score>=5?'MEDIUM':'LOW';
-      esc=esc.replace(/Score:\s*(\d+)\/10/i,'<span class="seo-score '+cls+'">'+scoreM[1]+'/10 — '+label+'</span>');
-    }
-  }
   // Highlight numbered items
   esc=esc.replace(/^(\d+\.)\s+/gm,'<span style="color:var(--seo);font-weight:600;font-family:\'Geist Mono\',monospace;">$1</span> ');
-  // Bold anything in quotes or caps
+  // Highlight field labels in copy-ready templates
+  esc=esc.replace(/^(Pin Title|Description|Hashtags|Subject|Caption|Subject Line):/gim,'<span style="color:var(--seo2);font-weight:600;">$1:</span>');
+  // Highlight subreddit names
   esc=esc.replace(/\b(r\/\w+)\b/g,'<span style="color:var(--teal);">$1</span>');
+  // Highlight Day labels in checklist
+  esc=esc.replace(/^(Day \d+):/gim,'<span style="color:var(--shopify2);font-weight:600;">$1:</span>');
   return esc;
 }
 
