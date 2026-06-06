@@ -289,10 +289,6 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
     </div>
   </div>
   <div class="sb-sec">
-    <div class="sb-lbl">Store Name</div>
-    <input class="sb-inp" type="text" id="storeName" placeholder="Your store name..." value="Surti Store"/>
-  </div>
-  <div class="sb-sec">
     <div class="sb-lbl">Policies</div>
     <textarea class="sb-ta" id="policyText" rows="5">Fast Shipping: 2-3 business days.
 Free Shipping: No hidden fees.
@@ -379,7 +375,7 @@ var lastProduct='', lastStore='';
 window.onload=function(){
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
   var th=localStorage.getItem('slf_th'); if(th){theme=th;document.querySelectorAll('#thGrid .th-opt').forEach(function(b,i){b.classList.remove('on');});var map={heritage:0,modern:1,clean:2,luxury:3};var btns=document.querySelectorAll('#thGrid .th-opt');if(btns[map[th]])btns[map[th]].classList.add('on');}
-  var sn=localStorage.getItem('slf_sn'); if(sn) document.getElementById('storeName').value=sn;
+  var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
   document.getElementById('productInput').addEventListener('input',function(){document.getElementById('charCt').textContent=this.value.length+' chars';});
 };
@@ -463,7 +459,7 @@ async function claudeCall(apiKey,prompt,maxTok){
 async function generateOffPageSEO(){
   var apiKey=document.getElementById('apiKey').value.trim();
   var product=document.getElementById('productInput').value.trim();
-  var store=document.getElementById('storeName').value.trim()||'Surti Store';
+  var store='';
 
   if(!apiKey||apiKey.indexOf('sk-ant')!==0){showErr('⚠ API key daalo pehle.');return;}
   if(!product||product.length<15){showErr('⚠ Pehle product details daalo.');return;}
@@ -643,8 +639,8 @@ async function generate(){
   var apiKey=document.getElementById('apiKey').value.trim();
   var product=document.getElementById('productInput').value.trim();
   var policy=document.getElementById('policyText').value.trim();
-  var store=document.getElementById('storeName').value.trim()||'Surti Store';
-  localStorage.setItem('slf_sn',store); localStorage.setItem('slf_po',policy);
+  var store='';
+  localStorage.setItem('slf_po',policy);
   lastProduct=product; lastStore=store;
 
   if(!apiKey||apiKey.indexOf('sk-ant')!==0){showErr('⚠ API key missing.');return;}
@@ -690,7 +686,7 @@ async function generate(){
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
     +'=== BRAND CHECK ===\nBrand: [name] | Recognition: [Global/Regional/Unknown] | Decision: [Keep/Remove]\n\n'
-    +'=== TITLE ===\neBay Title (75-80 chars, NO punctuation, keyword stacking):\n[title here]\n\n'
+    +'=== TITLE ===\neBay Title (STRICT: between 72 and 78 characters total, count carefully, NO punctuation, stack keywords, every word complete):\n[title here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases.\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
@@ -874,7 +870,34 @@ function buildHtmlFromListing(listingText,storeName,themeName){
     }
   }
   if(ebayTitle==='Premium Product'){
-    for(var i2=0;i2<tlines.length;i2++){var c=tlines[i2].replace(/`/g,'').replace(/^[^a-zA-Z]*/,'').trim();if(c.length>15&&!/chars|keyword|stacking|\[/i.test(c)){ebayTitle=c;break;}}
+    for(var i2=0;i2<tlines.length;i2++){var c=tlines[i2].replace(/`/g,'').replace(/^[-•*\s]+/,'').trim();if(c.length>15&&!/chars|keyword|stacking|\[/i.test(c)){ebayTitle=c;break;}}
+  }
+
+  // Smart trim: keep eBay title <= 78 chars, never cut a word in the middle
+  function smartTrim(str, maxLen){
+    str = str.trim();
+    if(str.length <= maxLen) return str;
+    var cut = str.slice(0, maxLen);
+    var lastSpace = cut.lastIndexOf(' ');
+    if(lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace); // cut at last full word
+    return cut.trim();
+  }
+  ebayTitle = smartTrim(ebayTitle, 78);
+
+  // Build a keyword-rich HTML heading (no char limit) using top keywords
+  // This appears as the big H1 in the description — more keywords = more on-page SEO
+  var headingText = ebayTitle;
+  if(typeof allKws !== 'undefined' && allKws.length > 0){
+    // Combine eBay title with extra unique keywords not already in title
+    var titleLower = ebayTitle.toLowerCase();
+    var extraKws = allKws.filter(function(k){
+      var kl = k.toLowerCase();
+      return titleLower.indexOf(kl) === -1;
+    }).slice(0, 4);
+    if(extraKws.length > 0){
+      // Natural keyword-rich heading, capped ~150 chars
+      headingText = smartTrim(ebayTitle + ' — ' + extraKws.join(', '), 150);
+    }
   }
 
   var descParas=(S['DESCRIPTION']||'').split(/\n\n+/).filter(function(p){return p.trim().length>20;}).slice(0,2);
@@ -923,7 +946,7 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   +'@media(max-width:780px){.feat-grid{grid-template-columns:1fr;}.spec-l,.spec-v{width:100%;}.spec-row{flex-direction:column;}.wrap{padding:1rem;}.section{padding:1.2rem;}}';
 
   var heroH='<div class="section" style="background:linear-gradient(125deg,'+T.card+' 0%,'+T.bg+' 100%);border:1px solid '+T.bc+';">'
-  +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;background:linear-gradient(135deg,'+T.h1+');-webkit-background-clip:text;background-clip:text;color:transparent;">'+escHtml(ebayTitle)+'</h1>'
+  +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;background:linear-gradient(135deg,'+T.h1+');-webkit-background-clip:text;background-clip:text;color:transparent;">'+escHtml(headingText)+'</h1>'
   +'</div>';
 
   var descH=descParas.length>0?'<div class="section"><div class="sec-title">⟡ DESCRIPTION</div>'+descParas.map(function(p){return '<p class="desc-text">'+fd(p)+'</p>';}).join('')+'</div>':'';
@@ -947,7 +970,7 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   var polH='';
   if(polLines.length>0){polH='<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
 
-  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+descH+featH+specsH+tipsH+idealH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">© 2026 — '+escHtml(storeName)+'</div>\n</div>\n</body>\n</html>';
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+descH+featH+specsH+tipsH+idealH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
 }
 
 function renderKeywords(){
