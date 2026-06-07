@@ -277,6 +277,17 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <button class="th-opt" onclick="setTheme('modern',this)"><div class="th-sw" style="background:linear-gradient(135deg,#1a1a2e,#7c6af7)">🌙</div>Modern</button>
       <button class="th-opt" onclick="setTheme('clean',this)"><div class="th-sw" style="background:linear-gradient(135deg,#1a56db,#0891b2)">☀</div>Clean</button>
       <button class="th-opt" onclick="setTheme('luxury',this)"><div class="th-sw" style="background:linear-gradient(135deg,#111,#d4af37)">✨</div>Luxury</button>
+      <button class="th-opt" id="customThemeBtn" onclick="setTheme('custom',this)" style="grid-column:1/-1;"><div class="th-sw" id="customSwatch" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)">🎨</div>Custom Color</button>
+    </div>
+    <div id="customPanel" style="display:none;margin-top:8px;padding:11px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <input type="color" id="customColor" value="#ec4899" oninput="onCustomColor()" style="width:42px;height:32px;border:none;border-radius:6px;background:none;cursor:pointer;padding:0;"/>
+        <div style="font-size:11px;color:var(--fog);">Pick your product color</div>
+      </div>
+      <div style="display:flex;gap:5px;">
+        <button class="cmode-btn on" id="cmodeDark" onclick="setCustomMode('dark')" style="flex:1;padding:7px;border-radius:7px;border:1px solid var(--wire);background:var(--ink4);color:var(--snow);font-size:11px;cursor:pointer;">🌙 Dark</button>
+        <button class="cmode-btn" id="cmodeLight" onclick="setCustomMode('light')" style="flex:1;padding:7px;border-radius:7px;border:1px solid var(--wire);background:transparent;color:var(--fog);font-size:11px;cursor:pointer;">☀ Light</button>
+      </div>
     </div>
   </div>
   <div class="sb-sec">
@@ -374,7 +385,9 @@ var lastProduct='', lastStore='';
 
 window.onload=function(){
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
-  var th=localStorage.getItem('slf_th'); if(th){theme=th;document.querySelectorAll('#thGrid .th-opt').forEach(function(b,i){b.classList.remove('on');});var map={heritage:0,modern:1,clean:2,luxury:3};var btns=document.querySelectorAll('#thGrid .th-opt');if(btns[map[th]])btns[map[th]].classList.add('on');}
+  var th=localStorage.getItem('slf_th'); if(th){theme=th;document.querySelectorAll('#thGrid .th-opt').forEach(function(b,i){b.classList.remove('on');});var map={heritage:0,modern:1,clean:2,luxury:3,custom:4};var btns=document.querySelectorAll('#thGrid .th-opt');if(btns[map[th]])btns[map[th]].classList.add('on');if(th==='custom')document.getElementById('customPanel').style.display='block';}
+  var cc=localStorage.getItem('slf_cc'); if(cc){customColor=cc;document.getElementById('customColor').value=cc;document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+cc+','+cc+')';}
+  var cm=localStorage.getItem('slf_cm'); if(cm){setCustomMode(cm);}
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
   document.getElementById('productInput').addEventListener('input',function(){document.getElementById('charCt').textContent=this.value.length+' chars';});
@@ -394,7 +407,28 @@ function closeSidebarMobile(){
 }
 
 function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p==='shopify');}
-function setTheme(t,btn){theme=t;localStorage.setItem('slf_th',t);document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');}
+var customColor='#ec4899', customMode='dark';
+
+function setTheme(t,btn){
+  theme=t; localStorage.setItem('slf_th',t);
+  document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  document.getElementById('customPanel').style.display = (t==='custom') ? 'block' : 'none';
+}
+function onCustomColor(){
+  customColor=document.getElementById('customColor').value;
+  document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+customColor+','+customColor+')';
+  localStorage.setItem('slf_cc',customColor);
+}
+function setCustomMode(m){
+  customMode=m; localStorage.setItem('slf_cm',m);
+  document.getElementById('cmodeDark').classList.toggle('on',m==='dark');
+  document.getElementById('cmodeLight').classList.toggle('on',m==='light');
+  document.getElementById('cmodeDark').style.background = m==='dark'?'var(--ink4)':'transparent';
+  document.getElementById('cmodeDark').style.color = m==='dark'?'var(--snow)':'var(--fog)';
+  document.getElementById('cmodeLight').style.background = m==='light'?'var(--ink4)':'transparent';
+  document.getElementById('cmodeLight').style.color = m==='light'?'var(--snow)':'var(--fog)';
+}
 function setChip(s,t){var c=document.getElementById('chip');c.className='s-chip s-'+s;c.textContent=t;}
 function setStep(n){for(var i=1;i<=3;i++){var el=document.getElementById('ps'+i);el.classList.remove('done','act');var ic=el.querySelector('.ps-ic');if(i<n){el.classList.add('done');ic.textContent='✓';}else if(i===n){el.classList.add('act');ic.textContent=i;}else{ic.textContent=i;}}}
 function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getElementById('kc-'+id),d=r.querySelector('.kw-d');r.classList.remove('kw-ok','kw-go','kw-no');d.classList.remove('sp');if(st==='go'){r.classList.add('kw-go');d.classList.add('sp');}else if(st==='ok')r.classList.add('kw-ok');else if(st==='no')r.classList.add('kw-no');if(ct!==undefined)c.textContent=ct>0?ct+'kws':'0';}
@@ -837,6 +871,40 @@ function parseSpecs(raw){
 
 function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+function buildCustomTheme(hex, mode){
+  // Parse hex to RGB
+  hex = hex.replace('#','');
+  if(hex.length===3) hex = hex.split('').map(function(c){return c+c;}).join('');
+  var r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+  var rgb = r+','+g+','+b;
+
+  if(mode==='light'){
+    return {
+      bg:'#F7F8FC',
+      card:'#FFFFFF',
+      bc:'rgba('+rgb+',0.3)',
+      acc:hex,
+      txt:'#2a2a33',
+      h1:'#1a1a22,'+hex,
+      badge:'rgba('+rgb+',0.1)',
+      badgeTxt:hex,
+      rb:'rgba('+rgb+',0.15)'
+    };
+  }
+  // dark mode (default)
+  return {
+    bg:'#0b0b0f',
+    card:'#15151c',
+    bc:'rgba('+rgb+',0.35)',
+    acc:hex,
+    txt:'#d6d6e0',
+    h1:'#FFFFFF,'+hex,
+    badge:'rgba('+rgb+',0.16)',
+    badgeTxt:hex,
+    rb:'rgba('+rgb+',0.2)'
+  };
+}
+
 function buildHtmlFromListing(listingText,storeName,themeName){
   var S=parseListingSections(listingText);
   var TH={
@@ -846,6 +914,11 @@ function buildHtmlFromListing(listingText,storeName,themeName){
     luxury:{bg:'#06060A',card:'#0E0E10',bc:'rgba(212,175,55,0.3)',acc:'#d4af37',txt:'#C8C4A8',h1:'#FFFFFF,#D4AF37',badge:'rgba(212,175,55,0.15)',badgeTxt:'#D4AF37',rb:'rgba(212,175,55,0.2)'},
   };
   var T=TH[themeName]||TH.heritage;
+
+  // Custom theme: build a full palette from one picked color + dark/light mode
+  if(themeName==='custom'){
+    T=buildCustomTheme(customColor, customMode);
+  }
 
   // Extract title
   var titleBlock=(S['TITLE']||'').replace(/```+/g,'').trim();
