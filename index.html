@@ -896,15 +896,20 @@ function buildCustomTheme(hex, mode){
       rb:'rgba('+rgb+',0.15)'
     };
   }
-  // dark mode (default)
+  // dark mode (default) — solid dark surfaces tinted with the chosen color
+  var dr=Math.round(r*0.10)+8, dg=Math.round(g*0.10)+8, db=Math.round(b*0.10)+10;
+  var cr=Math.round(r*0.16)+16, cg=Math.round(g*0.16)+16, cb=Math.round(b*0.16)+20;
+  function toHex2(n){n=Math.max(0,Math.min(255,n));var h=n.toString(16);return h.length<2?'0'+h:h;}
+  var bgSolid='#'+toHex2(dr)+toHex2(dg)+toHex2(db);
+  var cardSolid='#'+toHex2(cr)+toHex2(cg)+toHex2(cb);
   return {
-    bg:'#0b0b0f',
-    card:'#15151c',
-    bc:'rgba('+rgb+',0.35)',
+    bg:bgSolid,
+    card:cardSolid,
+    bc:'rgba('+rgb+',0.45)',
     acc:hex,
-    txt:'#d6d6e0',
+    txt:'#e6e6ee',
     h1:'#FFFFFF,'+hex,
-    badge:'rgba('+rgb+',0.16)',
+    badge:'rgba('+rgb+',0.2)',
     badgeTxt:hex,
     rb:'rgba('+rgb+',0.2)'
   };
@@ -1047,8 +1052,10 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   +'.policy-item{display:flex;align-items:center;gap:8px;font-weight:500;font-size:0.85rem;color:'+T.txt+';}'
   +'@media(max-width:780px){.feat-grid{grid-template-columns:1fr;}.spec-l,.spec-v{width:100%;}.spec-row{flex-direction:column;}.wrap{padding:1rem;}.section{padding:1.2rem;}}';
 
+  var headColor = T.acc;
+  if(T.h1){ var hp=T.h1.split(','); headColor = (hp[0].trim().toUpperCase()==='#FFFFFF' && (typeof customMode==='undefined' || customMode!=='light')) ? (hp[1]?hp[1].trim():T.acc) : hp[0].trim(); }
   var heroH='<div class="section" style="background:linear-gradient(125deg,'+T.card+' 0%,'+T.bg+' 100%);border:1px solid '+T.bc+';">'
-  +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;background:linear-gradient(135deg,'+T.h1+');-webkit-background-clip:text;background-clip:text;color:transparent;">'+escHtml(headingText)+'</h1>'
+  +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;color:'+headColor+';">'+escHtml(headingText)+'</h1>'
   +'</div>';
 
   var descH=descParas.length>0?'<div class="section"><div class="sec-title">⟡ DESCRIPTION</div>'+descParas.map(function(p){return '<p class="desc-text">'+fd(p)+'</p>';}).join('')+'</div>':'';
