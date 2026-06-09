@@ -435,30 +435,34 @@ function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getEl
 
 // Backend URL — your deployed Vercel server for REAL keywords
 var BACKEND_URL = 'https://keyword-backend-zeta.vercel.app/api/keywords';
+var lastCompetitors = [];
 
 async function fetchAllKeywords(apiKey,productTitle){
   var realData = {google:[], amazon:[], walmart:[], ebay:[]};
+  lastCompetitors = [];
 
-  // STEP 1: Get REAL keywords from backend (Google + Amazon + Walmart)
+  // STEP 1: Get REAL keywords from backend (Google + Amazon + Walmart + eBay)
   try{
-    var r = await fetch(BACKEND_URL + '?q=' + encodeURIComponent(productTitle), {signal:AbortSignal.timeout(12000)});
+    var r = await fetch(BACKEND_URL + '?q=' + encodeURIComponent(productTitle), {signal:AbortSignal.timeout(15000)});
     var d = await r.json();
     realData.google = (d.google||[]).slice(0,10);
     realData.amazon = (d.amazon||[]).slice(0,10);
     realData.walmart = (d.walmart||[]).slice(0,10);
+    realData.ebay = (d.ebay||[]).slice(0,10);
+    lastCompetitors = d.competitors || [];
     // Mark which sources gave REAL data
     srcReal.google = realData.google.length>0;
     srcReal.amazon = realData.amazon.length>0;
     srcReal.walmart = realData.walmart.length>0;
+    srcReal.ebay = realData.ebay.length>0;
   }catch(e){ console.error('Backend error:', e.message); }
 
   // STEP 2: For any source that came back empty, use Claude as intelligent fallback
-  // Also generate eBay keywords (backend doesn't cover eBay reliably)
   var needFallback = [];
   if(realData.google.length===0) needFallback.push('google');
   if(realData.amazon.length===0) needFallback.push('amazon');
   if(realData.walmart.length===0) needFallback.push('walmart');
-  needFallback.push('ebay'); // always generate eBay via Claude
+  if(realData.ebay.length===0) needFallback.push('ebay');
 
   if(needFallback.length>0 && apiKey && apiKey.indexOf('sk-ant')===0){
     try{
@@ -759,7 +763,7 @@ async function generate(){
   }
 
   renderKeywords();
-  if(platform==='ebay'){ renderQualityScore(fullTxt); }
+  if(platform==='ebay'){ renderQualityScore(fullTxt); renderCompetitors(); }
   setLoading(false);
   document.getElementById('prog').classList.remove('show');
   document.getElementById('output').classList.add('show');
@@ -1185,6 +1189,55 @@ function renderQualityScore(text){
   cntEl.insertAdjacentHTML('beforeend', html);
 }
 
+function renderCompetitors(){
+  var tabsEl=document.getElementById('stabs');
+  var cntEl=document.getElementById('secCnt');
+  var ot=document.getElementById('comp-tab-btn'),os=document.getElementById('comp-tab-sec');
+  if(ot)ot.remove(); if(os)os.remove();
+
+  if(!lastCompetitors || lastCompetitors.length===0) return; // no data, skip
+
+  var tb=document.createElement('button');
+  tb.className='stab'; tb.id='comp-tab-btn'; tb.innerHTML='🏆 Competitors';
+  tb.style.borderColor='rgba(96,165,250,0.4)'; tb.style.color='#60a5fa';
+  tb.onclick=function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});tb.classList.add('on');document.getElementById('comp-tab-sec').classList.add('on');};
+  tabsEl.insertBefore(tb, tabsEl.firstChild);
+
+  var html='<div class="ssec" id="comp-tab-sec">';
+  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 14px;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:10px;">'
+    +'<span style="font-size:8px;padding:2px 6px;border-radius:4px;background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.3);font-weight:600;">REAL DATA</span>'
+    +'<span style="font-size:11px;color:#60a5fa;font-weight:600;">Top '+lastCompetitors.length+' live eBay listings for this product</span></div>';
+
+  // Price analysis
+  var prices=lastCompetitors.map(function(c){var m=(c.price||'').match(/[\d.]+/);return m?parseFloat(m[0]):null;}).filter(function(p){return p!==null;});
+  if(prices.length>0){
+    var min=Math.min.apply(null,prices), max=Math.max.apply(null,prices);
+    var avg=(prices.reduce(function(a,b){return a+b;},0)/prices.length).toFixed(2);
+    html+='<div style="display:flex;gap:8px;margin-bottom:14px;">'
+      +'<div style="flex:1;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;padding:9px;text-align:center;"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;">Lowest</div><div style="font-size:14px;color:#4ade80;font-weight:600;font-family:\'Geist Mono\',monospace;">$'+min.toFixed(2)+'</div></div>'
+      +'<div style="flex:1;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;padding:9px;text-align:center;"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;">Average</div><div style="font-size:14px;color:var(--gold);font-weight:600;font-family:\'Geist Mono\',monospace;">$'+avg+'</div></div>'
+      +'<div style="flex:1;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;padding:9px;text-align:center;"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;">Highest</div><div style="font-size:14px;color:var(--rose);font-weight:600;font-family:\'Geist Mono\',monospace;">$'+max.toFixed(2)+'</div></div>'
+      +'</div>';
+  }
+
+  // Listings
+  lastCompetitors.forEach(function(c,i){
+    var safeTitle=(c.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html+='<div style="background:var(--ink3);border:1px solid var(--wire);border-radius:10px;padding:12px 14px;margin-bottom:8px;">'
+      +'<div style="font-size:12px;color:var(--snow);line-height:1.5;margin-bottom:8px;">'+safeTitle+'</div>'
+      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
+      +'<span style="font-size:13px;color:#4ade80;font-weight:600;font-family:\'Geist Mono\',monospace;">'+(c.price||'N/A')+'</span>'
+      +'<span style="font-size:10px;color:var(--dim);">'+(c.condition||'')+'</span>'
+      +'<span style="margin-left:auto;font-size:10px;color:var(--fog);">seller: '+(c.seller||'N/A')+'</span>'
+      +'</div></div>';
+  });
+
+  html+='<div style="margin-top:12px;padding:9px 13px;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;font-size:10px;color:var(--dim);line-height:1.6;">'
+    +'These are live eBay listings ranking for your product. Study their titles & pricing to position yours competitively.</div>';
+  html+='</div>';
+  cntEl.insertAdjacentHTML('beforeend', html);
+}
+
 function renderKeywords(){
   var sources=[{id:'ebay',label:'eBay',icon:'🏪',color:'#f0c060',bg:'rgba(240,192,96,0.07)',bdr:'rgba(240,192,96,0.2)'},{id:'amazon',label:'Amazon',icon:'📦',color:'#fb923c',bg:'rgba(251,146,60,0.07)',bdr:'rgba(251,146,60,0.2)'},{id:'walmart',label:'Walmart',icon:'🛒',color:'#60a5fa',bg:'rgba(96,165,250,0.07)',bdr:'rgba(96,165,250,0.2)'},{id:'google',label:'Google',icon:'🔍',color:'#4ade80',bg:'rgba(74,222,128,0.07)',bdr:'rgba(74,222,128,0.2)'}];
   var tabsEl=document.getElementById('stabs'),cntEl=document.getElementById('secCnt');
@@ -1292,7 +1345,7 @@ function clearAll(){
   document.getElementById('emptyState').style.display='flex';
   document.getElementById('output').classList.remove('show');
   ['ebay','amazon','walmart','google'].forEach(function(id){var r=document.getElementById('ks-'+id);r.classList.remove('kw-ok','kw-go','kw-no');r.querySelector('.kw-d').classList.remove('sp');document.getElementById('kc-'+id).textContent='—';});
-  setChip('idle','Ready'); fullTxt=''; genHtml=''; shopifyTxt=''; seoTxt='';
+  setChip('idle','Ready'); fullTxt=''; genHtml=''; shopifyTxt=''; seoTxt=''; lastCompetitors=[];
   document.getElementById('mainArea').scrollTo({top:0,behavior:'smooth'});
 }
 function setLoading(on){document.getElementById('genBtn').disabled=on;document.getElementById('spinner').style.display=on?'block':'none';document.getElementById('btnTxt').textContent=on?'Generating...':'Generate Listing';}
