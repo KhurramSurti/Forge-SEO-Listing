@@ -139,8 +139,17 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .sec-cnt::-webkit-scrollbar{width:3px;}
 .sec-cnt::-webkit-scrollbar-thumb{background:var(--wire);border-radius:3px;}
 .ssec{display:none;}
-.ssec.on{display:block;animation:fadeUp 0.22s ease;}
+.ssec.on{display:block;animation:fadeUp 0.28s cubic-bezier(0.22,0.61,0.36,1);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+/* Subtle professional animations */
+@keyframes slfFadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes slfRise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slfPillIn{from{opacity:0;transform:translateY(4px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+.slf-rise{animation:slfRise 0.4s cubic-bezier(0.22,0.61,0.36,1) both;}
+#output.show{animation:slfFadeIn 0.35s ease both;}
+.kw-pill{animation:slfPillIn 0.32s cubic-bezier(0.22,0.61,0.36,1) both;}
+.ob{animation:slfRise 0.34s cubic-bezier(0.22,0.61,0.36,1) both;}
+@media (prefers-reduced-motion: reduce){.slf-rise,#output.show,.kw-pill,.ob,.ssec.on{animation:none !important;}}
 .ob{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin-bottom:10px;}
 .ob-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--wire);background:rgba(255,255,255,0.018);}
 .ob-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;}
@@ -190,6 +199,10 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .ib.cp{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,0.07);}
 /* ─── MOBILE MENU TOGGLE ─── */
 .menu-toggle{display:none;width:38px;height:38px;border-radius:9px;background:var(--ink3);border:1px solid var(--wire);color:var(--gold);font-size:18px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;}
+.ui-themes{display:flex;align-items:center;gap:5px;padding:5px 9px;background:var(--ink3);border:1px solid var(--wire);border-radius:20px;}
+.ui-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--wire2);cursor:pointer;padding:0;transition:all 0.18s;}
+.ui-dot:hover{transform:scale(1.15);border-color:var(--fog);}
+.ui-dot-on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,168,71,0.25);}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;backdrop-filter:blur(3px);}
 .sidebar-overlay.show{display:block;}
 
@@ -230,6 +243,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   .wordmark-name{font-size:15px;}
   .key-inp{width:80px;}
   .menu-toggle{width:34px;height:34px;font-size:16px;}
+  .ui-themes{display:none;}
   .stab{font-size:9px;padding:5px 9px;}
   .product-ta{height:140px;font-size:11px;}
   .h-frame-w{min-height:420px;}
@@ -248,6 +262,13 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
     <div class="wordmark-sub">Surti Listing Forge</div>
   </div>
   <div class="topbar-right">
+    <div class="ui-themes" id="uiThemes" title="Change interface color">
+      <button class="ui-dot ui-dot-on" data-ui="dark" onclick="setUITheme('dark')" style="background:#07070a;" title="Dark"></button>
+      <button class="ui-dot" data-ui="midnight" onclick="setUITheme('midnight')" style="background:#0a1628;" title="Midnight Blue"></button>
+      <button class="ui-dot" data-ui="slate" onclick="setUITheme('slate')" style="background:#1e2128;" title="Slate Grey"></button>
+      <button class="ui-dot" data-ui="warm" onclick="setUITheme('warm')" style="background:#1a1410;" title="Warm"></button>
+      <button class="ui-dot" data-ui="light" onclick="setUITheme('light')" style="background:#f0f0f4;" title="Light"></button>
+    </div>
     <div class="key-wrap">
       <div class="key-led" id="keyLed"></div>
       <input class="key-inp" type="password" id="apiKey" placeholder="Paste Claude API key here..." oninput="onKey()"/>
@@ -384,6 +405,7 @@ var srcReal={ebay:false,amazon:false,walmart:false,google:false};
 var lastProduct='', lastStore='';
 
 window.onload=function(){
+  var uiT=localStorage.getItem('slf_ui'); if(uiT){setUITheme(uiT);}
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
   var th=localStorage.getItem('slf_th'); if(th){theme=th;document.querySelectorAll('#thGrid .th-opt').forEach(function(b,i){b.classList.remove('on');});var map={heritage:0,modern:1,clean:2,luxury:3,custom:4};var btns=document.querySelectorAll('#thGrid .th-opt');if(btns[map[th]])btns[map[th]].classList.add('on');if(th==='custom')document.getElementById('customPanel').style.display='block';}
   var cc=localStorage.getItem('slf_cc'); if(cc){customColor=cc;document.getElementById('customColor').value=cc;document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+cc+','+cc+')';}
@@ -394,6 +416,22 @@ window.onload=function(){
 };
 
 function onKey(){var k=document.getElementById('apiKey').value.trim();localStorage.setItem('slf_k',k);document.getElementById('keyLed').classList.toggle('on',k.indexOf('sk-ant')===0);}
+
+var UI_THEMES={
+  dark:    {ink:'#07070a',ink2:'#0f0f12',ink3:'#161619',ink4:'#1e1e23',wire:'#28282f',wire2:'#333340',dim:'#55556a',fog:'#8888a0',mist:'#b0b0c0',snow:'#ececf4',white:'#f8f8fc'},
+  midnight:{ink:'#080d18',ink2:'#0d1424',ink3:'#131c30',ink4:'#1a253e',wire:'#243150',wire2:'#2f3e60',dim:'#556688',fog:'#8095b8',mist:'#aebdd6',snow:'#e6edf7',white:'#f5f8fc'},
+  slate:   {ink:'#16181d',ink2:'#1c1f26',ink3:'#23272f',ink4:'#2c313a',wire:'#363c47',wire2:'#434a57',dim:'#646b7a',fog:'#8e95a3',mist:'#b8bdc7',snow:'#eceef2',white:'#f8f9fb'},
+  warm:    {ink:'#14100b',ink2:'#1a1510',ink3:'#221b14',ink4:'#2c241a',wire:'#392f22',wire2:'#473a2b',dim:'#6b5d48',fog:'#9c8a70',mist:'#c4b39a',snow:'#f0e9dd',white:'#faf6ee'},
+  light:   {ink:'#f0f0f4',ink2:'#ffffff',ink3:'#f4f5f8',ink4:'#e9ebf0',wire:'#dde0e8',wire2:'#c8cdd8',dim:'#9098a8',fog:'#6b7280',mist:'#4b5563',snow:'#1f2430',white:'#0f1320'},
+};
+
+function setUITheme(name){
+  var t=UI_THEMES[name]||UI_THEMES.dark;
+  var root=document.documentElement;
+  Object.keys(t).forEach(function(k){ root.style.setProperty('--'+k, t[k]); });
+  localStorage.setItem('slf_ui', name);
+  document.querySelectorAll('.ui-dot').forEach(function(d){d.classList.toggle('ui-dot-on', d.getAttribute('data-ui')===name);});
+}
 
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
@@ -699,7 +737,7 @@ async function generate(){
   if(allKws.length>0){
     var totalRaw=kwr.ebay.length+kwr.amazon.length+kwr.walmart.length+kwr.google.length;
     var kf=document.getElementById('kwFound');
-    kf.innerHTML='<div class="kw-ft">✓ '+totalRaw+' Keywords Fetched ('+allKws.length+' Unique)</div>'+allKws.map(function(k){return '<span class="kw-pill">'+k+'</span>';}).join('');
+    kf.innerHTML='<div class="kw-ft">✓ '+totalRaw+' Keywords Fetched ('+allKws.length+' Unique)</div>'+allKws.map(function(k,i){var d=Math.min(i*22,400);return '<span class="kw-pill" style="animation-delay:'+d+'ms;">'+k+'</span>';}).join('');
     kf.classList.add('show');
   }
 
@@ -1169,15 +1207,15 @@ function renderQualityScore(text){
   // Score circle
   html+='<div style="display:flex;align-items:center;gap:18px;margin-bottom:16px;padding:16px;background:rgba('+rgb+',0.08);border:1px solid '+color+';border-radius:14px;">'
     +'<div style="width:72px;height:72px;border-radius:50%;border:4px solid '+color+';display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
-    +'<span style="font-size:24px;font-weight:700;color:'+color+';font-family:\'Geist Mono\',monospace;">'+score+'</span></div>'
+    +'<span id="qs-score-num" style="font-size:24px;font-weight:700;color:'+color+';font-family:\'Geist Mono\',monospace;">0</span></div>'
     +'<div><div style="font-size:15px;font-weight:600;color:'+color+';">'+grade+'</div>'
     +'<div style="font-size:11px;color:var(--dim);margin-top:3px;">Listing SEO Quality Score (out of 100)</div></div>'
     +'</div>';
   // Checks
-  result.checks.forEach(function(c){
+  result.checks.forEach(function(c,ci){
     var ic = c.pass===true?'✓':(c.pass==='warn'?'!':'✕');
     var icCol = c.pass===true?'#4ade80':(c.pass==='warn'?'#fbbf24':'#fb7185');
-    html+='<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--wire);">'
+    html+='<div class="slf-rise" style="animation-delay:'+(150+ci*45)+'ms;display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--wire);">'
       +'<span style="width:18px;height:18px;border-radius:50%;background:rgba('+(c.pass===true?'74,222,128':c.pass==='warn'?'251,191,36':'251,113,133')+',0.15);color:'+icCol+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">'+ic+'</span>'
       +'<div><div style="font-size:12px;color:var(--snow);font-weight:500;">'+c.label+'</div>'
       +'<div style="font-size:10px;color:var(--dim);margin-top:1px;">'+c.note+'</div></div>'
@@ -1187,6 +1225,20 @@ function renderQualityScore(text){
     +'This score checks the parts you control in the listing. Remember: pricing, photos, and seller rating also drive sales.</div>';
   html+='</div>';
   cntEl.insertAdjacentHTML('beforeend', html);
+  // Subtle count-up animation for the score number
+  (function(){
+    var el=document.getElementById('qs-score-num'); if(!el) return;
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){el.textContent=score;return;}
+    var start=null, dur=700;
+    function step(ts){
+      if(!start) start=ts;
+      var p=Math.min((ts-start)/dur,1);
+      var eased=1-Math.pow(1-p,3); // ease-out
+      el.textContent=Math.round(eased*score);
+      if(p<1) requestAnimationFrame(step); else el.textContent=score;
+    }
+    requestAnimationFrame(step);
+  })();
 }
 
 function renderCompetitors(){
@@ -1223,7 +1275,7 @@ function renderCompetitors(){
   // Listings
   lastCompetitors.forEach(function(c,i){
     var safeTitle=(c.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    html+='<div style="background:var(--ink3);border:1px solid var(--wire);border-radius:10px;padding:12px 14px;margin-bottom:8px;">'
+    html+='<div class="slf-rise" style="animation-delay:'+Math.min(i*50,300)+'ms;background:var(--ink3);border:1px solid var(--wire);border-radius:10px;padding:12px 14px;margin-bottom:8px;">'
       +'<div style="font-size:12px;color:var(--snow);line-height:1.5;margin-bottom:8px;">'+safeTitle+'</div>'
       +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
       +'<span style="font-size:13px;color:#4ade80;font-weight:600;font-family:\'Geist Mono\',monospace;">'+(c.price||'N/A')+'</span>'
