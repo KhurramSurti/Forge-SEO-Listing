@@ -205,6 +205,17 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .ui-dot-on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,168,71,0.25);}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;backdrop-filter:blur(3px);}
 .sidebar-overlay.show{display:block;}
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;}
+.confirm-overlay.show{display:flex;animation:slfFadeIn 0.2s ease;}
+.confirm-box{background:var(--ink2);border:1px solid var(--wire2);border-radius:var(--r2);padding:28px 26px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slfRise 0.28s cubic-bezier(0.22,0.61,0.36,1);}
+.confirm-icon{font-size:34px;margin-bottom:12px;}
+.confirm-title{font-size:18px;font-weight:700;color:var(--snow);margin-bottom:8px;}
+.confirm-msg{font-size:13px;color:var(--fog);line-height:1.6;margin-bottom:22px;}
+.confirm-btns{display:flex;gap:10px;}
+.confirm-no{flex:1;padding:12px;border-radius:var(--r);background:var(--ink4);border:1px solid var(--wire);color:var(--mist);font-family:'Geist',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.18s;}
+.confirm-no:hover{background:var(--ink3);border-color:var(--wire2);}
+.confirm-yes{flex:1;padding:12px;border-radius:var(--r);background:linear-gradient(135deg,var(--gold),var(--gold3));border:none;color:#1a1305;font-family:'Geist',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.18s;}
+.confirm-yes:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(212,168,71,0.3);}
 
 @media(max-width:860px){
   .app{grid-template-columns:1fr;grid-template-rows:58px 1fr;}
@@ -278,6 +289,17 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 </header>
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+    <div class="confirm-msg" id="confirmMsg">This will use your API credits.</div>
+    <div class="confirm-btns">
+      <button class="confirm-no" onclick="closeConfirm()">No, Cancel</button>
+      <button class="confirm-yes" id="confirmYesBtn" onclick="confirmProceed()">Yes, Continue</button>
+    </div>
+  </div>
+</div>
 
 <aside class="sidebar" id="sidebar">
   <div class="sb-sec">
@@ -286,8 +308,11 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <button class="p-opt on" onclick="setPlatform('ebay',this)">
         <span class="p-em">🏪</span><span>eBay Only</span><div class="p-chk">✓</div>
       </button>
-      <button class="p-opt" onclick="setPlatform('shopify',this)">
+      <button class="p-opt" onclick="confirmPlatform('shopify',this)">
         <span class="p-em">🛍</span><span>Shopify Only</span><div class="p-chk">✓</div>
+      </button>
+      <button class="p-opt" id="seoSideBtn" onclick="confirmOffPage(this)">
+        <span class="p-em">🚀</span><span>Off-Page SEO</span><div class="p-chk">✓</div>
       </button>
     </div>
   </div>
@@ -340,10 +365,6 @@ Free Shipping: No hidden fees.
       <button class="gen-btn" id="genBtn" onclick="generate()">
         <div class="spinner" id="spinner"></div>
         <span id="btnTxt">Generate Listing</span>
-      </button>
-      <button class="seo-btn" id="seoBtn" onclick="generateOffPageSEO()">
-        <div class="spinner-pink" id="seoSpinner"></div>
-        <span id="seoBtnTxt">🚀 Off-Page SEO</span>
       </button>
       <button class="clr-btn" onclick="clearAll()">Clear</button>
       <div class="char-ct" id="charCt">0 chars</div>
@@ -445,6 +466,42 @@ function closeSidebarMobile(){
 }
 
 function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p==='shopify');}
+
+// Confirmation modal logic for Shopify & Off-Page SEO (extra safety layer to avoid accidental credit use)
+var pendingAction=null, pendingBtn=null;
+
+function confirmPlatform(p,btn){
+  pendingAction='shopify'; pendingBtn=btn;
+  document.getElementById('confirmIcon').textContent='🛍';
+  document.getElementById('confirmTitle').textContent='Switch to Shopify Only?';
+  document.getElementById('confirmMsg').textContent='This will switch the tool to Shopify mode. When you generate, it will use your API credits for a Shopify listing. Continue?';
+  document.getElementById('confirmYesBtn').textContent='Yes, Switch';
+  openConfirm();
+}
+function confirmOffPage(btn){
+  // require a generated listing first
+  pendingAction='offpage'; pendingBtn=btn;
+  document.getElementById('confirmIcon').textContent='🚀';
+  document.getElementById('confirmTitle').textContent='Run Off-Page SEO?';
+  document.getElementById('confirmMsg').textContent='This will use your API credits to generate an off-page SEO strategy. Make sure you have generated a listing first. Continue?';
+  document.getElementById('confirmYesBtn').textContent='Yes, Run It';
+  openConfirm();
+}
+function openConfirm(){document.getElementById('confirmOverlay').classList.add('show');}
+function closeConfirm(){document.getElementById('confirmOverlay').classList.remove('show');pendingAction=null;pendingBtn=null;}
+function confirmProceed(){
+  var action=pendingAction, btn=pendingBtn;
+  document.getElementById('confirmOverlay').classList.remove('show');
+  pendingAction=null; pendingBtn=null;
+  if(action==='shopify'){
+    setPlatform('shopify',btn);
+  } else if(action==='offpage'){
+    // mark the sidebar button active visually, then run
+    document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});
+    if(btn) btn.classList.add('on');
+    generateOffPageSEO();
+  }
+}
 var customColor='#ec4899', customMode='dark';
 
 function setTheme(t,btn){
@@ -542,9 +599,8 @@ async function generateOffPageSEO(){
 
   closeSidebarMobile();
   hideErr();
-  document.getElementById('seoBtn').disabled=true;
-  document.getElementById('seoSpinner').style.display='block';
-  document.getElementById('seoBtnTxt').textContent='Researching...';
+  var sBtn=document.getElementById('seoSideBtn');
+  if(sBtn){sBtn.style.opacity='0.6';sBtn.querySelector('span:nth-child(2)').textContent='Researching...';}
   setChip('work','Off-Page SEO research...');
 
   var productTitle=product.split('\n')[0].replace(/title:/i,'').trim().slice(0,80);
@@ -587,9 +643,13 @@ async function generateOffPageSEO(){
     setChip('err','Error');
   }
 
-  document.getElementById('seoBtn').disabled=false;
-  document.getElementById('seoSpinner').style.display='none';
-  document.getElementById('seoBtnTxt').textContent='🚀 Off-Page SEO';
+  var sBtn2=document.getElementById('seoSideBtn');
+  if(sBtn2){sBtn2.style.opacity='1';sBtn2.querySelector('span:nth-child(2)').textContent='Off-Page SEO';sBtn2.classList.remove('on');}
+  // restore the active platform highlight
+  var pOpts=document.querySelectorAll('#platOpts .p-opt');
+  pOpts.forEach(function(b){b.classList.remove('on');});
+  if(platform==='ebay'&&pOpts[0])pOpts[0].classList.add('on');
+  else if(platform==='shopify'&&pOpts[1])pOpts[1].classList.add('on');
 }
 
 function renderOffPageSEO(text, productTitle){
