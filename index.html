@@ -435,7 +435,7 @@ window.onload=function(){
   var cc=localStorage.getItem('slf_cc'); if(cc){customColor=cc;document.getElementById('customColor').value=cc;document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+cc+','+cc+')';}
   var cm=localStorage.getItem('slf_cm'); if(cm){setCustomMode(cm);}
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
-  document.getElementById('productInput').addEventListener('input',function(){updateCharCount();});
+  document.getElementById('productInput').addEventListener('input',function(){updateCharCount();saveDraftDebounced();});
   restoreSession();
   updateRestoreBtn();
 };
@@ -929,40 +929,65 @@ function saveSession(){
   }catch(e){ console.error('Save failed:', e.message); }
 }
 
+// Lightweight draft save (just the typed product text) — runs as user types
+var _draftTimer=null;
+function saveDraftDebounced(){
+  clearTimeout(_draftTimer);
+  _draftTimer=setTimeout(function(){
+    try{
+      var raw=localStorage.getItem('slf_session');
+      var data = raw ? JSON.parse(raw) : {};
+      data.product = document.getElementById('productInput').value;
+      data.savedAt = Date.now();
+      localStorage.setItem('slf_session', JSON.stringify(data));
+      updateRestoreBtn();
+    }catch(e){}
+  }, 500);
+}
+
 function restoreSession(){
   try{
     var raw=localStorage.getItem('slf_session');
     if(!raw) return;
     var d=JSON.parse(raw);
-    if(!d.fullTxt && !d.shopifyTxt) return;
-    document.getElementById('productInput').value = d.product||'';
-    updateCharCount();
-    platform = d.platform||'ebay';
-    theme = d.theme||'heritage';
-    fullTxt = d.fullTxt||'';
-    genHtml = d.genHtml||'';
-    shopifyTxt = d.shopifyTxt||'';
-    allKws = d.allKws||[];
-    lastCompetitors = d.competitors||[];
-    // Re-render the output
-    if(platform==='ebay' && fullTxt){
-      renderEbayOnly(fullTxt);
-      renderKeywords();
-      renderQualityScore(fullTxt);
-      renderCompetitors();
-    } else if(platform==='shopify' && shopifyTxt){
-      renderShopifyOnly(shopifyTxt);
-      renderKeywords();
+    // Restore typed product text even if no listing was generated yet
+    if(d.product){
+      document.getElementById('productInput').value = d.product;
+      updateCharCount();
     }
-    document.getElementById('output').classList.add('show');
-    setChip('done','Restored');
+    // If a full listing was generated, restore the output too
+    if(d.fullTxt || d.shopifyTxt){
+      platform = d.platform||'ebay';
+      theme = d.theme||'heritage';
+      fullTxt = d.fullTxt||'';
+      genHtml = d.genHtml||'';
+      shopifyTxt = d.shopifyTxt||'';
+      allKws = d.allKws||[];
+      lastCompetitors = d.competitors||[];
+      if(platform==='ebay' && fullTxt){
+        renderEbayOnly(fullTxt);
+        renderKeywords();
+        renderQualityScore(fullTxt);
+        renderCompetitors();
+      } else if(platform==='shopify' && shopifyTxt){
+        renderShopifyOnly(shopifyTxt);
+        renderKeywords();
+      }
+      document.getElementById('output').classList.add('show');
+      setChip('done','Restored');
+    }
   }catch(e){ console.error('Restore failed:', e.message); }
 }
 
 function updateRestoreBtn(){
-  var has = !!localStorage.getItem('slf_session');
   var btn=document.getElementById('restoreBtn');
-  if(btn) btn.style.display = has ? 'flex' : 'none';
+  if(!btn) return;
+  var has=false;
+  try{
+    var raw=localStorage.getItem('slf_session');
+    if(raw){var d=JSON.parse(raw); has=!!((d.product&&d.product.trim().length>0)||d.fullTxt||d.shopifyTxt);}
+  }catch(e){}
+  btn.style.display = has ? 'flex' : 'none';
 }
 
 function clearSession(){
