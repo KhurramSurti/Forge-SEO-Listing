@@ -757,17 +757,17 @@ async function generate(){
     +'=== HTML HEADING ===\n'
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. Use Title Case. NO trailing comma. Example style: "50Pcs Rubber Oil Drain Plug O Ring Gasket Seal Kit for Harley Davidson Engine Oil Pan Washer Set OEM 11105":\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases.\n\n'
-    +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
-    +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
     +'=== ITEM SPECIFICS ===\n'
     +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. Include ALL that apply to this product: Brand, Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. If brand is unknown use "Unbranded". For compatibility use "For [Brand]" format. Example:\nBrand: Unbranded\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
+    +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
+    +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
     +'=== PRO TIPS ===\n5 practical tips numbered: 1. tip\n\n'
     +'=== IDEAL FOR ===\n12 tags, one per line with — prefix\n\n'
     +'=== POLICIES ===\n'+policy+'\n\n'
     +'=== SEO METADATA ===\nMeta Title: (under 60 chars)\nMeta Description: (50-160 chars)\nURL Handle: (dashes only)\n\n'
     +'=== TAGS ===\neBay Keywords: (10 terms)\nSocial Hashtags: (10 hashtags)\n\n'
     +'=== RAW SOURCE DATA ===\n'+product;
-    try{var r=await claudeCall(apiKey,ebayPrompt,3000);fullTxt=r;}
+    try{var r=await claudeCall(apiKey,ebayPrompt,4500);fullTxt=r;}
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
