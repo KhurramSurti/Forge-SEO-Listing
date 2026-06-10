@@ -530,6 +530,39 @@ function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getEl
 
 // Backend URL — your deployed Vercel server for REAL keywords
 var BACKEND_URL = 'https://keyword-backend-zeta.vercel.app/api/keywords';
+
+// ── Global title helpers (used by both HTML build and TITLE tab) ──
+function slfSmartTrim(str, maxLen){
+  str = (str||'').trim();
+  if(str.length <= maxLen) return str;
+  var cut = str.slice(0, maxLen);
+  var lastSpace = cut.lastIndexOf(' ');
+  if(lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace);
+  return cut.trim();
+}
+// Ensure title is 75-80 chars: if too short, pad with relevant keyword words (whole words only)
+function slfPadTitle(title){
+  title = (title||'').trim();
+  if(title.length >= 75) return slfSmartTrim(title, 80);
+  if(typeof allKws === 'undefined' || allKws.length === 0) return title;
+  var titleLower = title.toLowerCase();
+  for(var k=0; k<allKws.length; k++){
+    var words = allKws[k].split(/\s+/);
+    for(var w=0; w<words.length; w++){
+      var word = words[w];
+      var wl = word.toLowerCase();
+      if(wl.length < 3) continue;
+      if(titleLower.indexOf(wl) > -1) continue;
+      var candidate = title + ' ' + word;
+      if(candidate.length <= 80){
+        title = candidate;
+        titleLower = title.toLowerCase();
+      }
+      if(title.length >= 75) return title;
+    }
+  }
+  return title;
+}
 var lastCompetitors = [];
 
 async function fetchAllKeywords(apiKey,productTitle){
@@ -812,8 +845,8 @@ async function generate(){
     +'Use EXACTLY these === markers:\n\n'
     +'=== BRAND CHECK ===\nBrand: [name] | Recognition: [Global/Regional/Unknown] | Decision: [Keep/Remove]\n\n'
     +'=== TITLE ===\n'
-    +'eBay Title — CRITICAL LENGTH RULE: the title MUST be between 75 and 78 characters (including spaces). This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count the characters carefully. If your title is too short, ADD more relevant keywords, materials, sizes, use-cases, or compatible terms until it reaches 75-78 characters. NO punctuation. Stack keywords naturally. Every word must be complete.\n'
-    +'[title here — must be 75 to 78 characters]\n\n'
+    +'eBay Title — CRITICAL LENGTH RULE: the title MUST be between 76 and 80 characters (including spaces). This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count the characters carefully. If your title is too short, ADD more relevant keywords, materials, sizes, use-cases, or compatible terms until it reaches 76-80 characters. NO punctuation. Stack keywords naturally. Every word must be complete.\n'
+    +'[title here — must be 76 to 80 characters]\n\n'
     +'=== HTML HEADING ===\n'
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. Use Title Case. NO trailing comma. Example style: "50Pcs Rubber Oil Drain Plug O Ring Gasket Seal Kit for Harley Davidson Engine Oil Pan Washer Set OEM 11105":\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases.\n\n'
@@ -1050,40 +1083,7 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   }
 
   // Smart trim: keep eBay title <= 78 chars, never cut a word in the middle
-  function smartTrim(str, maxLen){
-    str = str.trim();
-    if(str.length <= maxLen) return str;
-    var cut = str.slice(0, maxLen);
-    var lastSpace = cut.lastIndexOf(' ');
-    if(lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace); // cut at last full word
-    return cut.trim();
-  }
-
-  // Ensure title is 75-78 chars: if too short, pad with relevant keywords (whole words only)
-  function padTitle(title){
-    title = title.trim();
-    if(title.length >= 75) return smartTrim(title, 78);
-    if(typeof allKws === 'undefined' || allKws.length === 0) return title;
-    var titleLower = title.toLowerCase();
-    // Try adding keyword words that aren't already in the title
-    for(var k=0; k<allKws.length; k++){
-      var words = allKws[k].split(/\s+/);
-      for(var w=0; w<words.length; w++){
-        var word = words[w];
-        var wl = word.toLowerCase();
-        if(wl.length < 3) continue;
-        if(titleLower.indexOf(wl) > -1) continue; // already present
-        var candidate = title + ' ' + word;
-        if(candidate.length <= 78){
-          title = candidate;
-          titleLower = title.toLowerCase();
-        }
-        if(title.length >= 75) return title;
-      }
-    }
-    return title;
-  }
-  ebayTitle = padTitle(smartTrim(ebayTitle, 78));
+  ebayTitle = slfPadTitle(slfSmartTrim(ebayTitle, 80));
 
   // Clean HTML heading = the eBay title in proper Title Case (first letter of each word capital)
   // No keyword cramming — extra keywords are already placed & highlighted inside the description
@@ -1418,18 +1418,24 @@ function renderListing(text){
     if(sec.key==='DESCRIPTION'||sec.key==='KEY FEATURES')fmt=highlightKeywords(fmt,allKws);
     var safe=sec.content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
 
-    // For TITLE: add a live character counter for the eBay title line
+    // For TITLE: extract the eBay title line, pad it to 75-80 chars, show counter + padded title
     var counterHtml='';
     if(sec.key==='TITLE'){
       var titleLine='';
       var tl=sec.content.split('\n');
       for(var ti=0;ti<tl.length;ti++){var cand=tl[ti].replace(/`/g,'').replace(/^[-•*\s]+/,'').trim();if(cand.length>20&&!/chars|keyword|stacking|character|\[/i.test(cand)){titleLine=cand;break;}}
       if(titleLine){
-        var len=titleLine.length;
+        // Pad/trim to guarantee 75-80 chars using fetched keywords
+        var padded=slfPadTitle(slfSmartTrim(titleLine,80));
+        // Replace the original title line in the displayed content with the padded one
+        fmt=fmt.replace(titleLine, padded);
+        // Update the copy text too
+        safe=padded.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+        var len=padded.length;
         var ok = len>=75 && len<=80;
         var warn = len>=70 && len<75;
         var col = ok?'#4ade80':(warn?'#fbbf24':'#fb7185');
-        var msg = ok?'Perfect length':(len<70?'Too short — add keywords':(warn?'A bit short':'Too long — will be cut'));
+        var msg = ok?'Perfect length':(len<70?'Too short':(warn?'A bit short':'Too long'));
         counterHtml='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 11px;background:rgba('+(ok?'74,222,128':warn?'251,191,36':'251,113,133')+',0.1);border:1px solid '+col+';border-radius:7px;font-size:11px;">'
           +'<span style="font-weight:700;color:'+col+';font-family:\'Geist Mono\',monospace;">'+len+'/80</span>'
           +'<span style="color:'+col+';">'+msg+'</span>'
