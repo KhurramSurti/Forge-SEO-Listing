@@ -16,6 +16,13 @@
   --shopify:#96bf48; --shopify2:#c8f07a;
   --seo:#f472b6; --seo2:#fda4af;
   --r:10px; --r2:16px; --r3:22px;
+  /* design-style tokens (swapped by the design switcher) */
+  --card-shadow:none;
+  --card-glow:none;
+  --panel-blur:blur(0px);
+  --topbar-bg:rgba(7,7,10,0.92);
+  --card-gradient:none;
+  --border-glow:none;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
@@ -23,7 +30,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .amb1{position:fixed;top:-15vh;left:-10vw;width:55vw;height:55vh;background:radial-gradient(ellipse,rgba(212,168,71,0.055) 0%,transparent 68%);pointer-events:none;z-index:0;}
 .amb2{position:fixed;bottom:-20vh;right:-8vw;width:45vw;height:50vh;background:radial-gradient(ellipse,rgba(45,212,191,0.04) 0%,transparent 68%);pointer-events:none;z-index:0;}
 .app{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr;grid-template-rows:64px 1fr;height:100vh;overflow:hidden;}
-.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(7,7,10,0.92);border-bottom:1px solid var(--wire);backdrop-filter:blur(24px);position:relative;z-index:100;}
+.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:var(--topbar-bg);border-bottom:1px solid var(--wire);backdrop-filter:blur(24px);position:relative;z-index:100;}
 .wordmark{display:flex;flex-direction:column;gap:1px;}
 .wordmark-name{font-family:'Playfair Display',serif;font-style:italic;font-size:21px;font-weight:700;background:linear-gradient(90deg,#c8902a 0%,#f0c060 45%,#c8902a 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.3px;line-height:1;}
 .wordmark-bar{width:36px;height:1.5px;background:var(--gold);margin-bottom:2px;}
@@ -40,11 +47,15 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .s-work{background:rgba(212,168,71,0.1);color:var(--gold);border:1px solid rgba(212,168,71,0.25);}
 .s-done{background:rgba(45,212,191,0.1);color:var(--teal);border:1px solid rgba(45,212,191,0.25);}
 .s-err{background:rgba(251,113,133,0.1);color:var(--rose);border:1px solid rgba(251,113,133,0.25);}
-.sidebar{background:var(--ink2);border-right:1px solid var(--wire);padding:22px 18px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;height:calc(100vh - 64px);}
+.sidebar{background:var(--ink2);border-right:1px solid var(--wire);padding:22px 18px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;height:calc(100vh - 64px);backdrop-filter:var(--panel-blur);}
 .sidebar::-webkit-scrollbar{width:0;}
 .sb-sec{display:flex;flex-direction:column;gap:8px;}
 .sb-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:var(--dim);padding-bottom:6px;border-bottom:1px solid var(--wire);}
 .p-opts{display:flex;flex-direction:column;gap:3px;}
+.market-opts{display:flex;gap:6px;}
+.market-btn{flex:1;padding:9px 8px;border-radius:9px;background:var(--ink3);border:1px solid var(--wire);color:var(--fog);font-family:'Geist',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.18s;}
+.market-btn:hover{border-color:var(--wire2);color:var(--mist);}
+.market-on{background:linear-gradient(135deg,var(--gold),var(--gold3));border-color:var(--gold);color:#1a1305;}
 .p-opt{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--r);border:1px solid transparent;background:transparent;color:var(--fog);font-family:'Geist',sans-serif;font-size:12px;cursor:pointer;transition:all 0.18s;text-align:left;width:100%;}
 .p-opt:hover{background:var(--ink3);color:var(--snow);}
 .p-opt.on{background:var(--ink4);border-color:var(--wire2);color:var(--snow);}
@@ -79,7 +90,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .iz-head{margin-bottom:12px;}
 .iz-title{font-family:'Playfair Display',serif;font-style:italic;font-size:17px;color:var(--white);margin-bottom:2px;}
 .iz-sub{font-size:11px;color:var(--dim);}
-.product-ta{width:100%;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r2);padding:15px 17px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.75;resize:none;height:120px;outline:none;transition:border-color 0.2s;}
+.product-ta{width:100%;background:var(--ink3);background-image:var(--card-gradient);border:1px solid var(--wire);border-radius:var(--r2);padding:15px 17px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.75;resize:none;height:120px;outline:none;transition:border-color 0.2s;box-shadow:var(--card-shadow);}
 .comp-title-wrap{margin-top:12px;}
 .comp-title-lbl{font-size:11px;color:var(--mist);font-weight:600;margin-bottom:7px;}
 .comp-title-inp{width:100%;background:var(--ink3);border:1px solid rgba(96,165,250,0.3);border-radius:var(--r);padding:11px 15px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11.5px;outline:none;transition:border-color 0.2s;}
@@ -155,7 +166,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .kw-pill{animation:slfPillIn 0.32s cubic-bezier(0.22,0.61,0.36,1) both;}
 .ob{animation:slfRise 0.34s cubic-bezier(0.22,0.61,0.36,1) both;}
 @media (prefers-reduced-motion: reduce){.slf-rise,#output.show,.kw-pill,.ob,.ssec.on{animation:none !important;}}
-.ob{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin-bottom:10px;}
+.ob{background:var(--ink3);background-image:var(--card-gradient);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin-bottom:10px;box-shadow:var(--card-shadow);backdrop-filter:var(--panel-blur);}
 .ob-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--wire);background:rgba(255,255,255,0.018);}
 .ob-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;}
 .c1{color:var(--gold);}.c2{color:var(--teal);}.c3{color:#c084fc;}.c4{color:#6ee7b7;}.c5{color:var(--rose);}.cS{color:var(--shopify);}.cP{color:var(--seo);}
@@ -204,12 +215,12 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .ib.cp{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,0.07);}
 /* ─── MOBILE MENU TOGGLE ─── */
 .menu-toggle{display:none;width:38px;height:38px;border-radius:9px;background:var(--ink3);border:1px solid var(--wire);color:var(--gold);font-size:18px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;}
-.ui-themes{display:flex;align-items:center;gap:5px;padding:5px 9px;background:var(--ink3);border:1px solid var(--wire);border-radius:20px;}
+.design-switch{display:flex;align-items:center;gap:3px;padding:3px;background:var(--ink3);border:1px solid var(--wire);border-radius:10px;}
+.ds-btn{padding:6px 13px;border-radius:7px;border:none;background:transparent;color:var(--fog);font-family:'Geist',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.ds-btn:hover{color:var(--mist);}
+.ds-on{background:linear-gradient(135deg,var(--gold),var(--gold3));color:#1a1305;box-shadow:0 2px 8px rgba(212,168,71,0.25);}
 .restore-btn{display:flex;align-items:center;gap:4px;padding:7px 13px;background:var(--ink3);border:1px solid var(--wire2);border-radius:9px;color:var(--gold);font-family:'Geist',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.18s;white-space:nowrap;}
 .restore-btn:hover{background:var(--ink4);border-color:var(--gold);transform:translateY(-1px);}
-.ui-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--wire2);cursor:pointer;padding:0;transition:all 0.18s;}
-.ui-dot:hover{transform:scale(1.15);border-color:var(--fog);}
-.ui-dot-on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,168,71,0.25);}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;backdrop-filter:blur(3px);}
 .sidebar-overlay.show{display:block;}
 .confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;}
@@ -261,7 +272,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   .wordmark-name{font-size:15px;}
   .key-inp{width:80px;}
   .menu-toggle{width:34px;height:34px;font-size:16px;}
-  .ui-themes{display:none;}
+  .design-switch{display:none;}
   .stab{font-size:9px;padding:5px 9px;}
   .product-ta{height:140px;font-size:11px;}
   .h-frame-w{min-height:420px;}
@@ -280,12 +291,10 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
     <div class="wordmark-sub">Surti Listing Forge</div>
   </div>
   <div class="topbar-right">
-    <div class="ui-themes" id="uiThemes" title="Change interface color">
-      <button class="ui-dot ui-dot-on" data-ui="dark" onclick="setUITheme('dark')" style="background:#07070a;" title="Dark"></button>
-      <button class="ui-dot" data-ui="midnight" onclick="setUITheme('midnight')" style="background:#0a1628;" title="Midnight Blue"></button>
-      <button class="ui-dot" data-ui="slate" onclick="setUITheme('slate')" style="background:#1e2128;" title="Slate Grey"></button>
-      <button class="ui-dot" data-ui="warm" onclick="setUITheme('warm')" style="background:#1a1410;" title="Warm"></button>
-      <button class="ui-dot" data-ui="light" onclick="setUITheme('light')" style="background:#f0f0f4;" title="Light"></button>
+    <div class="design-switch" id="designSwitch" title="Change design style">
+      <button class="ds-btn ds-on" data-ds="glass" onclick="setDesign('glass')">Glass</button>
+      <button class="ds-btn" data-ds="clean" onclick="setDesign('clean')">Clean</button>
+      <button class="ds-btn" data-ds="rich" onclick="setDesign('rich')">Rich</button>
     </div>
     <div class="key-wrap">
       <div class="key-led" id="keyLed"></div>
@@ -310,6 +319,13 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 </div>
 
 <aside class="sidebar" id="sidebar">
+  <div class="sb-sec">
+    <div class="sb-lbl">Marketplace</div>
+    <div class="market-opts" id="marketOpts">
+      <button class="market-btn market-on" data-market="us" onclick="setMarket('us')">🇺🇸 US eBay</button>
+      <button class="market-btn" data-market="gb" onclick="setMarket('gb')">🇬🇧 UK eBay</button>
+    </div>
+  </div>
   <div class="sb-sec">
     <div class="sb-lbl">Platform</div>
     <div class="p-opts" id="platOpts">
@@ -432,13 +448,14 @@ Free Shipping: No hidden fees.
 </div>
 
 <script>
-var platform='ebay', theme='heritage', fullTxt='', genHtml='', allKws=[], shopifyTxt='', seoTxt='';
+var platform='ebay', theme='heritage', fullTxt='', genHtml='', allKws=[], shopifyTxt='', seoTxt='', market='us';
 var srcKws={ebay:[],amazon:[],walmart:[],google:[]};
 var srcReal={ebay:false,amazon:false,walmart:false,google:false};
 var lastProduct='', lastStore='';
 
 window.onload=function(){
-  var uiT=localStorage.getItem('slf_ui'); if(uiT){setUITheme(uiT);}
+  var savedDesign=localStorage.getItem('slf_design')||'glass'; setDesign(savedDesign);
+  var savedMarket=localStorage.getItem('slf_market')||'us'; setMarket(savedMarket);
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
   var th=localStorage.getItem('slf_th'); if(th){theme=th;document.querySelectorAll('#thGrid .th-opt').forEach(function(b,i){b.classList.remove('on');});var map={heritage:0,modern:1,clean:2,luxury:3,custom:4};var btns=document.querySelectorAll('#thGrid .th-opt');if(btns[map[th]])btns[map[th]].classList.add('on');if(th==='custom')document.getElementById('customPanel').style.display='block';}
   var cc=localStorage.getItem('slf_cc'); if(cc){customColor=cc;document.getElementById('customColor').value=cc;document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+cc+','+cc+')';}
@@ -451,20 +468,55 @@ window.onload=function(){
 
 function onKey(){var k=document.getElementById('apiKey').value.trim();localStorage.setItem('slf_k',k);document.getElementById('keyLed').classList.toggle('on',k.indexOf('sk-ant')===0);}
 
-var UI_THEMES={
-  dark:    {ink:'#07070a',ink2:'#0f0f12',ink3:'#161619',ink4:'#1e1e23',wire:'#28282f',wire2:'#333340',dim:'#55556a',fog:'#8888a0',mist:'#b0b0c0',snow:'#ececf4',white:'#f8f8fc'},
-  midnight:{ink:'#080d18',ink2:'#0d1424',ink3:'#131c30',ink4:'#1a253e',wire:'#243150',wire2:'#2f3e60',dim:'#556688',fog:'#8095b8',mist:'#aebdd6',snow:'#e6edf7',white:'#f5f8fc'},
-  slate:   {ink:'#16181d',ink2:'#1c1f26',ink3:'#23272f',ink4:'#2c313a',wire:'#363c47',wire2:'#434a57',dim:'#646b7a',fog:'#8e95a3',mist:'#b8bdc7',snow:'#eceef2',white:'#f8f9fb'},
-  warm:    {ink:'#14100b',ink2:'#1a1510',ink3:'#221b14',ink4:'#2c241a',wire:'#392f22',wire2:'#473a2b',dim:'#6b5d48',fog:'#9c8a70',mist:'#c4b39a',snow:'#f0e9dd',white:'#faf6ee'},
-  light:   {ink:'#f0f0f4',ink2:'#ffffff',ink3:'#f4f5f8',ink4:'#e9ebf0',wire:'#dde0e8',wire2:'#c8cdd8',dim:'#9098a8',fog:'#6b7280',mist:'#4b5563',snow:'#1f2430',white:'#0f1320'},
+// Three complete design styles — each swaps colors AND design tokens (shadows, glow, blur, gradients)
+var DESIGN_STYLES={
+  // GLASS — dark, glassmorphism, soft glow (Linear / Arc vibe)
+  glass:{
+    ink:'#07070a',ink2:'#0d0d11',ink3:'#15151b',ink4:'#1e1e26',
+    wire:'#2a2a33',wire2:'#3a3a46',dim:'#5a5a6e',fog:'#9090a6',
+    mist:'#b8b8c8',snow:'#eeeef6',white:'#f8f8fc',
+    'card-shadow':'0 4px 24px rgba(0,0,0,0.4)',
+    'panel-blur':'blur(12px)',
+    'topbar-bg':'rgba(10,10,14,0.7)',
+    'card-gradient':'linear-gradient(160deg,rgba(255,255,255,0.025),rgba(255,255,255,0))',
+    'border-glow':'0 0 0 1px rgba(212,168,71,0.1)'
+  },
+  // CLEAN — light, airy, soft shadows (Notion / Stripe vibe)
+  clean:{
+    ink:'#eef0f5',ink2:'#ffffff',ink3:'#f6f7fa',ink4:'#eceef3',
+    wire:'#e2e5ec',wire2:'#cdd2dd',dim:'#9aa0ad',fog:'#6b7280',
+    mist:'#4b5563',snow:'#1f2533',white:'#0f1420',
+    'card-shadow':'0 1px 3px rgba(16,24,40,0.06),0 4px 16px rgba(16,24,40,0.04)',
+    'panel-blur':'blur(0px)',
+    'topbar-bg':'rgba(255,255,255,0.85)',
+    'card-gradient':'none',
+    'border-glow':'none'
+  },
+  // RICH — deep, bold gradients, strong depth (premium SaaS vibe)
+  rich:{
+    ink:'#0a0812',ink2:'#120e1f',ink3:'#1a1428',ink4:'#241b35',
+    wire:'#332842',wire2:'#443555',dim:'#6b5a82',fog:'#9a86b5',
+    mist:'#c2b3d6',snow:'#efe9f7',white:'#faf6ff',
+    'card-shadow':'0 8px 32px rgba(80,40,140,0.18)',
+    'panel-blur':'blur(8px)',
+    'topbar-bg':'rgba(18,14,31,0.8)',
+    'card-gradient':'linear-gradient(160deg,rgba(167,139,250,0.06),rgba(212,168,71,0.02))',
+    'border-glow':'0 0 0 1px rgba(167,139,250,0.12)'
+  }
 };
 
-function setUITheme(name){
-  var t=UI_THEMES[name]||UI_THEMES.dark;
+function setMarket(m){
+  market=m;
+  localStorage.setItem('slf_market', m);
+  document.querySelectorAll('.market-btn').forEach(function(b){b.classList.toggle('market-on', b.getAttribute('data-market')===m);});
+}
+
+function setDesign(name){
+  var t=DESIGN_STYLES[name]||DESIGN_STYLES.glass;
   var root=document.documentElement;
   Object.keys(t).forEach(function(k){ root.style.setProperty('--'+k, t[k]); });
-  localStorage.setItem('slf_ui', name);
-  document.querySelectorAll('.ui-dot').forEach(function(d){d.classList.toggle('ui-dot-on', d.getAttribute('data-ui')===name);});
+  localStorage.setItem('slf_design', name);
+  document.querySelectorAll('.ds-btn').forEach(function(b){b.classList.toggle('ds-on', b.getAttribute('data-ds')===name);});
 }
 
 function toggleSidebar(){
@@ -587,7 +639,7 @@ async function fetchAllKeywords(apiKey,productTitle){
 
   // STEP 1: Get REAL keywords from backend (Google + Amazon + Walmart + eBay)
   try{
-    var r = await fetch(BACKEND_URL + '?q=' + encodeURIComponent(productTitle), {signal:AbortSignal.timeout(15000)});
+    var r = await fetch(BACKEND_URL + '?q=' + encodeURIComponent(productTitle) + '&market=' + market, {signal:AbortSignal.timeout(15000)});
     var d = await r.json();
     realData.google = (d.google||[]).slice(0,10);
     realData.amazon = (d.amazon||[]).slice(0,10);
@@ -856,7 +908,11 @@ async function generate(){
 
   if(platform==='ebay'){
     var kwLine=allKws.length>0?'\n\nREAL BUYER KEYWORDS:\n'+allKws.join(' | '):'';
+    var marketLine = (market==='gb')
+      ? 'MARKET: eBay UK (ebay.co.uk). Use British English spelling (colour, organise, personalise, favourite). Use GBP (£) for any prices. Use UK terms and sizes where relevant.'
+      : 'MARKET: eBay US (ebay.com). Use American English spelling. Use USD ($) for any prices.';
     var ebayPrompt='You are a world-class E-commerce SEO Copywriter. 2026-ready.\n'
+    +marketLine+'\n'
     +'TARGET: eBay ONLY. Cassini algorithm optimized.'+kwLine+'\n\n'
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
