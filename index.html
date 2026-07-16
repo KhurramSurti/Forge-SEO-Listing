@@ -322,8 +322,9 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   <div class="sb-sec">
     <div class="sb-lbl">Marketplace</div>
     <div class="market-opts" id="marketOpts">
-      <button class="market-btn market-on" data-market="us" onclick="setMarket('us')">🇺🇸 US eBay</button>
-      <button class="market-btn" data-market="gb" onclick="setMarket('gb')">🇬🇧 UK eBay</button>
+      <button class="market-btn market-on" data-market="us" onclick="setMarket('us')">🇺🇸 US</button>
+      <button class="market-btn" data-market="gb" onclick="setMarket('gb')">🇬🇧 UK</button>
+      <button class="market-btn" data-market="au" onclick="setMarket('au')">🇦🇺 AU</button>
     </div>
   </div>
   <div class="sb-sec">
@@ -908,9 +909,12 @@ async function generate(){
 
   if(platform==='ebay'){
     var kwLine=allKws.length>0?'\n\nREAL BUYER KEYWORDS:\n'+allKws.join(' | '):'';
-    var marketLine = (market==='gb')
-      ? 'MARKET: eBay UK (ebay.co.uk). Use British English spelling (colour, organise, personalise, favourite). Use GBP (£) for any prices. Use UK terms and sizes where relevant.'
-      : 'MARKET: eBay US (ebay.com). Use American English spelling. Use USD ($) for any prices.';
+    var MARKET_LINES = {
+      gb: 'MARKET: eBay UK (ebay.co.uk). Use British English spelling (colour, organise, personalise, favourite). Use GBP (£) for any prices. Use UK terms and sizes where relevant.',
+      au: 'MARKET: eBay Australia (ebay.com.au). Use Australian English spelling (colour, organise, tyre, aluminium). Use AUD ($) for any prices. Use metric units and Australian terms where relevant.',
+      us: 'MARKET: eBay US (ebay.com). Use American English spelling. Use USD ($) for any prices.'
+    };
+    var marketLine = MARKET_LINES[market] || MARKET_LINES.us;
     var ebayPrompt='You are a world-class E-commerce SEO Copywriter. 2026-ready.\n'
     +marketLine+'\n'
     +'TARGET: eBay ONLY. Cassini algorithm optimized.'+kwLine+'\n\n'
