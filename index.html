@@ -600,6 +600,95 @@ function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getEl
 // Backend URL — your deployed Vercel server for REAL keywords
 var BACKEND_URL = 'https://keyword-backend-zeta.vercel.app/api/keywords';
 
+// ══ VeRO PROTECTION ═══════════════════════════════════════════
+// eBay does NOT publish an official VeRO word list — it's a directory of
+// thousands of rights owners. This is a curated list of the brands most
+// known for aggressive VeRO enforcement, grouped by risk level.
+var VERO_HIGH = [
+  // Luxury / fashion — enforce constantly
+  'louis vuitton','gucci','chanel','hermes','prada','rolex','cartier','tiffany','burberry','versace',
+  'fendi','dior','balenciaga','givenchy','valentino','armani','dolce gabbana','yves saint laurent','ysl',
+  'bvlgari','omega','tag heuer','breitling','patek philippe','audemars piguet','hublot','montblanc',
+  'coach','michael kors','kate spade','tory burch','longchamp','celine','loewe','bottega veneta',
+  // Sports / footwear
+  'nike','adidas','jordan','air jordan','yeezy','puma','under armour','reebok','new balance','asics',
+  'converse','vans','supreme','lululemon','the north face','patagonia','columbia sportswear',
+  'timberland','dr martens','doc martens','birkenstock','ugg','crocs','skechers','hoka','salomon','merrell',
+  // Tech
+  'apple','iphone','ipad','macbook','airpods','airtag','imac','apple watch','samsung','galaxy',
+  'sony','playstation','ps5','ps4','bose','beats by dre','dyson','nintendo','switch','xbox','microsoft',
+  'gopro','canon','nikon','fitbit','garmin','logitech','anker','jbl','sennheiser','razer','dji',
+  // Entertainment / characters
+  'disney','pixar','marvel','dc comics','star wars','harry potter','pokemon','hello kitty','sanrio',
+  'nickelodeon','warner bros','universal studios','dreamworks','lego','funko','hasbro','mattel','barbie',
+  'nfl','nba','mlb','nhl','fifa','uefa','premier league','olympics','wwe','ferrari','lamborghini',
+  // Auto / moto
+  'harley davidson','harley-davidson','porsche','bmw','mercedes','mercedes-benz','audi','tesla','jeep',
+  // Big consumer brands
+  'yeti','hydro flask','stanley','dewalt','milwaukee','makita','bosch','black decker','weber',
+  'kitchenaid','instant pot','ninja','keurig','nespresso','tupperware','pyrex','oakley','ray-ban','rayban',
+  'victoria secret','calvin klein','tommy hilfiger','ralph lauren','polo ralph lauren','levis','levi strauss',
+  'carhartt','nivea','loreal','olay','neutrogena','gillette','oral-b','philips','braun'
+];
+var VERO_MED = [
+  'toyota','honda','ford','chevrolet','nissan','mazda','subaru','volkswagen','hyundai','kia',
+  'meguiars','armor all','turtle wax','3m','wd-40','loctite','gorilla glue','duracell','energizer',
+  'hp','dell','lenovo','asus','acer','intel','amd','nvidia','seagate','sandisk','kingston','western digital',
+  'lg','panasonic','sharp','toshiba','xiaomi','huawei','oneplus','motorola','nokia','google','pixel',
+  'nespresso','delonghi','breville','cuisinart','oster','hamilton beach','crock pot','rubbermaid',
+  'amazon','amazonbasics','walmart','costco','target','starbucks','coca cola','pepsi','nestle','kellogg'
+];
+// Phrases that commonly trigger IP / policy problems
+var VERO_PHRASES = [
+  {t:'replica', r:'high', why:'Counterfeit signal — instant removal risk'},
+  {t:'knock off', r:'high', why:'Counterfeit signal'},
+  {t:'knockoff', r:'high', why:'Counterfeit signal'},
+  {t:'clone', r:'high', why:'Counterfeit signal'},
+  {t:'fake', r:'high', why:'Counterfeit signal'},
+  {t:'copy of', r:'high', why:'Counterfeit signal'},
+  {t:'inspired by', r:'high', why:'Implies unauthorised brand association'},
+  {t:'style of', r:'high', why:'Implies unauthorised brand association'},
+  {t:'mirror image', r:'high', why:'Counterfeit signal'},
+  {t:'aaa quality', r:'high', why:'Common counterfeit marker'},
+  {t:'1:1', r:'high', why:'Common counterfeit marker'},
+  {t:'unbranded generic copy', r:'high', why:'Counterfeit signal'},
+  {t:'authentic', r:'med', why:'Only use if you can prove authenticity'},
+  {t:'genuine', r:'med', why:'Only use if you can prove authenticity'},
+  {t:'original', r:'med', why:'Only claim if truly original branded stock'},
+  {t:'oem', r:'med', why:'Only use if genuinely OEM — often challenged'},
+  {t:'compatible with', r:'med', why:'Allowed as fair use, but some brands still report it'},
+  {t:'fits ', r:'med', why:'Compatibility wording — some brands still report it'},
+  {t:'for use with', r:'med', why:'Compatibility wording — generally safer'},
+  {t:'made in usa', r:'med', why:'Only claim if verifiably true'}
+];
+
+// Scan any text for VeRO risks. Returns {high:[], med:[], phrases:[]}
+function scanVero(text){
+  var t = (text||'').toLowerCase();
+  var found = {high:[], med:[], phrases:[]};
+  function has(brand){
+    // word-boundary match so "apple" doesn't match "pineapple"
+    var esc = brand.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    return new RegExp('(^|[^a-z0-9])'+esc+'([^a-z0-9]|$)','i').test(t);
+  }
+  VERO_HIGH.forEach(function(b){ if(has(b) && found.high.indexOf(b)===-1) found.high.push(b); });
+  VERO_MED.forEach(function(b){ if(has(b) && found.med.indexOf(b)===-1) found.med.push(b); });
+  VERO_PHRASES.forEach(function(p){ if(t.indexOf(p.t)>-1) found.phrases.push(p); });
+  return found;
+}
+
+// Find which sections a risky term appears in
+function veroLocations(term, sections){
+  var where = [];
+  ['TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','ITEM SPECIFICS','TAGS'].forEach(function(k){
+    var body = (sections[k]||'').toLowerCase();
+    var esc = term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    if(new RegExp('(^|[^a-z0-9])'+esc+'([^a-z0-9]|$)','i').test(body)) where.push(k);
+  });
+  return where;
+}
+
+
 // ── Global title helpers (used by both HTML build and TITLE tab) ──
 function slfSmartTrim(str, maxLen){
   str = (str||'').trim();
@@ -918,9 +1007,21 @@ async function generate(){
     var ebayPrompt='You are a world-class E-commerce SEO Copywriter. 2026-ready.\n'
     +marketLine+'\n'
     +'TARGET: eBay ONLY. Cassini algorithm optimized.'+kwLine+'\n\n'
+    +'=== eBay VeRO / INTELLECTUAL PROPERTY COMPLIANCE — HIGHEST PRIORITY ===\n'
+    +'eBay\'s Verified Rights Owner (VeRO) program lets brands remove listings that misuse their IP. A single violation can remove the listing; repeats can suspend the account. Intent does not matter to eBay. You MUST write this listing so it cannot trigger a VeRO report:\n'
+    +'1. NEVER use these counterfeit-signal words anywhere: replica, knockoff, knock off, clone, fake, copy of, inspired by, style of, 1:1, AAA quality, mirror image.\n'
+    +'2. NEVER imply an unauthorised brand association. Do not say a generic item is "like [Brand]", "same as [Brand]", or "[Brand] style".\n'
+    +'3. Do NOT insert third-party brand names for SEO. Only mention a brand if the SOURCE DATA proves the item genuinely IS that brand.\n'
+    +'4. If the item is a genuine branded product per the source data, you may name the brand factually — but never claim authorised dealer, official, licensed, or partnership status.\n'
+    +'5. For compatibility, use neutral wording: "Fits [model]" or "For use with [model]". Never suggest the item is made or endorsed by that brand.\n'
+    +'6. Do NOT use protected characters, franchises, teams or logos (Disney, Marvel, Pokemon, sports leagues, etc.) unless the source data proves it is officially licensed stock.\n'
+    +'7. Do NOT claim "authentic", "genuine", or "original" unless the source data supports it.\n'
+    +'8. Write 100% original copy. Never copy a competitor\'s description text.\n'
+    +'9. If the competitor title provided contains brand names your product is not, do NOT copy those brand names into your title.\n'
+    +'When unsure, choose the safer, brand-free wording. A slightly less keyword-rich listing that stays live beats an optimised listing that gets removed.\n\n'
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
-    +'=== BRAND CHECK ===\nBrand: [name] | Recognition: [Global/Regional/Unknown] | Decision: [Keep/Remove]\n\n'
+    +'=== BRAND CHECK ===\nBrand: [name] | Recognition: [Global/Regional/Unknown] | VeRO Risk: [High/Medium/Low] | Decision: [Keep/Remove]\nReason: [one short line]\n\n'
     +'=== TITLE ===\n'
     +'eBay Title — CRITICAL LENGTH RULE: the title MUST be between 76 and 80 characters (including spaces). This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count the characters carefully. If your title is too short, ADD more relevant keywords, materials, sizes, use-cases, or compatible terms until it reaches 76-80 characters. NO punctuation. Stack keywords naturally. Every word must be complete.\n'
     +(compTitle ? 'BEAT THIS COMPETITOR: A top-selling competitor uses this eBay title: "'+compTitle.replace(/"/g,'')+'". Analyze it. Your title MUST be more SEO-optimized: include every strong keyword they use that fits this product, PLUS additional high-value buyer keywords they missed, in a better order. Do not copy it word-for-word — make it genuinely stronger and still 76-80 characters.\n' : '')
@@ -972,7 +1073,7 @@ async function generate(){
   }
 
   renderKeywords();
-  if(platform==='ebay'){ renderQualityScore(fullTxt); renderCompetitors(); }
+  if(platform==='ebay'){ renderQualityScore(fullTxt); renderCompetitors(); renderVeroCheck(fullTxt); }
   setLoading(false);
   document.getElementById('prog').classList.remove('show');
   document.getElementById('output').classList.add('show');
@@ -1043,6 +1144,7 @@ function restoreSession(){
         renderKeywords();
         renderQualityScore(fullTxt);
         renderCompetitors();
+        renderVeroCheck(fullTxt);
       } else if(platform==='shopify' && shopifyTxt){
         renderShopifyOnly(shopifyTxt);
         renderKeywords();
@@ -1479,6 +1581,89 @@ function renderQualityScore(text){
     }
     requestAnimationFrame(step);
   })();
+}
+
+function renderVeroCheck(text){
+  var tabsEl=document.getElementById('stabs');
+  var cntEl=document.getElementById('secCnt');
+  var ot=document.getElementById('vero-tab-btn'),os=document.getElementById('vero-tab-sec');
+  if(ot)ot.remove(); if(os)os.remove();
+
+  // parse sections so we can say WHERE a term appears
+  var S={}, KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var cur=null,buf=[];
+  text.split('\n').forEach(function(line){
+    var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
+    if(KEYS.indexOf(cl)>-1){if(cur)S[cur]=buf.join('\n').trim();cur=cl;buf=[];}
+    else if(cur)buf.push(line);
+  });
+  if(cur)S[cur]=buf.join('\n').trim();
+
+  // Only scan the parts that actually go live on eBay
+  var live = [S['TITLE']||'', S['HTML HEADING']||'', S['DESCRIPTION']||'', S['KEY FEATURES']||'', S['ITEM SPECIFICS']||'', S['TAGS']||''].join('\n');
+  var found = scanVero(live);
+
+  var highN=found.high.length, medN=found.med.length;
+  var phraseHigh=found.phrases.filter(function(p){return p.r==='high';});
+  var phraseMed=found.phrases.filter(function(p){return p.r==='med';});
+  var riskyHigh = highN + phraseHigh.length;
+  var riskyMed  = medN + phraseMed.length;
+
+  var status, color, rgb, icon;
+  if(riskyHigh>0){ status='HIGH RISK'; color='#fb7185'; rgb='251,113,133'; icon='⛔'; }
+  else if(riskyMed>0){ status='REVIEW NEEDED'; color='#fbbf24'; rgb='251,191,36'; icon='⚠'; }
+  else { status='LOOKS CLEAN'; color='#4ade80'; rgb='74,222,128'; icon='🛡'; }
+
+  var tb=document.createElement('button');
+  tb.className='stab'; tb.id='vero-tab-btn';
+  tb.innerHTML='🛡 VeRO'+(riskyHigh>0?' '+riskyHigh:(riskyMed>0?' '+riskyMed:' ✓'));
+  tb.style.borderColor=color; tb.style.color=color;
+  tb.onclick=function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});tb.classList.add('on');document.getElementById('vero-tab-sec').classList.add('on');};
+  tabsEl.insertBefore(tb, tabsEl.firstChild);
+
+  var html='<div class="ssec" id="vero-tab-sec">';
+  html+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:14px 16px;background:rgba('+rgb+',0.08);border:1px solid '+color+';border-radius:12px;">'
+    +'<span style="font-size:26px;">'+icon+'</span>'
+    +'<div><div style="font-size:14px;font-weight:700;color:'+color+';">'+status+'</div>'
+    +'<div style="font-size:11px;color:var(--dim);margin-top:2px;">eBay VeRO / intellectual property scan of your live listing text</div></div></div>';
+
+  function riskRow(term, level, why, where){
+    var c = level==='high' ? '#fb7185' : '#fbbf24';
+    var bg = level==='high' ? '251,113,133' : '251,191,36';
+    var lbl = level==='high' ? 'HIGH' : 'REVIEW';
+    return '<div class="slf-rise" style="background:var(--ink3);border:1px solid rgba('+bg+',0.3);border-left:3px solid '+c+';border-radius:9px;padding:11px 13px;margin-bottom:7px;">'
+      +'<div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">'
+      +'<span style="font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba('+bg+',0.15);color:'+c+';border:1px solid rgba('+bg+',0.35);">'+lbl+'</span>'
+      +'<span style="font-size:12.5px;font-weight:600;color:var(--snow);font-family:\'Geist Mono\',monospace;">'+term+'</span>'
+      +(where&&where.length?'<span style="margin-left:auto;font-size:9px;color:var(--fog);">in '+where.join(', ')+'</span>':'')
+      +'</div>'
+      +'<div style="font-size:10.5px;color:var(--dim);line-height:1.5;">'+why+'</div></div>';
+  }
+
+  if(riskyHigh===0 && riskyMed===0){
+    html+='<div style="padding:16px;background:var(--ink3);border:1px solid var(--wire);border-radius:10px;font-size:12px;color:var(--fog);line-height:1.7;">'
+      +'No known high-risk brand names or counterfeit-signal phrases were found in your title, description, item specifics or tags.</div>';
+  } else {
+    found.high.forEach(function(b){
+      html+=riskRow(b,'high','Known for aggressive VeRO enforcement. Remove it unless your source data proves the item genuinely is this brand and you can document it.', veroLocations(b,S));
+    });
+    phraseHigh.forEach(function(p){
+      html+=riskRow(p.t,'high',p.why+'. Remove this wording.', veroLocations(p.t,S));
+    });
+    found.med.forEach(function(b){
+      html+=riskRow(b,'med','Brand name detected. Fine if the item genuinely is this brand and legitimately sourced — otherwise remove it.', veroLocations(b,S));
+    });
+    phraseMed.forEach(function(p){
+      html+=riskRow(p.t,'med',p.why+'.', veroLocations(p.t,S));
+    });
+  }
+
+  html+='<div style="margin-top:14px;padding:11px 13px;background:var(--ink3);border:1px solid var(--wire);border-radius:9px;font-size:10px;color:var(--dim);line-height:1.7;">'
+    +'<strong style="color:var(--fog);">Honest note:</strong> eBay does not publish a complete VeRO list — thousands of rights owners participate and enforcement changes over time. '
+    +'This scan checks the brands and phrases most known for enforcement, so it lowers your risk but cannot guarantee safety. '
+    +'A genuine, legitimately sourced branded item can be listed factually; the danger is implying a brand link you do not have.</div>';
+  html+='</div>';
+  cntEl.insertAdjacentHTML('beforeend', html);
 }
 
 function renderCompetitors(){
