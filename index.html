@@ -688,6 +688,35 @@ function veroLocations(term, sections){
   return where;
 }
 
+// ══ BRAND SEARCH DEMAND DETECTION ═════════════════════════════
+// Look at the REAL fetched keywords (Google/Amazon/eBay). If the product's
+// brand name actually shows up in what buyers search, the brand has search
+// demand and is worth keeping in the description + specs. If nobody searches
+// it, it's a no-name brand and we can leave it out / mark Unbranded.
+function detectBrandDemand(brandGuess, keywordList){
+  if(!brandGuess) return {searched:false, hits:0, note:'no brand detected'};
+  var b = brandGuess.toLowerCase().trim();
+  if(b.length < 2 || b==='unbranded' || b==='generic' || b==='n/a' || b==='none') {
+    return {searched:false, hits:0, note:'unbranded/generic'};
+  }
+  var esc = b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  var re = new RegExp('(^|[^a-z0-9])'+esc+'([^a-z0-9]|$)','i');
+  var hits = 0;
+  (keywordList||[]).forEach(function(kw){ if(re.test(String(kw).toLowerCase())) hits++; });
+  // 1+ real search phrases containing the brand => it has demand
+  return {searched: hits>0, hits: hits, note: hits>0 ? (hits+' search phrases include the brand') : 'no buyer searches include the brand'};
+}
+
+// Extract a likely brand name from the raw product text the user pasted
+function extractBrandGuess(productText){
+  var lines = (productText||'').split('\n');
+  for(var i=0;i<lines.length;i++){
+    var m = lines[i].match(/^\s*brand\s*[:\-]?\s*(.+)$/i);
+    if(m && m[1]){ return m[1].replace(/[|,].*$/,'').trim().slice(0,40); }
+  }
+  return '';
+}
+
 
 // ── Global title helpers (used by both HTML build and TITLE tab) ──
 function slfSmartTrim(str, maxLen){
@@ -716,10 +745,14 @@ function slfIsBrandWord(w){
 function slfPadTitle(title){
   title = (title||'').trim();
   if(title.length >= 75) return slfSmartTrim(title, 80);
-  if(typeof allKws === 'undefined' || allKws.length === 0) return title;
+  // eBay keywords first (what eBay buyers search), then the merged list
+  var padSources = [];
+  if(window.slfEbayKws && window.slfEbayKws.length) padSources = padSources.concat(window.slfEbayKws);
+  if(typeof allKws !== 'undefined' && allKws.length) padSources = padSources.concat(allKws);
+  if(padSources.length === 0) return title;
   var titleLower = title.toLowerCase();
-  for(var k=0; k<allKws.length; k++){
-    var words = allKws[k].split(/\s+/);
+  for(var k=0; k<padSources.length; k++){
+    var words = padSources[k].split(/\s+/);
     for(var w=0; w<words.length; w++){
       var word = words[w];
       var wl = word.toLowerCase();
@@ -1000,6 +1033,11 @@ async function generate(){
   var seen={},merged=[];
   [kwr.ebay,kwr.amazon,kwr.walmart,kwr.google].forEach(function(arr){arr.forEach(function(kw){var k=kw.toLowerCase().trim();if(!seen[k]&&k.length>2){seen[k]=1;merged.push(kw);}});});
   allKws=merged.slice(0,30);
+  // eBay-specific keywords get priority in the TITLE (these are what eBay buyers actually search)
+  var ebayKws=[]; var ebSeen={};
+  (kwr.ebay||[]).forEach(function(kw){var k=kw.toLowerCase().trim();if(!ebSeen[k]&&k.length>2){ebSeen[k]=1;ebayKws.push(kw);}});
+  ebayKws=ebayKws.slice(0,15);
+  window.slfEbayKws = ebayKws;
 
   if(allKws.length>0){
     var totalRaw=kwr.ebay.length+kwr.amazon.length+kwr.walmart.length+kwr.google.length;
@@ -1013,6 +1051,25 @@ async function generate(){
 
   if(platform==='ebay'){
     var kwLine=allKws.length>0?'\n\nREAL BUYER KEYWORDS:\n'+allKws.join(' | '):'';
+    if(ebayKws.length>0){
+      kwLine += '\n\neBay TOP-SEARCH KEYWORDS (highest priority for the TITLE — these are what eBay buyers actually type):\n'+ebayKws.join(' | ');
+    }
+
+    // Detect whether the product's brand is actually being searched by buyers
+    var brandGuess = extractBrandGuess(product);
+    var brandDemand = detectBrandDemand(brandGuess, allKws);
+    var isVeroBrand = brandGuess && (typeof slfIsBrandWord==='function') && brandGuess.split(/\s+/).some(function(w){return slfIsBrandWord(w);});
+    var brandLine;
+    if(!brandGuess){
+      brandLine = '\n\nBRAND DEMAND: No clear brand found in the source data. Treat this as an unbranded/generic product. In ITEM SPECIFICS set Brand to "Unbranded". Do not invent a brand.';
+    } else if(isVeroBrand){
+      brandLine = '\n\nBRAND DEMAND: The source brand is "'+brandGuess+'", which is a well-known brand with high VeRO enforcement risk. Only mention it factually in the DESCRIPTION and the Brand field of ITEM SPECIFICS if the source data proves the item genuinely is this brand. Never in the title. Never claim official/authorised status.';
+    } else if(brandDemand.searched){
+      brandLine = '\n\nBRAND DEMAND: The source brand is "'+brandGuess+'" and buyers ARE searching for it ('+brandDemand.note+'). This brand has real search value. Include it naturally in the DESCRIPTION (at least once) and in the Brand field of ITEM SPECIFICS to boost SEO. Still keep it OUT of the title.';
+    } else {
+      brandLine = '\n\nBRAND DEMAND: The source brand is "'+brandGuess+'" but NO buyers are searching for it ('+brandDemand.note+') — it is a no-name brand. Do NOT waste space on it. You may set Brand to "'+brandGuess+'" in ITEM SPECIFICS for accuracy, or use "Unbranded" if it adds nothing. Do not force it into the description.';
+    }
+    kwLine += brandLine;
     var MARKET_LINES = {
       gb: 'MARKET: eBay UK (ebay.co.uk). Use British English spelling (colour, organise, personalise, favourite). Use GBP (£) for any prices. Use UK terms and sizes where relevant.',
       au: 'MARKET: eBay Australia (ebay.com.au). Use Australian English spelling (colour, organise, tyre, aluminium). Use AUD ($) for any prices. Use metric units and Australian terms where relevant.',
@@ -1036,16 +1093,16 @@ async function generate(){
     +'When unsure, choose the safer, brand-free wording. A slightly less keyword-rich listing that stays live beats an optimised listing that gets removed.\n\n'
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
-    +'=== BRAND CHECK ===\nBrand: [name or Unbranded] | Recognition: [Global/Regional/Unknown] | VeRO Risk: [High/Medium/Low] | Placement: [Description + Item Specifics only — never the title]\nReason: [one short line]\n\n'
+    +'=== BRAND CHECK ===\nUse the BRAND DEMAND guidance above to decide. Output:\nBrand: [name or Unbranded] | Searched by buyers: [Yes/No] | VeRO Risk: [High/Medium/Low] | Placement: [where you will mention it: Description + Item Specifics / Item Specifics only / Unbranded]\nReason: [one short line explaining your decision]\n\n'
     +'=== TITLE ===\n'
     +'eBay Title — RULE 1 (LENGTH): the title MUST be between 76 and 80 characters including spaces. This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count carefully. NO punctuation. Every word must be complete.\n'
     +'eBay Title — RULE 2 (NO BRAND NAMES): do NOT put any brand or manufacturer name in the title. Brand names eat characters that buyers rarely search for, and they raise VeRO risk. Use that space for real buyer keywords instead. The brand belongs in the DESCRIPTION and in the Brand field of ITEM SPECIFICS — never the title.\n'
-    +'eBay Title — RULE 3 (MAX KEYWORDS): fill every one of the 76-80 characters with high-value buyer search terms: product type, material, size, quantity, colour, key feature, use-case, and buyer intent words. Pack in as many distinct keywords from the supplied list as read naturally. If the title is short, ADD more keywords until it reaches 76-80 characters.\n'
+    +'eBay Title — RULE 3 (MAX KEYWORDS, eBay FIRST): fill all 76-80 characters with high-value buyer search terms. PRIORITISE the eBay TOP-SEARCH KEYWORDS first — these are exactly what eBay buyers type, so they make the title strongest for eBay ranking. Put the most important eBay keywords near the FRONT of the title. Then fill remaining space with the other buyer keywords (product type, material, size, quantity, colour, feature, use-case). Pack in as many distinct keywords as read naturally. If short, ADD more until 76-80 characters.\n'
     +(compTitle ? 'BEAT THIS COMPETITOR: A top-selling competitor uses this eBay title: "'+compTitle.replace(/"/g,'')+'". Analyze it. Your title MUST be more SEO-optimized: include every strong keyword they use that fits this product, PLUS additional high-value buyer keywords they missed, in a better order. Do not copy it word-for-word — make it genuinely stronger and still 76-80 characters.\n' : '')
     +'[title here — must be 76 to 80 characters]\n\n'
     +'=== HTML HEADING ===\n'
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. Use Title Case. NO trailing comma. Example style: "50Pcs Rubber Oil Drain Plug O Ring Gasket Seal Kit for Harley Davidson Engine Oil Pan Washer Set OEM 11105":\n[heading here]\n\n'
-    +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. If the source data shows a real brand, mention it naturally here (this is where the brand belongs — not the title).\n\n'
+    +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. Follow the BRAND DEMAND guidance: if buyers search the brand, mention it naturally here at least once for SEO; if it is a no-name brand nobody searches, do not force it in. Never put the brand in the title.\n\n'
     +'=== ITEM SPECIFICS ===\n'
     +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. Include ALL that apply to this product: Brand, Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. If brand is unknown use "Unbranded". For compatibility use "For [Brand]" format. Example:\nBrand: Unbranded\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
