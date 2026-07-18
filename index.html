@@ -96,6 +96,10 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .comp-title-inp{width:100%;background:var(--ink3);border:1px solid rgba(96,165,250,0.3);border-radius:var(--r);padding:11px 15px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11.5px;outline:none;transition:border-color 0.2s;}
 .comp-title-inp:focus{border-color:#60a5fa;}
 .comp-title-inp::placeholder{color:var(--dim);}
+.img-urls-inp{width:100%;background:var(--ink3);border:1px solid rgba(45,212,191,0.3);border-radius:var(--r);padding:11px 15px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11px;line-height:1.7;outline:none;resize:none;height:64px;transition:border-color 0.2s;}
+.img-urls-inp:focus{border-color:var(--teal);}
+.img-urls-inp::placeholder{color:var(--dim);}
+.img-urls-note{font-size:10px;color:var(--dim);margin-top:5px;line-height:1.5;}
 .product-ta:focus{border-color:rgba(212,168,71,0.35);}
 .product-ta::placeholder{color:var(--dim);font-size:11px;}
 .kw-found{display:none;margin-top:10px;padding:10px 13px;background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.15);border-radius:var(--r);}
@@ -394,6 +398,11 @@ Free Shipping: No hidden fees.
       <div class="comp-title-lbl">🏆 Competitor's eBay Title <span style="color:var(--dim);font-weight:400;">(optional — paste a top seller's title to beat it)</span></div>
       <input type="text" class="comp-title-inp" id="compTitle" placeholder="Paste competitor's eBay title here (optional)..." oninput="saveDraftDebounced()"/>
     </div>
+    <div class="comp-title-wrap">
+      <div class="comp-title-lbl">🖼 Product Image URLs <span style="color:var(--dim);font-weight:400;">(optional — one per line, max 4; first = main hero image)</span></div>
+      <textarea class="img-urls-inp" id="imgUrls" placeholder="https://i.ebayimg.com/images/g/xxxx/s-l1600.jpg&#10;https://i.postimg.cc/xxxx/photo2.jpg" oninput="onImagesInput()"></textarea>
+      <div class="img-urls-note" id="imgUrlsNote"></div>
+    </div>
     <div class="kw-found" id="kwFound"></div>
     <div class="act-row">
       <button class="gen-btn" id="genBtn" onclick="generate()">
@@ -652,6 +661,35 @@ function resolveTheme(t){
   if(t!=='auto') return t;
   var d=detectCategoryTheme(document.getElementById('productInput').value);
   return d.theme;
+}
+
+// ══ PRODUCT IMAGES ════════════════════════════════════════════
+// eBay descriptions can only show images by URL (https). Parse up to 4 valid URLs.
+function getProductImages(){
+  var raw=(document.getElementById('imgUrls')||{value:''}).value||'';
+  var urls=raw.split(/[\n,]+/).map(function(u){return u.trim();}).filter(function(u){
+    return /^https:\/\/\S+\.(jpg|jpeg|png|webp|gif)(\?\S*)?$/i.test(u) || /^https:\/\/i\.(ebayimg|postimg|imgur)\S+$/i.test(u);
+  });
+  return urls.slice(0,4);
+}
+var _imgTimer=null;
+function onImagesInput(){
+  saveDraftDebounced();
+  var note=document.getElementById('imgUrlsNote');
+  var raw=(document.getElementById('imgUrls').value||'').trim();
+  var valid=getProductImages();
+  if(note){
+    if(!raw){ note.textContent=''; }
+    else if(valid.length===0){ note.textContent='⚠ No valid image links found — links must start with https:// and end in .jpg / .png / .webp'; note.style.color='#fbbf24'; }
+    else { note.textContent='✓ '+valid.length+' image'+(valid.length>1?'s':'')+' will be placed in the HTML listing'; note.style.color='var(--teal)'; }
+  }
+  // Free live rebuild of HTML with the images
+  clearTimeout(_imgTimer);
+  _imgTimer=setTimeout(function(){
+    if(platform==='ebay' && fullTxt){
+      try{ genHtml=buildHtmlFromListing(fullTxt,'',resolveTheme(theme)); renderHtml(genHtml); saveSession(); }catch(e){}
+    }
+  }, 600);
 }
 
 var BACKEND_URL = 'https://keyword-backend-zeta.vercel.app/api/keywords';
@@ -1218,6 +1256,7 @@ function saveSession(){
     var data={
       product: document.getElementById('productInput').value,
       compTitle: document.getElementById('compTitle').value,
+      imgUrls: document.getElementById('imgUrls').value,
       platform: platform,
       theme: theme,
       fullTxt: fullTxt,
@@ -1242,6 +1281,7 @@ function saveDraftDebounced(){
       var data = raw ? JSON.parse(raw) : {};
       data.product = document.getElementById('productInput').value;
       data.compTitle = document.getElementById('compTitle').value;
+      data.imgUrls = document.getElementById('imgUrls').value;
       data.savedAt = Date.now();
       localStorage.setItem('slf_session', JSON.stringify(data));
       updateRestoreBtn();
@@ -1260,6 +1300,7 @@ function restoreSession(){
       updateCharCount();
     }
     if(d.compTitle){ document.getElementById('compTitle').value = d.compTitle; }
+    if(d.imgUrls){ document.getElementById('imgUrls').value = d.imgUrls; if(typeof onImagesInput==='function'){var note=document.getElementById('imgUrlsNote');} }
     // If a full listing was generated, restore the output too
     if(d.fullTxt || d.shopifyTxt){
       platform = d.platform||'ebay';
@@ -1580,6 +1621,22 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;color:'+headColor+';">'+escHtml(headingText)+'</h1>'
   +'</div>';
 
+  // ── Product images: hero + gallery (URL-based, eBay-safe) ──
+  var imgs = (typeof getProductImages==='function') ? getProductImages() : [];
+  var imgH='';
+  if(imgs.length>0){
+    imgH='<div class="section" style="text-align:center;">'
+      +'<img src="'+imgs[0]+'" alt="'+escHtml(headingText)+'" style="width:100%;max-width:520px;height:auto;border-radius:14px;border:1px solid '+T.bc+';box-shadow:0 10px 40px rgba(0,0,0,0.25);display:block;margin:0 auto;" onerror="this.style.display=\'none\'"/>';
+    if(imgs.length>1){
+      imgH+='<div style="display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap;margin-top:1rem;">';
+      for(var gi=1; gi<imgs.length; gi++){
+        imgH+='<img src="'+imgs[gi]+'" alt="Product view '+(gi+1)+'" style="width:31%;max-width:160px;min-width:110px;height:auto;border-radius:10px;border:1px solid '+T.rb+';" onerror="this.style.display=\'none\'"/>';
+      }
+      imgH+='</div>';
+    }
+    imgH+='</div>';
+  }
+
   var descH=descParas.length>0?'<div class="section"><div class="sec-title">⟡ DESCRIPTION</div>'+descParas.map(function(p){return '<p class="desc-text">'+fd(p)+'</p>';}).join('')+'</div>':'';
 
   var featH='';
@@ -1601,7 +1658,7 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   var polH='';
   if(polLines.length>0){polH='<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
 
-  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+descH+featH+specsH+tipsH+idealH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+imgH+descH+featH+specsH+tipsH+idealH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
 }
 
 function computeQualityScore(text){
@@ -1970,6 +2027,8 @@ function dlHtml(){if(!genHtml)return;var a=document.createElement('a');a.href=UR
 function clearAll(){
   document.getElementById('productInput').value='';
   document.getElementById('compTitle').value='';
+  document.getElementById('imgUrls').value='';
+  var _n=document.getElementById('imgUrlsNote'); if(_n)_n.textContent='';
   document.getElementById('charCt').textContent='0 chars';
   document.getElementById('kwFound').classList.remove('show');
   document.getElementById('emptyState').style.display='flex';
