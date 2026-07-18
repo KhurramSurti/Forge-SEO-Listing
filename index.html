@@ -344,10 +344,15 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   <div class="sb-sec theme-section" id="themeSection">
     <div class="sb-lbl">HTML Theme <span style="font-size:8px;color:var(--dim);margin-left:4px;">(eBay only)</span></div>
     <div class="th-grid" id="thGrid">
-      <button class="th-opt on" onclick="setTheme('heritage',this)"><div class="th-sw" style="background:linear-gradient(135deg,#4A6B3A,#B87B3A)">🌿</div>Heritage</button>
+      <button class="th-opt on" id="autoThemeBtn" onclick="setTheme('auto',this)" style="grid-column:1/-1;"><div class="th-sw" style="background:linear-gradient(135deg,#8b7cf8,#2dd4bf,#d4af37)">🪄</div>Auto (category-wise)</button>
+      <button class="th-opt" onclick="setTheme('heritage',this)"><div class="th-sw" style="background:linear-gradient(135deg,#4A6B3A,#B87B3A)">🌿</div>Heritage</button>
       <button class="th-opt" onclick="setTheme('modern',this)"><div class="th-sw" style="background:linear-gradient(135deg,#1a1a2e,#7c6af7)">🌙</div>Modern</button>
       <button class="th-opt" onclick="setTheme('clean',this)"><div class="th-sw" style="background:linear-gradient(135deg,#1a56db,#0891b2)">☀</div>Clean</button>
       <button class="th-opt" onclick="setTheme('luxury',this)"><div class="th-sw" style="background:linear-gradient(135deg,#111,#d4af37)">✨</div>Luxury</button>
+      <button class="th-opt" onclick="setTheme('noir',this)"><div class="th-sw" style="background:linear-gradient(135deg,#000,#3a3a3a)">◼</div>Noir</button>
+      <button class="th-opt" onclick="setTheme('emerald',this)"><div class="th-sw" style="background:linear-gradient(135deg,#04281e,#10b981)">💎</div>Emerald</button>
+      <button class="th-opt" onclick="setTheme('ocean',this)"><div class="th-sw" style="background:linear-gradient(135deg,#051530,#06b6d4)">🌊</div>Ocean</button>
+      <button class="th-opt" onclick="setTheme('rose',this)"><div class="th-sw" style="background:linear-gradient(135deg,#fdf2f5,#e0447c)">🌸</div>Rosé</button>
       <button class="th-opt" id="customThemeBtn" onclick="setTheme('custom',this)" style="grid-column:1/-1;"><div class="th-sw" id="customSwatch" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)">🎨</div>Custom Color</button>
     </div>
     <div id="customPanel" style="display:none;margin-top:8px;padding:11px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);">
@@ -449,7 +454,7 @@ Free Shipping: No hidden fees.
 </div>
 
 <script>
-var platform='ebay', theme='heritage', fullTxt='', genHtml='', allKws=[], shopifyTxt='', seoTxt='', market='us';
+var platform='ebay', theme='auto', fullTxt='', genHtml='', allKws=[], shopifyTxt='', seoTxt='', market='us';
 var srcKws={ebay:[],amazon:[],walmart:[],google:[]};
 var srcReal={ebay:false,amazon:false,walmart:false,google:false};
 var lastProduct='', lastStore='';
@@ -458,7 +463,17 @@ window.onload=function(){
   var savedDesign=localStorage.getItem('slf_design')||'glass'; setDesign(savedDesign);
   var savedMarket=localStorage.getItem('slf_market')||'us'; setMarket(savedMarket);
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
-  var th=localStorage.getItem('slf_th'); if(th){theme=th;document.querySelectorAll('#thGrid .th-opt').forEach(function(b,i){b.classList.remove('on');});var map={heritage:0,modern:1,clean:2,luxury:3,custom:4};var btns=document.querySelectorAll('#thGrid .th-opt');if(btns[map[th]])btns[map[th]].classList.add('on');if(th==='custom')document.getElementById('customPanel').style.display='block';}
+  var th=localStorage.getItem('slf_th')||'auto'; theme=th;
+  (function(){
+    var btns=document.querySelectorAll('#thGrid .th-opt'); var matched=false;
+    btns.forEach(function(b){b.classList.remove('on');});
+    btns.forEach(function(b){
+      var oc=b.getAttribute('onclick')||'';
+      if(oc.indexOf("'"+th+"'")>-1 && !matched){ b.classList.add('on'); matched=true; }
+    });
+    if(!matched && btns[0]){ btns[0].classList.add('on'); theme='auto'; }
+    if(theme==='custom')document.getElementById('customPanel').style.display='block';
+  })();
   var cc=localStorage.getItem('slf_cc'); if(cc){customColor=cc;document.getElementById('customColor').value=cc;document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+cc+','+cc+')';}
   var cm=localStorage.getItem('slf_cm'); if(cm){setCustomMode(cm);}
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
@@ -578,11 +593,22 @@ function setTheme(t,btn){
   document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});
   btn.classList.add('on');
   document.getElementById('customPanel').style.display = (t==='custom') ? 'block' : 'none';
+  // Free live rebuild: if a listing already exists, re-render the HTML in the new theme (no API call)
+  if(platform==='ebay' && fullTxt){
+    try{
+      genHtml=buildHtmlFromListing(fullTxt,'',resolveTheme(theme));
+      renderHtml(genHtml);
+      saveSession();
+    }catch(e){ console.error('Theme rebuild failed:', e.message); }
+  }
 }
 function onCustomColor(){
   customColor=document.getElementById('customColor').value;
   document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+customColor+','+customColor+')';
   localStorage.setItem('slf_cc',customColor);
+  if(platform==='ebay' && fullTxt && theme==='custom'){
+    try{ genHtml=buildHtmlFromListing(fullTxt,'',resolveTheme(theme)); renderHtml(genHtml); saveSession(); }catch(e){}
+  }
 }
 function setCustomMode(m){
   customMode=m; localStorage.setItem('slf_cm',m);
@@ -592,12 +618,42 @@ function setCustomMode(m){
   document.getElementById('cmodeDark').style.color = m==='dark'?'var(--snow)':'var(--fog)';
   document.getElementById('cmodeLight').style.background = m==='light'?'var(--ink4)':'transparent';
   document.getElementById('cmodeLight').style.color = m==='light'?'var(--snow)':'var(--fog)';
+  if(platform==='ebay' && fullTxt && theme==='custom'){
+    try{ genHtml=buildHtmlFromListing(fullTxt,'',resolveTheme(theme)); renderHtml(genHtml); saveSession(); }catch(e){}
+  }
 }
 function setChip(s,t){var c=document.getElementById('chip');c.className='s-chip s-'+s;c.textContent=t;}
 function setStep(n){for(var i=1;i<=3;i++){var el=document.getElementById('ps'+i);el.classList.remove('done','act');var ic=el.querySelector('.ps-ic');if(i<n){el.classList.add('done');ic.textContent='✓';}else if(i===n){el.classList.add('act');ic.textContent=i;}else{ic.textContent=i;}}}
 function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getElementById('kc-'+id),d=r.querySelector('.kw-d');r.classList.remove('kw-ok','kw-go','kw-no');d.classList.remove('sp');if(st==='go'){r.classList.add('kw-go');d.classList.add('sp');}else if(st==='ok')r.classList.add('kw-ok');else if(st==='no')r.classList.add('kw-no');if(ct!==undefined)c.textContent=ct>0?ct+'kws':'0';}
 
 // Backend URL — your deployed Vercel server for REAL keywords
+// ══ CATEGORY → THEME AUTO-DETECTION ═══════════════════════════
+// Reads the product text and picks the best-matching premium theme.
+var CATEGORY_THEMES = [
+  {theme:'ocean',    cats:'Electronics & Tech', words:['phone','iphone','samsung','tablet','laptop','computer','charger','cable','usb','bluetooth','headphone','earbud','speaker','camera','drone','gaming','console','mouse','keyboard','monitor','tv','television','smartwatch','power bank','adapter','router','wifi','led','electronic','gadget','tech','digital','wireless','battery','gps','dash cam','projector']},
+  {theme:'emerald',  cats:'Health, Garden & Organic', words:['vitamin','supplement','organic','natural','herbal','garden','plant','seed','fertilizer','grow','outdoor','camping','hiking','yoga','fitness','protein','wellness','essential oil','tea','honey','eco','bamboo','sustainable','pet','dog','cat','bird','aquarium']},
+  {theme:'rose',     cats:'Beauty, Fashion & Home Decor', words:['makeup','cosmetic','lipstick','beauty','skincare','perfume','fragrance','nail','hair','wig','lash','dress','clothing','shirt','jacket','shoes','handbag','purse','jewelry','jewellery','necklace','earring','bracelet','ring','fashion','decor','candle','vase','cushion','curtain','bedding','blanket','gift','wedding','baby']},
+  {theme:'noir',     cats:'Watches & Premium Luxury', words:['watch','luxury','premium leather','wallet','sunglasses','cufflink','tie','suit','belt leather','cigar','minimalist','executive']},
+  {theme:'heritage', cats:'Auto, Tools & Industrial', words:['car','auto','vehicle','motorcycle','engine','oil','brake','tire','tyre','wheel','wrench','tool','drill','saw','hammer','screwdriver','bolt','gasket','seal','bearing','pump','filter','industrial','workshop','garage','repair','tractor','trailer','hitch','towing','welding']},
+  {theme:'clean',    cats:'Home & Kitchen', words:['kitchen','cook','pan','pot','knife','utensil','cup','mug','plate','bowl','storage','organizer','cleaning','vacuum','mop','laundry','bathroom','towel','soap','dispenser','shelf','furniture','desk','chair','lamp','appliance','blender','mixer','coffee']},
+];
+function detectCategoryTheme(productText){
+  var t=(productText||'').toLowerCase();
+  var best={theme:'modern', cats:'General', score:0};
+  CATEGORY_THEMES.forEach(function(c){
+    var score=0;
+    c.words.forEach(function(w){ if(t.indexOf(w)>-1) score++; });
+    if(score>best.score) best={theme:c.theme, cats:c.cats, score:score};
+  });
+  return best;
+}
+// Resolve 'auto' into a real theme name based on the current product text
+function resolveTheme(t){
+  if(t!=='auto') return t;
+  var d=detectCategoryTheme(document.getElementById('productInput').value);
+  return d.theme;
+}
+
 var BACKEND_URL = 'https://keyword-backend-zeta.vercel.app/api/keywords';
 
 // ══ VeRO PROTECTION ═══════════════════════════════════════════
@@ -1139,7 +1195,7 @@ async function generate(){
   setStep(3); setChip('work','Building output...');
 
   if(platform==='ebay'){
-    try{genHtml=buildHtmlFromListing(fullTxt,store,theme);}
+    try{genHtml=buildHtmlFromListing(fullTxt,store,resolveTheme(theme));}
     catch(e){genHtml='<html><body style="padding:40px;font-family:sans-serif;"><h2>Build error: '+e.message+'</h2></body></html>';}
     renderEbayOnly(fullTxt);
   } else {
@@ -1412,6 +1468,14 @@ function buildHtmlFromListing(listingText,storeName,themeName){
     modern:{bg:'#0A0A14',card:'#101020',bc:'rgba(139,124,248,0.3)',acc:'#8b7cf8',txt:'#C9CDE8',h1:'#FFFFFF,#C4BCFA',badge:'rgba(139,124,248,0.15)',badgeTxt:'#A89BFA',rb:'rgba(139,124,248,0.2)'},
     clean:{bg:'#F0F4FF',card:'#FFFFFF',bc:'rgba(29,78,219,0.2)',acc:'#1d4ed8',txt:'#374151',h1:'#111827,#1d4ed8',badge:'rgba(29,78,219,0.1)',badgeTxt:'#1d4ed8',rb:'rgba(29,78,219,0.15)'},
     luxury:{bg:'#06060A',card:'#0E0E10',bc:'rgba(212,175,55,0.3)',acc:'#d4af37',txt:'#C8C4A8',h1:'#FFFFFF,#D4AF37',badge:'rgba(212,175,55,0.15)',badgeTxt:'#D4AF37',rb:'rgba(212,175,55,0.2)'},
+    // Noir — Apple-style minimal luxury: pure black, high-contrast white, silver accent
+    noir:{bg:'#000000',card:'#0C0C0C',bc:'rgba(255,255,255,0.14)',acc:'#E8E8E8',txt:'#B8B8B8',h1:'#FFFFFF,#9A9A9A',badge:'rgba(255,255,255,0.08)',badgeTxt:'#F0F0F0',rb:'rgba(255,255,255,0.1)'},
+    // Emerald — deep jewel green + mint: premium organic / jewellery feel
+    emerald:{bg:'#03150F',card:'#07231A',bc:'rgba(16,185,129,0.3)',acc:'#10b981',txt:'#B8D4C9',h1:'#FFFFFF,#6EE7B7',badge:'rgba(16,185,129,0.14)',badgeTxt:'#34d399',rb:'rgba(16,185,129,0.18)'},
+    // Ocean — deep navy + electric cyan: premium tech / gadgets feel
+    ocean:{bg:'#030B1A',card:'#081428',bc:'rgba(6,182,212,0.3)',acc:'#06b6d4',txt:'#B4C6DE',h1:'#FFFFFF,#67E8F9',badge:'rgba(6,182,212,0.14)',badgeTxt:'#22d3ee',rb:'rgba(6,182,212,0.18)'},
+    // Rosé — soft blush light theme + deep rose: beauty / fashion boutique feel
+    rose:{bg:'#FDF4F7',card:'#FFFFFF',bc:'rgba(224,68,124,0.25)',acc:'#e0447c',txt:'#5B4049',h1:'#3D1F2B,#E0447C',badge:'rgba(224,68,124,0.1)',badgeTxt:'#e0447c',rb:'rgba(224,68,124,0.16)'},
   };
   var T=TH[themeName]||TH.heritage;
 
