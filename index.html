@@ -698,6 +698,20 @@ function slfSmartTrim(str, maxLen){
   if(lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace);
   return cut.trim();
 }
+// Words that must never be padded into a title (brand names from the VeRO lists)
+function slfIsBrandWord(w){
+  var wl = w.toLowerCase();
+  if(typeof VERO_HIGH === 'undefined') return false;
+  var all = VERO_HIGH.concat(typeof VERO_MED !== 'undefined' ? VERO_MED : []);
+  for(var i=0; i<all.length; i++){
+    var parts = all[i].split(/\s+/);
+    for(var j=0; j<parts.length; j++){
+      if(parts[j].length > 2 && parts[j] === wl) return true;
+    }
+  }
+  return false;
+}
+
 // Ensure title is 75-80 chars: if too short, pad with relevant keyword words (whole words only)
 function slfPadTitle(title){
   title = (title||'').trim();
@@ -711,6 +725,7 @@ function slfPadTitle(title){
       var wl = word.toLowerCase();
       if(wl.length < 3) continue;
       if(titleLower.indexOf(wl) > -1) continue;
+      if(slfIsBrandWord(word)) continue; // never pad a brand name into the title
       var candidate = title + ' ' + word;
       if(candidate.length <= 80){
         title = candidate;
@@ -1021,14 +1036,16 @@ async function generate(){
     +'When unsure, choose the safer, brand-free wording. A slightly less keyword-rich listing that stays live beats an optimised listing that gets removed.\n\n'
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
-    +'=== BRAND CHECK ===\nBrand: [name] | Recognition: [Global/Regional/Unknown] | VeRO Risk: [High/Medium/Low] | Decision: [Keep/Remove]\nReason: [one short line]\n\n'
+    +'=== BRAND CHECK ===\nBrand: [name or Unbranded] | Recognition: [Global/Regional/Unknown] | VeRO Risk: [High/Medium/Low] | Placement: [Description + Item Specifics only — never the title]\nReason: [one short line]\n\n'
     +'=== TITLE ===\n'
-    +'eBay Title — CRITICAL LENGTH RULE: the title MUST be between 76 and 80 characters (including spaces). This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count the characters carefully. If your title is too short, ADD more relevant keywords, materials, sizes, use-cases, or compatible terms until it reaches 76-80 characters. NO punctuation. Stack keywords naturally. Every word must be complete.\n'
+    +'eBay Title — RULE 1 (LENGTH): the title MUST be between 76 and 80 characters including spaces. This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count carefully. NO punctuation. Every word must be complete.\n'
+    +'eBay Title — RULE 2 (NO BRAND NAMES): do NOT put any brand or manufacturer name in the title. Brand names eat characters that buyers rarely search for, and they raise VeRO risk. Use that space for real buyer keywords instead. The brand belongs in the DESCRIPTION and in the Brand field of ITEM SPECIFICS — never the title.\n'
+    +'eBay Title — RULE 3 (MAX KEYWORDS): fill every one of the 76-80 characters with high-value buyer search terms: product type, material, size, quantity, colour, key feature, use-case, and buyer intent words. Pack in as many distinct keywords from the supplied list as read naturally. If the title is short, ADD more keywords until it reaches 76-80 characters.\n'
     +(compTitle ? 'BEAT THIS COMPETITOR: A top-selling competitor uses this eBay title: "'+compTitle.replace(/"/g,'')+'". Analyze it. Your title MUST be more SEO-optimized: include every strong keyword they use that fits this product, PLUS additional high-value buyer keywords they missed, in a better order. Do not copy it word-for-word — make it genuinely stronger and still 76-80 characters.\n' : '')
     +'[title here — must be 76 to 80 characters]\n\n'
     +'=== HTML HEADING ===\n'
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. Use Title Case. NO trailing comma. Example style: "50Pcs Rubber Oil Drain Plug O Ring Gasket Seal Kit for Harley Davidson Engine Oil Pan Washer Set OEM 11105":\n[heading here]\n\n'
-    +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases.\n\n'
+    +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. If the source data shows a real brand, mention it naturally here (this is where the brand belongs — not the title).\n\n'
     +'=== ITEM SPECIFICS ===\n'
     +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. Include ALL that apply to this product: Brand, Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. If brand is unknown use "Unbranded". For compatibility use "For [Brand]" format. Example:\nBrand: Unbranded\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
