@@ -399,6 +399,10 @@ Free Shipping: No hidden fees.
       <input type="text" class="comp-title-inp" id="compTitle" placeholder="Paste competitor's eBay title here (optional)..." oninput="saveDraftDebounced()"/>
     </div>
     <div class="comp-title-wrap">
+      <div class="comp-title-lbl">🏷 Brand Name <span style="color:var(--dim);font-weight:400;">(optional — fill it and the brand WILL appear in HTML heading, description &amp; specs; leave empty for no brand anywhere. Never in eBay title.)</span></div>
+      <input type="text" class="comp-title-inp" id="brandName" placeholder="e.g. Mainstays (leave empty = no brand / Unbranded)" oninput="saveDraftDebounced()"/>
+    </div>
+    <div class="comp-title-wrap">
       <div class="comp-title-lbl">🖼 Product Image URLs <span style="color:var(--dim);font-weight:400;">(optional — one per line, max 4; first = main hero image)</span></div>
       <textarea class="img-urls-inp" id="imgUrls" placeholder="https://i.ebayimg.com/images/g/xxxx/s-l1600.jpg&#10;https://i.postimg.cc/xxxx/photo2.jpg" oninput="onImagesInput()"></textarea>
       <div class="img-urls-note" id="imgUrlsNote"></div>
@@ -837,7 +841,8 @@ function slfIsBrandWord(w){
   var wl = w.toLowerCase();
   // Block this product's own brand (e.g. Mainstays) — detected live from the product input
   try{
-    var pb = extractBrandGuess(document.getElementById('productInput').value);
+    var pb = (document.getElementById('brandName').value||'').trim();
+    if(!pb) pb = extractBrandGuess(document.getElementById('productInput').value); // fallback safety
     if(pb){
       var parts = pb.toLowerCase().split(/\s+/);
       for(var p=0; p<parts.length; p++){ if(parts[p].length>2 && parts[p]===wl) return true; }
@@ -857,7 +862,8 @@ function slfIsBrandWord(w){
 // Force-remove the product's own brand from a title, wherever it came from
 function slfStripBrand(title){
   try{
-    var pb = extractBrandGuess(document.getElementById('productInput').value);
+    var pb = (document.getElementById('brandName').value||'').trim();
+    if(!pb) pb = extractBrandGuess(document.getElementById('productInput').value); // fallback safety
     if(!pb) return title;
     pb.toLowerCase().split(/\s+/).forEach(function(bw){
       if(bw.length<3) return;
@@ -1182,19 +1188,21 @@ async function generate(){
       kwLine += '\n\neBay TOP-SEARCH KEYWORDS (highest priority for the TITLE — these are what eBay buyers actually type):\n'+ebayKws.join(' | ');
     }
 
-    // Detect whether the product's brand is actually being searched by buyers
-    var brandGuess = extractBrandGuess(product);
+    // Brand comes ONLY from the Brand Name box — the user is in full control.
+    // Box filled  => brand MUST appear in HTML HEADING + DESCRIPTION + ITEM SPECIFICS (never eBay title).
+    // Box empty   => no brand anywhere; ITEM SPECIFICS Brand: Unbranded.
+    var brandGuess = (document.getElementById('brandName').value||'').trim().slice(0,40);
     var brandDemand = detectBrandDemand(brandGuess, allKws);
     var isVeroBrand = brandGuess && (typeof slfIsBrandWord==='function') && brandGuess.split(/\s+/).some(function(w){return slfIsBrandWord(w);});
     var brandLine;
     if(!brandGuess){
-      brandLine = '\n\nBRAND DEMAND: No clear brand found in the source data. Treat this as an unbranded/generic product. In ITEM SPECIFICS set Brand to "Unbranded". Do not invent a brand.';
+      brandLine = '\n\nBRAND (USER SETTING): The user left the Brand box EMPTY. Do NOT mention any brand name anywhere — not in the title, not in the HTML heading, not in the description. In ITEM SPECIFICS set Brand to "Unbranded". Never invent or infer a brand, even if one appears in the source text.';
     } else if(isVeroBrand){
-      brandLine = '\n\nBRAND DEMAND: The source brand is "'+brandGuess+'", which is a well-known brand with high VeRO enforcement risk. Only mention it factually in the DESCRIPTION and the Brand field of ITEM SPECIFICS if the source data proves the item genuinely is this brand. Never in the title. Never claim official/authorised status.';
+      brandLine = '\n\nBRAND (USER SETTING): The user set the brand to "'+brandGuess+'" — note this is a well-known brand with high VeRO enforcement risk, so word it factually only. You MUST include it: start the HTML HEADING with it, mention it naturally in the DESCRIPTION, and set "Brand: '+brandGuess+'" in ITEM SPECIFICS. Never in the eBay title. Never claim official/authorised/licensed status.';
     } else if(brandDemand.searched){
-      brandLine = '\n\nBRAND DEMAND: The source brand is "'+brandGuess+'" and buyers ARE searching for it ('+brandDemand.note+'). This brand has real search value. Include it in the HTML HEADING (start with it), naturally in the DESCRIPTION (2-3 times), and in the Brand field of ITEM SPECIFICS to boost SEO. Still keep it OUT of the eBay title.';
+      brandLine = '\n\nBRAND (USER SETTING): The user set the brand to "'+brandGuess+'" and buyers ARE searching for it ('+brandDemand.note+'). MANDATORY: start the HTML HEADING with "'+brandGuess+'", weave it naturally into the DESCRIPTION 2-3 times for SEO, and set "Brand: '+brandGuess+'" as the first line of ITEM SPECIFICS. Never in the eBay title.';
     } else {
-      brandLine = '\n\nBRAND DEMAND: The source brand is "'+brandGuess+'" but NO buyers are searching for it ('+brandDemand.note+'). Do NOT waste eBay title space on it. Still include it once in the HTML HEADING and once naturally in the DESCRIPTION (for accuracy and trust), and ALWAYS put "Brand: '+brandGuess+'" in ITEM SPECIFICS.';
+      brandLine = '\n\nBRAND (USER SETTING): The user set the brand to "'+brandGuess+'". MANDATORY even though few buyers search it: include "'+brandGuess+'" in the HTML HEADING (start with it), mention it once naturally in the DESCRIPTION, and set "Brand: '+brandGuess+'" as the first line of ITEM SPECIFICS. Never in the eBay title.';
     }
     kwLine += brandLine;
     var MARKET_LINES = {
@@ -1289,6 +1297,7 @@ function saveSession(){
     var data={
       product: document.getElementById('productInput').value,
       compTitle: document.getElementById('compTitle').value,
+      brandName: document.getElementById('brandName').value,
       imgUrls: document.getElementById('imgUrls').value,
       platform: platform,
       theme: theme,
@@ -1314,6 +1323,7 @@ function saveDraftDebounced(){
       var data = raw ? JSON.parse(raw) : {};
       data.product = document.getElementById('productInput').value;
       data.compTitle = document.getElementById('compTitle').value;
+      data.brandName = document.getElementById('brandName').value;
       data.imgUrls = document.getElementById('imgUrls').value;
       data.savedAt = Date.now();
       localStorage.setItem('slf_session', JSON.stringify(data));
@@ -1333,6 +1343,7 @@ function restoreSession(){
       updateCharCount();
     }
     if(d.compTitle){ document.getElementById('compTitle').value = d.compTitle; }
+    if(d.brandName){ document.getElementById('brandName').value = d.brandName; }
     if(d.imgUrls){ document.getElementById('imgUrls').value = d.imgUrls; if(typeof onImagesInput==='function'){var note=document.getElementById('imgUrlsNote');} }
     // If a full listing was generated, restore the output too
     if(d.fullTxt || d.shopifyTxt){
@@ -2060,6 +2071,7 @@ function dlHtml(){if(!genHtml)return;var a=document.createElement('a');a.href=UR
 function clearAll(){
   document.getElementById('productInput').value='';
   document.getElementById('compTitle').value='';
+  document.getElementById('brandName').value='';
   document.getElementById('imgUrls').value='';
   var _n=document.getElementById('imgUrlsNote'); if(_n)_n.textContent='';
   document.getElementById('charCt').textContent='0 chars';
