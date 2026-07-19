@@ -667,10 +667,21 @@ function resolveTheme(t){
 // eBay descriptions can only show images by URL (https). Parse up to 4 valid URLs.
 function getProductImages(){
   var raw=(document.getElementById('imgUrls')||{value:''}).value||'';
-  var urls=raw.split(/[\n,]+/).map(function(u){return u.trim();}).filter(function(u){
-    return /^https:\/\/\S+\.(jpg|jpeg|png|webp|gif)(\?\S*)?$/i.test(u) || /^https:\/\/i\.(ebayimg|postimg|imgur)\S+$/i.test(u);
+  // If the user pasted HTML embed code (imgbb/postimages give <a><img src="..."></a>), pull out the src URLs
+  var srcMatches = raw.match(/src\s*=\s*["']([^"']+)["']/gi);
+  if(srcMatches){
+    srcMatches.forEach(function(m){
+      var u=m.replace(/src\s*=\s*["']/i,'').replace(/["']$/,'');
+      raw += '\n' + u;
+    });
+  }
+  var urls=raw.split(/[\n,\s]+/).map(function(u){return u.trim();}).filter(function(u){
+    return /^https:\/\/\S+\.(jpg|jpeg|png|webp|gif)(\?\S*)?$/i.test(u) || /^https:\/\/i\.(ebayimg|postimg|imgur|ibb)\.\S+$/i.test(u);
   });
-  return urls.slice(0,4);
+  // dedupe, keep order, max 4
+  var seen={}, out=[];
+  urls.forEach(function(u){ if(!seen[u]){seen[u]=1; out.push(u);} });
+  return out.slice(0,4);
 }
 var _imgTimer=null;
 function onImagesInput(){
@@ -821,18 +832,40 @@ function slfSmartTrim(str, maxLen){
   if(lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace);
   return cut.trim();
 }
-// Words that must never be padded into a title (brand names from the VeRO lists)
+// Words that must never be padded into a title (famous brands + this product's own brand)
 function slfIsBrandWord(w){
   var wl = w.toLowerCase();
+  // Block this product's own brand (e.g. Mainstays) — detected live from the product input
+  try{
+    var pb = extractBrandGuess(document.getElementById('productInput').value);
+    if(pb){
+      var parts = pb.toLowerCase().split(/\s+/);
+      for(var p=0; p<parts.length; p++){ if(parts[p].length>2 && parts[p]===wl) return true; }
+    }
+  }catch(e){}
   if(typeof VERO_HIGH === 'undefined') return false;
   var all = VERO_HIGH.concat(typeof VERO_MED !== 'undefined' ? VERO_MED : []);
   for(var i=0; i<all.length; i++){
-    var parts = all[i].split(/\s+/);
-    for(var j=0; j<parts.length; j++){
-      if(parts[j].length > 2 && parts[j] === wl) return true;
+    var parts2 = all[i].split(/\s+/);
+    for(var j=0; j<parts2.length; j++){
+      if(parts2[j].length > 2 && parts2[j] === wl) return true;
     }
   }
   return false;
+}
+
+// Force-remove the product's own brand from a title, wherever it came from
+function slfStripBrand(title){
+  try{
+    var pb = extractBrandGuess(document.getElementById('productInput').value);
+    if(!pb) return title;
+    pb.toLowerCase().split(/\s+/).forEach(function(bw){
+      if(bw.length<3) return;
+      var esc=bw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      title = title.replace(new RegExp('(^|\\s)'+esc+'(?=\\s|$)','gi'),' ');
+    });
+    return title.replace(/\s{2,}/g,' ').trim();
+  }catch(e){ return title; }
 }
 
 // Ensure title is 75-80 chars: if too short, pad with relevant keyword words (whole words only)
@@ -1543,7 +1576,7 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   }
 
   // Smart trim: keep eBay title <= 78 chars, never cut a word in the middle
-  ebayTitle = slfPadTitle(slfSmartTrim(ebayTitle, 80));
+  ebayTitle = slfPadTitle(slfSmartTrim(slfStripBrand(ebayTitle), 80));
 
   // Clean HTML heading = the eBay title in proper Title Case (first letter of each word capital)
   // No keyword cramming — extra keywords are already placed & highlighted inside the description
@@ -1994,7 +2027,7 @@ function renderListing(text){
       for(var ti=0;ti<tl.length;ti++){var cand=tl[ti].replace(/`/g,'').replace(/^[-•*\s]+/,'').trim();if(cand.length>20&&!/chars|keyword|stacking|character|\[/i.test(cand)){titleLine=cand;break;}}
       if(titleLine){
         // Pad/trim to guarantee 75-80 chars using fetched keywords
-        var padded=slfPadTitle(slfSmartTrim(titleLine,80));
+        var padded=slfPadTitle(slfSmartTrim(slfStripBrand(titleLine),80));
         // Replace the original title line in the displayed content with the padded one
         fmt=fmt.replace(titleLine, padded);
         // Update the copy text too
