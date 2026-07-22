@@ -1307,7 +1307,7 @@ async function generate(){
   if(platform==='tiktok'){
     var kwLineT=allKws.length>0?'\n\nREAL BUYER KEYWORDS (from live Google/Amazon/eBay data):\n'+allKws.join(' | '):'';
     if(window.slfTikTokKws && window.slfTikTokKws.length>0){
-      kwLineT += '\n\nTIKTOK-SEARCHED KEYWORDS (HIGHEST PRIORITY — these are what people search in the TikTok context; weave them into the TITLE first and use them in SEARCH TERMS):\n'+window.slfTikTokKws.join(' | ');
+      kwLineT += '\n\nTIKTOK-SEARCHED KEYWORDS (HIGHEST PRIORITY — real TikTok-context searches): '+window.slfTikTokKws.join(' | ')+'\nHow to use them: product-type phrases go into the TITLE and SEARCH TERMS; problem/how-to phrases (like "jar wont open") belong in the DESCRIPTION opening (problem-solution hook) — do not force awkward how-to phrases into the title.';
     }
     var brandT=(document.getElementById('brandName').value||'').trim().slice(0,40);
     var brandLineT = brandT
