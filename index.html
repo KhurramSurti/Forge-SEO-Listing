@@ -337,6 +337,9 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <button class="p-opt on" onclick="setPlatform('ebay',this)">
         <span class="p-em">🏪</span><span>eBay Only</span><div class="p-chk">✓</div>
       </button>
+      <button class="p-opt" onclick="setPlatform('tiktok',this)">
+        <span class="p-em">📱</span><span>TikTok Shop US</span><div class="p-chk">✓</div>
+      </button>
       <button class="p-opt" onclick="confirmPlatform('shopify',this)">
         <span class="p-em">🛍</span><span>Shopify Only</span><div class="p-chk">✓</div>
       </button>
@@ -467,7 +470,7 @@ Free Shipping: No hidden fees.
 </div>
 
 <script>
-var platform='ebay', theme='auto', fullTxt='', genHtml='', allKws=[], shopifyTxt='', seoTxt='', market='us';
+var platform='ebay', theme='auto', fullTxt='', genHtml='', allKws=[], shopifyTxt='', tiktokTxt='', seoTxt='', market='us';
 var srcKws={ebay:[],amazon:[],walmart:[],google:[]};
 var srcReal={ebay:false,amazon:false,walmart:false,google:false};
 var lastProduct='', lastStore='';
@@ -559,7 +562,7 @@ function closeSidebarMobile(){
   }
 }
 
-function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p==='shopify');}
+function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p!=='ebay');}
 
 // Confirmation modal logic for Shopify & Off-Page SEO (extra safety layer to avoid accidental credit use)
 var pendingAction=null, pendingBtn=null;
@@ -706,6 +709,36 @@ function onImagesInput(){
     }
   }, 600);
 }
+
+// ══ TIKTOK SHOP US CATEGORIES (L1 + common L2 examples) ═══════
+var TIKTOK_CATS = [
+'Beauty & Personal Care (Makeup, Skincare, Hair Care, Fragrance, Nail Care, Bath & Body, Mens Grooming, Beauty Tools)',
+'Womenswear & Underwear (Tops, Dresses, Bottoms, Outerwear, Underwear, Sleepwear, Swimwear, Plus Size)',
+'Menswear & Underwear (Tops, Bottoms, Outerwear, Underwear, Sleepwear, Big & Tall)',
+'Fashion Accessories (Hats & Caps, Scarves, Belts, Gloves, Hair Accessories, Sunglasses, Watches Fashion)',
+'Shoes (Womens Shoes, Mens Shoes, Sneakers, Boots, Sandals, Slippers)',
+'Luggage & Bags (Handbags, Backpacks, Wallets, Travel Luggage, Crossbody Bags, Tote Bags)',
+'Jewelry Accessories & Derivatives (Necklaces, Earrings, Bracelets, Rings, Body Jewelry, DIY Jewelry)',
+'Home Supplies (Home Organizers, Storage, Bathroom Supplies, Laundry Tools, Cleaning Supplies, Door & Window Hardware)',
+'Kitchenware (Cookware, Bakeware, Kitchen Utensils, Gadgets, Drinkware, Food Storage, Tableware, Bar Tools)',
+'Textiles & Soft Furnishings (Bedding, Pillows, Blankets, Curtains, Rugs, Cushion Covers, Towels)',
+'Household Appliances (Small Kitchen Appliances, Vacuums, Fans, Heaters, Air Purifiers, Irons, Humidifiers)',
+'Phones & Electronics (Phone Cases, Chargers, Cables, Earphones & Headphones, Speakers, Smart Watches, Camera Accessories)',
+'Computers & Office Equipment (Keyboards, Mouse, Laptop Accessories, Desk Accessories, Office Supplies, Printers)',
+'Pet Supplies (Dog Supplies, Cat Supplies, Pet Toys, Pet Grooming, Pet Beds, Aquarium, Bird Supplies)',
+'Baby & Maternity (Baby Clothing, Diapering, Feeding, Baby Toys, Strollers Accessories, Maternity Wear)',
+'Toys & Hobbies (Building Toys, Dolls, Educational Toys, Outdoor Play, Party Supplies, Collectible Toys, Arts & Crafts)',
+'Sports & Outdoor (Fitness Equipment, Yoga, Cycling, Camping & Hiking, Fishing, Team Sports, Water Sports, Hunting Accessories)',
+'Automotive & Motorcycle (Car Accessories, Interior Accessories, Car Care & Detailing, Motorcycle Accessories, Car Electronics, Repair Tools)',
+'Tools & Hardware (Hand Tools, Power Tool Accessories, Measuring Tools, Fasteners, Garden Tools, Safety Equipment)',
+'Home Improvement (Lighting, Smart Home, Electrical, Plumbing, Paint Supplies, Wall Decor Hardware)',
+'Furniture (Living Room, Bedroom, Office Furniture, Outdoor Furniture, Kids Furniture)',
+'Food & Beverages (Snacks, Candy, Drinks, Pantry Staples, Coffee & Tea, Specialty Foods)',
+'Health (Vitamins & Supplements, OTC Wellness, First Aid, Sexual Wellness, Vision Care, Foot Care) — NOTE: many Health items need certification',
+'Books Magazines & Audio (Books, Journals, Stationery, Calendars)',
+'Collectibles (Trading Cards, Coins, Stamps, Memorabilia)',
+'Outdoor & Garden (Planters, Garden Decor, Grills & Outdoor Cooking, Patio Accessories)'
+];
 
 var BACKEND_URL = 'https://keyword-backend-zeta.vercel.app/api/keywords';
 
@@ -1150,7 +1183,7 @@ async function generate(){
   document.getElementById('kwFound').classList.remove('show');
   document.getElementById('emptyState').style.display='none';
   document.getElementById('output').classList.remove('show');
-  fullTxt=''; genHtml=''; allKws=[]; shopifyTxt='';
+  fullTxt=''; genHtml=''; allKws=[]; shopifyTxt=''; tiktokTxt='';
 
   // STEP 1
   setStep(1); setChip('work','Researching keywords...');
@@ -1270,6 +1303,37 @@ async function generate(){
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
+  if(platform==='tiktok'){
+    var kwLineT=allKws.length>0?'\n\nREAL BUYER KEYWORDS (from live Google/Amazon/eBay data):\n'+allKws.join(' | '):'';
+    var brandT=(document.getElementById('brandName').value||'').trim().slice(0,40);
+    var brandLineT = brandT
+      ? '\n\nBRAND (USER SETTING): Brand is "'+brandT+'". Do NOT put it in the TITLE. DO mention it naturally once in the DESCRIPTION and set "Brand: '+brandT+'" as the first line of PRODUCT ATTRIBUTES.'
+      : '\n\nBRAND (USER SETTING): Brand box is EMPTY. Do NOT mention any brand anywhere. In PRODUCT ATTRIBUTES set Brand: Unbranded. Never invent a brand.';
+    var tiktokPrompt='You are a TikTok Shop USA listing expert for 2026. TikTok Shop is a social-commerce search engine: buyers search casual phrases ("jar opener for weak grip", "kitchen must haves"). Listings are ranked by title relevance, search terms, and listing quality tier.\n'
+    +'MARKET: TikTok Shop USA. American English. USD.\n'
+    +'CRITICAL: NO markdown symbols (*,**,#,>,`). Use EXACTLY these === section markers.\n'
+    +kwLineT+brandLineT+'\n\n'
+    +'=== eBay-style VeRO / IP COMPLIANCE ALSO APPLIES: no counterfeit words (replica, inspired by, 1:1, AAA), no unauthorised brand names, no protected characters/franchises, 100% original copy. TikTok screens counterfeits strictly. ===\n\n'
+    +'=== CATEGORY ===\n'
+    +'Pick the best TikTok Shop US category path for this product from this L1 list (then suggest the deeper L2 > L3 path from your knowledge):\n'+TIKTOK_CATS.join('\n')+'\n'
+    +'Output format:\nBest: [L1] > [L2] > [L3]\nAlternate: [L1] > [L2] > [L3]\nNote: [one line why + reminder to confirm in Seller Center dropdown]\n\n'
+    +'=== TITLE ===\n'
+    +'TikTok Shop title, 200 to 255 characters. RULES: (1) READABLE natural language, NOT comma-stuffed — complete keyword phrases woven into a flowing product title. (2) The product type + most important attribute MUST be in the first 30-40 characters (mobile cutoff). (3) Title Case (capitalize each word except with/at/by/to/in/for/from/of/and/or/the/a/an). (4) Abbreviate measurements (oz, in, cm, kg). (5) Use the most-searched buyer keywords naturally. (6) NO brand names. (7) No medical condition words (arthritis, pain relief), no effect claims (effortless, guaranteed), no superlatives (best, #1). (8) Aim for 230-255 characters — use the full space with complete, readable keyword phrases.\n[title here]\n\n'
+    +'=== SEARCH TERMS ===\n'
+    +'EXACTLY 12-15 keywords, comma-separated, TOTAL under 250 characters including commas. COMPLIANCE RULES (TikTok rejects non-compliant terms): (1) Every term must describe THIS exact product type — never a different product (if it is a jar opener, "can opener" is NON-COMPLIANT). (2) NO medical/health condition words: arthritis, pain, relief, cure, treat, therapy, arthritic, seniors health. (3) NO effect/outcome claims: effortless, guaranteed, instant, miracle. (4) NO superlatives: best, top, #1, cheapest. (5) NO brand names. (6) Short real buyer phrases, 1-3 words each, all lowercase.\n[keyword1,keyword2,...]\n\n'
+    +'=== DESCRIPTION ===\n'
+    +'600-1200 characters. Mobile-first scannable: 2-3 SHORT paragraphs then 4-6 bullet lines (use plain lines, no dash symbols needed). Problem-solution style, USPs, persuasive but truthful (all claims verifiable). Include buyer keywords naturally. No medical claims.\n\n'
+    +'=== KEY SELLING POINTS ===\n'
+    +'5 punchy selling points, each UNDER 250 characters, numbered 1-5. Benefit-first.\n\n'
+    +'=== PRODUCT ATTRIBUTES ===\n'
+    +'Field: Value per line. Brand first (per BRAND setting), then Material, Color, Size, Quantity, Style, Occasion, Care Instructions — only fields relevant to this product.\n\n'
+    +'=== HASHTAGS ===\n'
+    +'10 TikTok hashtags: mix of product keywords + discovery tags (like TikTokMadeMeBuyIt style, kitchenfinds style). Format: #tag1 #tag2 ...\n\n'
+    +'RAW SOURCE DATA:\n'+product;
+    try{var rt=await claudeCall(apiKey,tiktokPrompt,3500);tiktokTxt=rt;}
+    catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
+  }
+
   // STEP 3
   setStep(3); setChip('work','Building output...');
 
@@ -1277,6 +1341,8 @@ async function generate(){
     try{genHtml=buildHtmlFromListing(fullTxt,store,resolveTheme(theme));}
     catch(e){genHtml='<html><body style="padding:40px;font-family:sans-serif;"><h2>Build error: '+e.message+'</h2></body></html>';}
     renderEbayOnly(fullTxt);
+  } else if(platform==='tiktok'){
+    renderTikTokOnly(tiktokTxt);
   } else {
     renderShopifyOnly(shopifyTxt);
   }
@@ -1304,6 +1370,7 @@ function saveSession(){
       fullTxt: fullTxt,
       genHtml: genHtml,
       shopifyTxt: shopifyTxt,
+      tiktokTxt: tiktokTxt,
       allKws: allKws,
       competitors: lastCompetitors,
       savedAt: Date.now()
@@ -1346,12 +1413,13 @@ function restoreSession(){
     if(d.brandName){ document.getElementById('brandName').value = d.brandName; }
     if(d.imgUrls){ document.getElementById('imgUrls').value = d.imgUrls; if(typeof onImagesInput==='function'){var note=document.getElementById('imgUrlsNote');} }
     // If a full listing was generated, restore the output too
-    if(d.fullTxt || d.shopifyTxt){
+    if(d.fullTxt || d.shopifyTxt || d.tiktokTxt){
       platform = d.platform||'ebay';
       theme = d.theme||'heritage';
       fullTxt = d.fullTxt||'';
       genHtml = d.genHtml||'';
       shopifyTxt = d.shopifyTxt||'';
+      tiktokTxt = d.tiktokTxt||'';
       allKws = d.allKws||[];
       lastCompetitors = d.competitors||[];
       if(platform==='ebay' && fullTxt){
@@ -1360,6 +1428,9 @@ function restoreSession(){
         renderQualityScore(fullTxt);
         renderCompetitors();
         renderVeroCheck(fullTxt);
+      } else if(platform==='tiktok' && tiktokTxt){
+        renderTikTokOnly(tiktokTxt);
+        renderKeywords();
       } else if(platform==='shopify' && shopifyTxt){
         renderShopifyOnly(shopifyTxt);
         renderKeywords();
@@ -1376,7 +1447,7 @@ function updateRestoreBtn(){
   var has=false;
   try{
     var raw=localStorage.getItem('slf_session');
-    if(raw){var d=JSON.parse(raw); has=!!((d.product&&d.product.trim().length>0)||d.fullTxt||d.shopifyTxt);}
+    if(raw){var d=JSON.parse(raw); has=!!((d.product&&d.product.trim().length>0)||d.fullTxt||d.shopifyTxt||d.tiktokTxt);}
   }catch(e){}
   btn.style.display = has ? 'flex' : 'none';
 }
@@ -1409,6 +1480,95 @@ function renderEbayOnly(listingText){
   document.getElementById('vtabsRow').style.display='flex';
   renderListing(listingText);
   renderHtml(genHtml);
+}
+
+function renderTikTokOnly(tiktokText){
+  document.getElementById('outSplit').className='out-split shopify-only';
+  document.getElementById('lPane').classList.add('full-width');
+  document.getElementById('hPane').style.display='none';
+  document.getElementById('lPaneTitle').textContent='📱 TikTok Shop US Listing — Copy Ready';
+  renderTikTokListing(tiktokText);
+}
+
+function parseTikTokSections(text){
+  var KEYS=['CATEGORY','TITLE','SEARCH TERMS','DESCRIPTION','KEY SELLING POINTS','PRODUCT ATTRIBUTES','HASHTAGS'];
+  var out={},cur=null,buf=[];
+  text.split('\n').forEach(function(line){
+    var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
+    if(KEYS.indexOf(cl)>-1){if(cur)out[cur]=buf.join('\n').trim();cur=cl;buf=[];}
+    else if(cur)buf.push(line);
+  });
+  if(cur)out[cur]=buf.join('\n').trim();
+  return out;
+}
+
+function renderTikTokListing(tiktokText){
+  var tabsEl=document.getElementById('stabs'), cntEl=document.getElementById('secCnt');
+  tabsEl.innerHTML=''; cntEl.innerHTML='';
+  var S=parseTikTokSections(tiktokText);
+  Object.keys(S).forEach(function(k){S[k]=cleanShopifyText(S[k]);});
+
+  function mkTab(label,secId,onFirst){
+    var tb=document.createElement('button'); tb.className='stab shopify-tab'+(onFirst?' on':''); tb.textContent=label;
+    tb.onclick=function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});tb.classList.add('on');document.getElementById(secId).classList.add('on');};
+    tabsEl.appendChild(tb); return tb;
+  }
+  function mkSec(secId,inner,onFirst){
+    var div=document.createElement('div'); div.className='ssec'+(onFirst?' on':''); div.id=secId; div.innerHTML=inner; cntEl.appendChild(div); return div;
+  }
+  function copyBox(label,cls,content){
+    var safe=content.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+    return '<div class="shopify-preview-box"><div class="ob-hdr"><span class="ob-lbl '+cls+'">'+label+'</span><button class="ib green" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div><div class="shopify-copy-area">'+escHtml(content)+'</div></div>';
+  }
+
+  // Tab 1: Category
+  if(S['CATEGORY']){ mkTab('📂 Category','tt-cat',true); mkSec('tt-cat',copyBox('Suggested Category','cS',S['CATEGORY']),true); }
+
+  // Tab 2: Title with live char counter (target 200-255)
+  if(S['TITLE']){
+    var t=S['TITLE'].split('\n')[0].trim();
+    var tl=t.length;
+    var tcol = (tl>=200&&tl<=255)?'#4ade80':(tl>=150?'#fbbf24':'#fb7185');
+    var tmsg = (tl>=200&&tl<=255)?'Perfect length':(tl>255?'TOO LONG — trim to 255':'Short — TikTok allows up to 255, use more complete keywords');
+    var inner='<div style="margin-bottom:10px;padding:10px 14px;border:1px solid '+tcol+';border-radius:9px;display:flex;justify-content:space-between;align-items:center;"><span style="color:'+tcol+';font-weight:700;font-size:12px;">'+tl+'/255 <span style="font-weight:400;">'+tmsg+'</span></span><span style="font-size:9px;color:var(--dim);">TikTok limit: 255</span></div>'+copyBox('TikTok Title','c2',t);
+    mkTab('Title','tt-title',false); mkSec('tt-title',inner,false);
+  }
+
+  // Tab 3: Search Terms with compliance counters (max 15 kws, 250 chars)
+  if(S['SEARCH TERMS']){
+    var st=S['SEARCH TERMS'].split('\n')[0].trim();
+    var kws=st.split(',').map(function(k){return k.trim();}).filter(Boolean);
+    var stLen=st.length, kn=kws.length;
+    var okN = kn<=15, okL = stLen<=250;
+    var scol = (okN&&okL)?'#4ade80':'#fb7185';
+    var smsg = (okN&&okL)?'Compliant: '+kn+' keywords, '+stLen+'/250 chars':((okN?'':'Too many keywords ('+kn+'/15) ')+(okL?'':'Too long ('+stLen+'/250)'));
+    var inner2='<div style="margin-bottom:10px;padding:10px 14px;border:1px solid '+scol+';border-radius:9px;"><span style="color:'+scol+';font-weight:700;font-size:12px;">'+smsg+'</span><div style="font-size:9.5px;color:var(--dim);margin-top:4px;">TikTok limits: max 15 keywords, 250 characters total. Non-compliant words (medical claims, wrong product types, effect claims) get rejected by TikTok.</div></div>'+copyBox('Search Terms','c3',st);
+    mkTab('🔍 Search Terms','tt-st',false); mkSec('tt-st',inner2,false);
+  }
+
+  var rest=[{key:'DESCRIPTION',l:'Desc',c:'c2'},{key:'KEY SELLING POINTS',l:'Selling Points',c:'c4'},{key:'PRODUCT ATTRIBUTES',l:'Attributes',c:'c5'},{key:'HASHTAGS',l:'Hashtags',c:'c1'}];
+  rest.forEach(function(sd,i){
+    if(!S[sd.key]) return;
+    var sid='tt-r-'+i;
+    mkTab(sd.l,sid,false); mkSec(sid,copyBox(sd.l,sd.c,S[sd.key]),false);
+  });
+
+  // Static: Image Checklist (TikTok 2026 rules)
+  var chk='<div class="shopify-preview-box"><div class="ob-hdr"><span class="ob-lbl cS">TikTok Image Rules (2026)</span></div><div class="shopify-copy-area">'
+    +'MINIMUM 5 images (9 max) — 5 se kam par TikTok listing ko search mein dabata hai (quality tier)\n'
+    +'Size: 600x600 minimum, 800x800+ recommended (1600x1600 best)\n'
+    +'PEHLI image: saaf white/neutral background, koi text/logo/sticker/watermark NAHI, product frame ka 80%+ bhare\n'
+    +'Baaki images: lifestyle, size/scale, detail close-ups, variants\n'
+    +'Format: JPG ya PNG\n'
+    +'AI-generated image use ki to visible "AI-generated" label ZAROORI hai (2026 rule) — warna takedown risk\n'
+    +'Fashion ho to size chart lazmi (Platform Recommended Size Chart)</div></div>';
+  mkTab('🖼 Image Rules','tt-img',false); mkSec('tt-img',chk,false);
+
+  // Full listing copy
+  var parts=[];
+  ['CATEGORY','TITLE','SEARCH TERMS','DESCRIPTION','KEY SELLING POINTS','PRODUCT ATTRIBUTES','HASHTAGS'].forEach(function(k){if(S[k]){parts.push(k);parts.push('');parts.push(S[k]);parts.push('');parts.push('');}});
+  tiktokTxt=parts.join('\n');
+  mkTab('Full Listing','tt-all',false); mkSec('tt-all','<div class="shopify-banner"><strong>TikTok Shop Ready</strong> — Har section Copy karke Seller Center mein paste karein.</div>'+copyBox('Complete Listing','cS',tiktokTxt),false);
 }
 
 function renderShopifyOnly(shopifyText){
@@ -2079,7 +2239,7 @@ function clearAll(){
   document.getElementById('emptyState').style.display='flex';
   document.getElementById('output').classList.remove('show');
   ['ebay','amazon','walmart','google'].forEach(function(id){var r=document.getElementById('ks-'+id);r.classList.remove('kw-ok','kw-go','kw-no');r.querySelector('.kw-d').classList.remove('sp');document.getElementById('kc-'+id).textContent='—';});
-  setChip('idle','Ready'); fullTxt=''; genHtml=''; shopifyTxt=''; seoTxt=''; lastCompetitors=[];
+  setChip('idle','Ready'); fullTxt=''; genHtml=''; shopifyTxt=''; tiktokTxt=''; seoTxt=''; lastCompetitors=[];
   document.getElementById('mainArea').scrollTo({top:0,behavior:'smooth'});
 }
 function setLoading(on){document.getElementById('genBtn').disabled=on;document.getElementById('spinner').style.display=on?'block':'none';document.getElementById('btnTxt').textContent=on?'Generating...':'Generate Listing';}
