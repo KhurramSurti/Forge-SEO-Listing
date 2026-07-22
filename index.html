@@ -943,13 +943,14 @@ async function fetchAllKeywords(apiKey,productTitle){
 
   // STEP 1: Get REAL keywords from backend (Google + Amazon + Walmart + eBay)
   try{
-    var r = await fetch(BACKEND_URL + '?q=' + encodeURIComponent(productTitle) + '&market=' + market, {signal:AbortSignal.timeout(15000)});
+    var r = await fetch(BACKEND_URL + '?q=' + encodeURIComponent(productTitle) + '&market=' + market + (platform==='tiktok'?'&platform=tiktok':''), {signal:AbortSignal.timeout(15000)});
     var d = await r.json();
     realData.google = (d.google||[]).slice(0,10);
     realData.amazon = (d.amazon||[]).slice(0,10);
     realData.walmart = (d.walmart||[]).slice(0,10);
     realData.ebay = (d.ebay||[]).slice(0,10);
     lastCompetitors = d.competitors || [];
+    window.slfTikTokKws = (d.tiktok||[]).slice(0,10);
     // Mark which sources gave REAL data
     srcReal.google = realData.google.length>0;
     srcReal.amazon = realData.amazon.length>0;
@@ -1305,6 +1306,9 @@ async function generate(){
 
   if(platform==='tiktok'){
     var kwLineT=allKws.length>0?'\n\nREAL BUYER KEYWORDS (from live Google/Amazon/eBay data):\n'+allKws.join(' | '):'';
+    if(window.slfTikTokKws && window.slfTikTokKws.length>0){
+      kwLineT += '\n\nTIKTOK-SEARCHED KEYWORDS (HIGHEST PRIORITY — these are what people search in the TikTok context; weave them into the TITLE first and use them in SEARCH TERMS):\n'+window.slfTikTokKws.join(' | ');
+    }
     var brandT=(document.getElementById('brandName').value||'').trim().slice(0,40);
     var brandLineT = brandT
       ? '\n\nBRAND (USER SETTING): Brand is "'+brandT+'". Do NOT put it in the TITLE. DO mention it naturally once in the DESCRIPTION and set "Brand: '+brandT+'" as the first line of PRODUCT ATTRIBUTES.'
@@ -2124,11 +2128,15 @@ function renderKeywords(){
   tb.style.borderColor='rgba(212,168,71,0.4)'; tb.style.color='var(--gold)';
   tb.onclick=function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});tb.classList.add('on');document.getElementById('kw-tab-sec').classList.add('on');};
   tabsEl.insertBefore(tb, tabsEl.firstChild);
-  var totalRaw=srcKws.ebay.length+srcKws.amazon.length+srcKws.walmart.length+srcKws.google.length;
+  // TikTok source card (only in TikTok mode with data)
+  var ttk = (platform==='tiktok' && window.slfTikTokKws) ? window.slfTikTokKws : [];
+  if(ttk.length>0){ srcKws.tiktok = ttk; srcReal.tiktok = true; }
+  var totalRaw=srcKws.ebay.length+srcKws.amazon.length+srcKws.walmart.length+srcKws.google.length+ttk.length;
   var html='<div class="ssec" id="kw-tab-sec">';
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:10px 14px;background:rgba(212,168,71,0.07);border:1px solid rgba(212,168,71,0.2);border-radius:10px;"><div style="font-size:11px;color:var(--gold);font-weight:600;">✦ '+totalRaw+' Keywords (4 x 10)</div><div style="font-size:10px;color:var(--dim);">'+allKws.length+' unique used</div></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
-  sources.forEach(function(src){
+  var srcList = ttk.length>0 ? [{id:'tiktok',label:'TikTok',icon:'📱',color:'#f472b6',bg:'rgba(244,114,182,0.07)',bdr:'rgba(244,114,182,0.25)'}].concat(sources) : sources;
+  srcList.forEach(function(src){
     var kws=srcKws[src.id]||[];
     var isReal=srcReal[src.id];
     var srcBadge = kws.length>0
