@@ -100,6 +100,12 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .img-urls-inp:focus{border-color:var(--teal);}
 .img-urls-inp::placeholder{color:var(--dim);}
 .img-urls-note{font-size:10px;color:var(--dim);margin-top:5px;line-height:1.5;}
+.img-up-row{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;}
+.img-up-btn{padding:9px 14px;border-radius:9px;border:1px solid var(--teal);background:rgba(45,212,191,0.08);color:var(--teal);font-family:'Geist',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;transition:all 0.18s;white-space:nowrap;}
+.img-up-btn:hover{background:rgba(45,212,191,0.15);}
+.imgbb-key-inp{flex:1;min-width:200px;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;padding:9px 12px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:10.5px;outline:none;}
+.imgbb-key-inp:focus{border-color:var(--teal);}
+.imgbb-key-inp::placeholder{color:var(--dim);}
 .product-ta:focus{border-color:rgba(212,168,71,0.35);}
 .product-ta::placeholder{color:var(--dim);font-size:11px;}
 .kw-found{display:none;margin-top:10px;padding:10px 13px;background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.15);border-radius:var(--r);}
@@ -408,7 +414,12 @@ Free Shipping: No hidden fees.
     </div>
     <div class="comp-title-wrap">
       <div class="comp-title-lbl">🖼 Product Image URLs <span style="color:var(--dim);font-weight:400;">(optional — one per line, max 4; first = main hero image)</span></div>
-      <textarea class="img-urls-inp" id="imgUrls" placeholder="https://i.ebayimg.com/images/g/xxxx/s-l1600.jpg&#10;https://i.postimg.cc/xxxx/photo2.jpg" oninput="onImagesInput()"></textarea>
+      <textarea class="img-urls-inp" id="imgUrls" placeholder="Paste image links in ANY format (direct / HTML / BBCode)... ya neeche Upload button use karein" oninput="onImagesInput()"></textarea>
+      <div class="img-up-row">
+        <input type="file" id="imgFiles" accept="image/png,image/jpeg,image/webp" multiple style="display:none" onchange="uploadImagesToHost(this.files)"/>
+        <button class="img-up-btn" onclick="document.getElementById('imgFiles').click()">📤 Upload Images (PNG/JPG)</button>
+        <input type="text" class="imgbb-key-inp" id="imgbbKey" placeholder="imgbb API key — free, one time (api.imgbb.com)" oninput="saveImgbbKey()"/>
+      </div>
       <div class="img-urls-note" id="imgUrlsNote"></div>
     </div>
     <div class="kw-found" id="kwFound"></div>
@@ -479,6 +490,7 @@ var lastProduct='', lastStore='';
 window.onload=function(){
   var savedDesign=localStorage.getItem('slf_design')||'glass'; setDesign(savedDesign);
   var savedMarket=localStorage.getItem('slf_market')||'us'; setMarket(savedMarket);
+  var savedImgbb=localStorage.getItem('slf_imgbb'); if(savedImgbb){var ik=document.getElementById('imgbbKey'); if(ik) ik.value=savedImgbb;}
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
   var th=localStorage.getItem('slf_th')||'auto'; theme=th;
   (function(){
@@ -669,6 +681,58 @@ function resolveTheme(t){
   if(t!=='auto') return t;
   var d=detectCategoryTheme(document.getElementById('productInput').value);
   return d.theme;
+}
+
+// ══ IN-TOOL IMAGE UPLOAD (via user's free imgbb API key) ══════
+function saveImgbbKey(){
+  var k=(document.getElementById('imgbbKey').value||'').trim();
+  localStorage.setItem('slf_imgbb', k);
+}
+function uploadImagesToHost(files){
+  var note=document.getElementById('imgUrlsNote');
+  var key=(document.getElementById('imgbbKey').value||'').trim() || localStorage.getItem('slf_imgbb') || '';
+  if(!key){
+    if(note){note.innerHTML='⚠ Pehle imgbb API key lagayein (bilkul free): <b>api.imgbb.com</b> kholें → free account banayein → "Add API key" → key copy karke yahan paste karein. Ek hi baar karna hai — save ho jayegi.'; note.style.color='#fbbf24';}
+    return;
+  }
+  var existing=getProductImages();
+  var room=4-existing.length;
+  if(room<=0){ if(note){note.textContent='⚠ 4 images ki limit already poori hai — pehle koi link hatayein'; note.style.color='#fbbf24';} return; }
+  var list=Array.prototype.slice.call(files).slice(0,room);
+  if(list.length===0) return;
+  var done=0, failed=0;
+  if(note){note.textContent='⏳ Uploading '+list.length+' image'+(list.length>1?'s':'')+'... (0/'+list.length+')'; note.style.color='var(--fog)';}
+  list.forEach(function(file){
+    if(file.size>16*1024*1024){ failed++; done++; return; }
+    var rd=new FileReader();
+    rd.onload=function(){
+      var b64=String(rd.result).split(',')[1];
+      var fd=new FormData();
+      fd.append('key', key);
+      fd.append('image', b64);
+      fetch('https://api.imgbb.com/1/upload', {method:'POST', body:fd})
+        .then(function(r){return r.json();})
+        .then(function(j){
+          done++;
+          if(j && j.success && j.data && (j.data.url||j.data.display_url)){
+            var url=j.data.url||j.data.display_url;
+            var ta=document.getElementById('imgUrls');
+            ta.value=(ta.value.trim()? ta.value.trim()+'\n':'')+url;
+            onImagesInput();
+          } else { failed++; }
+          if(note){
+            if(done<list.length){ note.textContent='⏳ Uploading... ('+done+'/'+list.length+')'; }
+            else if(failed===0){ note.textContent='✓ '+list.length+' image'+(list.length>1?'s':'')+' uploaded & added — HTML mein live'; note.style.color='var(--teal)'; }
+            else { note.textContent='⚠ '+(list.length-failed)+' uploaded, '+failed+' failed — key sahi hai? (api.imgbb.com se dobara check karein)'; note.style.color='#fbbf24'; }
+          }
+        })
+        .catch(function(){
+          done++; failed++;
+          if(note && done>=list.length){ note.textContent='⚠ Upload failed — internet ya API key check karein'; note.style.color='#fbbf24'; }
+        });
+    };
+    rd.readAsDataURL(file);
+  });
 }
 
 // ══ IMAGE → THEME COLOR MATCHING ══════════════════════════════
