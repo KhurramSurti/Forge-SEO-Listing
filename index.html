@@ -1276,6 +1276,8 @@ async function generate(){
     +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
+    +'=== COMPATIBLE MODELS ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA lists compatible models, vehicles, devices, machines, part numbers or years. If it does, you MUST list EVERY SINGLE compatible model from the source data COMPLETELY — never summarize, compress, shorten, or write "and more". Copy the full compatibility list, organised one model (or model-group) per line, grouped by brand/series where natural. This list is valuable SEO content and buyers search by exact model. If the source data has no compatibility list, OMIT this entire section (do not even print the header).\n\n'
+    +'=== SAFETY INFORMATION ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA contains safety information — warnings, hazard notes, choking/age warnings, battery/chemical warnings, California Prop 65 notices, usage cautions, care/safety instructions. Reproduce them ACCURATELY and COMPLETELY (do not soften, shorten or drop any warning — these can be legally required). One point per line. If the source data has no safety information, OMIT this entire section (do not print the header).\n\n'
     +'=== PRO TIPS ===\n5 practical tips numbered: 1. tip\n\n'
     +'=== IDEAL FOR ===\n12 tags, one per line with — prefix\n\n'
     +'=== POLICIES ===\n'+policy+'\n\n'
@@ -1643,7 +1645,7 @@ function buildShopifyPlainText(S){
 }
 
 function parseListingSections(text){
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var out={},cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -1863,15 +1865,35 @@ function buildHtmlFromListing(listingText,storeName,themeName){
 
   var idealH=tagLines.length>0?'<div class="section"><div class="sec-title">⟡ IDEAL FOR</div><div class="tag-cloud">'+tagLines.map(function(t){return '<span class="tag"><span class="tag-dot">◆</span>'+escHtml(t)+'</span>';}).join('')+'</div></div>':'';
 
+  // Compatible Models — full list in a 2-column grid (conditional)
+  var compatH='';
+  var compatLines=(S['COMPATIBLE MODELS']||'').split('\n').map(function(l){return l.replace(/^\s*[-–—•◆▸]\s*/,'').trim();}).filter(function(l){return l.length>1;});
+  if(compatLines.length>0){
+    compatH='<div class="section"><div class="sec-title">⟡ COMPATIBLE MODELS</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:0.45rem 1.2rem;">'
+      +compatLines.map(function(l){return '<div style="font-size:0.82rem;color:'+T.txt+';padding:0.3rem 0;border-bottom:1px solid '+T.rb+';"><span style="color:'+T.acc+';margin-right:0.5rem;">✓</span>'+escHtml(l)+'</div>';}).join('')
+      +'</div></div>';
+  }
+
+  // Safety Information — highlighted caution box (conditional)
+  var safetyH='';
+  var safetyLines=(S['SAFETY INFORMATION']||'').split('\n').map(function(l){return l.replace(/^\s*[-–—•◆▸]\s*/,'').trim();}).filter(function(l){return l.length>1;});
+  if(safetyLines.length>0){
+    safetyH='<div class="section" style="border:1px solid rgba(245,158,11,0.45);background:'+T.card+';">'
+      +'<div class="sec-title" style="color:#f59e0b;-webkit-text-fill-color:#f59e0b;">⚠ SAFETY INFORMATION</div>'
+      +safetyLines.map(function(l){return '<div style="font-size:0.84rem;color:'+T.txt+';padding:0.35rem 0;line-height:1.6;"><span style="color:#f59e0b;margin-right:0.5rem;">⚠</span>'+escHtml(l)+'</div>';}).join('')
+      +'</div>';
+  }
+
   var polH='';
   if(polLines.length>0){polH='<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
 
-  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+imgH+descH+featH+specsH+tipsH+idealH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+imgH+descH+featH+specsH+compatH+tipsH+idealH+safetyH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
 }
 
 function computeQualityScore(text){
   var S={};
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -1993,7 +2015,7 @@ function renderVeroCheck(text){
   if(ot)ot.remove(); if(os)os.remove();
 
   // parse sections so we can say WHERE a term appears
-  var S={}, KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var S={}, KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -2170,8 +2192,8 @@ function highlightKeywords(text,keywords){
 }
 
 function renderListing(text){
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
-  var META={'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
+  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var META={'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'COMPATIBLE MODELS':{l:'🔧 Compatible',c:'c3'},'SAFETY INFORMATION':{l:'⚠ Safety',c:'c5'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
   var parsed=[],cur=null,buf=[];
   text.split('\n').forEach(function(line){var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();if(KEYS.indexOf(cl)>-1){if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});cur=cl;buf=[];}else if(cur)buf.push(line);});
   if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});
