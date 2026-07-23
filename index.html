@@ -361,6 +361,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <button class="th-opt" onclick="setTheme('ocean',this)"><div class="th-sw" style="background:linear-gradient(135deg,#051530,#06b6d4)">🌊</div>Ocean</button>
       <button class="th-opt" onclick="setTheme('rose',this)"><div class="th-sw" style="background:linear-gradient(135deg,#fdf2f5,#e0447c)">🌸</div>Rosé</button>
       <button class="th-opt" id="customThemeBtn" onclick="setTheme('custom',this)" style="grid-column:1/-1;"><div class="th-sw" id="customSwatch" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)">🎨</div>Custom Color</button>
+      <button class="th-opt" id="imgColorBtn" onclick="matchImageColor()" style="grid-column:1/-1;"><div class="th-sw" style="background:linear-gradient(135deg,#333,#0aa)">🖼</div>Match Product Image Color</button>
     </div>
     <div id="customPanel" style="display:none;margin-top:8px;padding:11px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
@@ -670,24 +671,81 @@ function resolveTheme(t){
   return d.theme;
 }
 
+// ══ IMAGE → THEME COLOR MATCHING ══════════════════════════════
+// Reads the first product image's pixels and builds the whole HTML theme
+// from its dominant vibrant color (uses the existing Custom Color engine).
+function matchImageColor(){
+  var note=document.getElementById('imgUrlsNote');
+  var imgs=getProductImages();
+  if(imgs.length===0){
+    if(note){note.textContent='⚠ Pehle Product Image URL daalein — phir yeh button us image ka color utha kar poori theme bana dega'; note.style.color='#fbbf24';}
+    return;
+  }
+  if(note){note.textContent='⏳ Reading image colors...'; note.style.color='var(--fog)';}
+  var img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=function(){
+    try{
+      var cv=document.createElement('canvas'); var S=64;
+      cv.width=S; cv.height=S;
+      var cx=cv.getContext('2d');
+      cx.drawImage(img,0,0,S,S);
+      var d=cx.getImageData(0,0,S,S).data;
+      // Bucket vibrant pixels by hue; skip near-white/near-black/gray
+      var buckets={};
+      for(var i=0;i<d.length;i+=4){
+        var r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
+        if(a<200) continue;
+        var mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+        var sat=mx-mn, lum=(mx+mn)/2;
+        if(sat<30 || lum<35 || lum>225) continue; // skip gray/near-white/near-black
+        var key=(Math.round(r/32)*32)+','+(Math.round(g/32)*32)+','+(Math.round(b/32)*32);
+        if(!buckets[key]) buckets[key]={n:0,r:0,g:0,b:0};
+        buckets[key].n++; buckets[key].r+=r; buckets[key].g+=g; buckets[key].b+=b;
+      }
+      var best=null;
+      Object.keys(buckets).forEach(function(k){
+        var bk=buckets[k];
+        var avgR=bk.r/bk.n, avgG=bk.g/bk.n, avgB=bk.b/bk.n;
+        var vib=(Math.max(avgR,avgG,avgB)-Math.min(avgR,avgG,avgB));
+        var score=bk.n*(1+vib/128); // frequency weighted by vibrancy
+        if(!best || score>best.score) best={score:score, r:avgR, g:avgG, b:avgB};
+      });
+      if(!best){
+        if(note){note.textContent='⚠ Image mein koi clear color nahi mila (mostly white/gray) — Custom Color se manually choose karein'; note.style.color='#fbbf24';}
+        return;
+      }
+      function h2(v){v=Math.round(v).toString(16);return v.length<2?'0'+v:v;}
+      var hex='#'+h2(best.r)+h2(best.g)+h2(best.b);
+      // Apply through the existing custom theme engine
+      customColor=hex;
+      localStorage.setItem('slf_cc',hex);
+      var ci=document.getElementById('customColor'); if(ci) ci.value=hex;
+      var sw=document.getElementById('customSwatch'); if(sw) sw.style.background='linear-gradient(135deg,'+hex+','+hex+')';
+      setTheme('custom', document.getElementById('customThemeBtn'));
+      if(note){note.textContent='✓ Theme matched to product image color ('+hex+') — HTML rebuilt free'; note.style.color='var(--teal)';}
+    }catch(e){
+      if(note){note.textContent='⚠ Is image host ne color-reading ki ijazat nahi di (CORS) — postimages.org ya imgbb ki image try karein, ya Custom Color manually use karein'; note.style.color='#fbbf24';}
+    }
+  };
+  img.onerror=function(){
+    if(note){note.textContent='⚠ Image load nahi hui — URL check karein'; note.style.color='#fbbf24';}
+  };
+  img.src=imgs[0];
+}
+
 // ══ PRODUCT IMAGES ════════════════════════════════════════════
 // eBay descriptions can only show images by URL (https). Parse up to 4 valid URLs.
 function getProductImages(){
   var raw=(document.getElementById('imgUrls')||{value:''}).value||'';
-  // If the user pasted HTML embed code (imgbb/postimages give <a><img src="..."></a>), pull out the src URLs
-  var srcMatches = raw.match(/src\s*=\s*["']([^"']+)["']/gi);
-  if(srcMatches){
-    srcMatches.forEach(function(m){
-      var u=m.replace(/src\s*=\s*["']/i,'').replace(/["']$/,'');
-      raw += '\n' + u;
-    });
-  }
-  var urls=raw.split(/[\n,\s]+/).map(function(u){return u.trim();}).filter(function(u){
-    return /^https:\/\/\S+\.(jpg|jpeg|png|webp|gif)(\?\S*)?$/i.test(u) || /^https:\/\/i\.(ebayimg|postimg|imgur|ibb)\.\S+$/i.test(u);
-  });
-  // dedupe, keep order, max 4
+  // Universal extractor: finds image URLs inside ANY pasted format —
+  // plain links, HTML (<img src=...>), BBCode ([img]...[/img]), or mixed text.
+  var found = raw.match(/https:\/\/[^\s"'<>\[\]]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>\[\]]*)?/gi) || [];
+  // Also catch known image-host URLs without a clear extension
+  var hostOnly = raw.match(/https:\/\/i\.(?:ebayimg|postimg|imgur|ibb)\.[^\s"'<>\[\]]+/gi) || [];
+  var all = found.concat(hostOnly);
   var seen={}, out=[];
-  urls.forEach(function(u){ if(!seen[u]){seen[u]=1; out.push(u);} });
+  all.forEach(function(u){ u=u.trim(); if(u && !seen[u]){seen[u]=1; out.push(u);} });
   return out.slice(0,4);
 }
 var _imgTimer=null;
