@@ -106,6 +106,8 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .imgbb-key-inp{flex:1;min-width:200px;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;padding:9px 12px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:10.5px;outline:none;}
 .imgbb-key-inp:focus{border-color:var(--teal);}
 .imgbb-key-inp::placeholder{color:var(--dim);}
+.brand-title-opt{display:flex;align-items:flex-start;gap:8px;margin-top:8px;font-size:11px;color:var(--mist);cursor:pointer;line-height:1.5;}
+.brand-title-opt input{margin-top:2px;accent-color:var(--gold);cursor:pointer;}
 .product-ta:focus{border-color:rgba(212,168,71,0.35);}
 .product-ta::placeholder{color:var(--dim);font-size:11px;}
 .kw-found{display:none;margin-top:10px;padding:10px 13px;background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.15);border-radius:var(--r);}
@@ -411,6 +413,7 @@ Free Shipping: No hidden fees.
     <div class="comp-title-wrap">
       <div class="comp-title-lbl">🏷 Brand Name <span style="color:var(--dim);font-weight:400;">(optional — fill it and the brand WILL appear in HTML heading, description &amp; specs; leave empty for no brand anywhere. Never in eBay title.)</span></div>
       <input type="text" class="comp-title-inp" id="brandName" placeholder="e.g. Mainstays (leave empty = no brand / Unbranded)" oninput="saveDraftDebounced()"/>
+      <label class="brand-title-opt"><input type="checkbox" id="brandInTitle" onchange="saveDraftDebounced()"/> <span>Also put brand in the MAIN TITLE <span style="color:var(--dim);font-weight:400;">(sirf jab brand naam se search hota ho — e.g. Meguiars, Stanley)</span></span></label>
     </div>
     <div class="comp-title-wrap">
       <div class="comp-title-lbl">🖼 Product Image URLs <span style="color:var(--dim);font-weight:400;">(optional — one per line, max 4; first = main hero image)</span></div>
@@ -996,11 +999,14 @@ function slfIsBrandWord(w){
   var wl = w.toLowerCase();
   // Block this product's own brand (e.g. Mainstays) — detected live from the product input
   try{
-    var pb = (document.getElementById('brandName').value||'').trim();
-    if(!pb) pb = extractBrandGuess(document.getElementById('productInput').value); // fallback safety
-    if(pb){
-      var parts = pb.toLowerCase().split(/\s+/);
-      for(var p=0; p<parts.length; p++){ if(parts[p].length>2 && parts[p]===wl) return true; }
+    var cb=document.getElementById('brandInTitle');
+    if(!(cb && cb.checked)){
+      var pb = (document.getElementById('brandName').value||'').trim();
+      if(!pb) pb = extractBrandGuess(document.getElementById('productInput').value); // fallback safety
+      if(pb){
+        var parts = pb.toLowerCase().split(/\s+/);
+        for(var p=0; p<parts.length; p++){ if(parts[p].length>2 && parts[p]===wl) return true; }
+      }
     }
   }catch(e){}
   if(typeof VERO_HIGH === 'undefined') return false;
@@ -1017,6 +1023,8 @@ function slfIsBrandWord(w){
 // Force-remove the product's own brand from a title, wherever it came from
 function slfStripBrand(title){
   try{
+    var cb=document.getElementById('brandInTitle');
+    if(cb && cb.checked) return title; // user wants brand in the title — do not strip
     var pb = (document.getElementById('brandName').value||'').trim();
     if(!pb) pb = extractBrandGuess(document.getElementById('productInput').value); // fallback safety
     if(!pb) return title;
@@ -1348,6 +1356,7 @@ async function generate(){
     // Box filled  => brand MUST appear in HTML HEADING + DESCRIPTION + ITEM SPECIFICS (never eBay title).
     // Box empty   => no brand anywhere; ITEM SPECIFICS Brand: Unbranded.
     var brandGuess = (document.getElementById('brandName').value||'').trim().slice(0,40);
+    var brandInTitle = brandGuess && document.getElementById('brandInTitle').checked;
     var brandDemand = detectBrandDemand(brandGuess, allKws);
     var isVeroBrand = brandGuess && (typeof slfIsBrandWord==='function') && brandGuess.split(/\s+/).some(function(w){return slfIsBrandWord(w);});
     var brandLine;
@@ -1359,6 +1368,9 @@ async function generate(){
       brandLine = '\n\nBRAND (USER SETTING): The user set the brand to "'+brandGuess+'" and buyers ARE searching for it ('+brandDemand.note+'). MANDATORY: start the HTML HEADING with "'+brandGuess+'", weave it naturally into the DESCRIPTION 2-3 times for SEO, and set "Brand: '+brandGuess+'" as the first line of ITEM SPECIFICS. Never in the eBay title.';
     } else {
       brandLine = '\n\nBRAND (USER SETTING): The user set the brand to "'+brandGuess+'". MANDATORY even though few buyers search it: include "'+brandGuess+'" in the HTML HEADING (start with it), mention it once naturally in the DESCRIPTION, and set "Brand: '+brandGuess+'" as the first line of ITEM SPECIFICS. Never in the eBay title.';
+    }
+    if(brandInTitle){
+      brandLine = '\n\nBRAND (USER SETTING): Brand is "'+brandGuess+'" and the user explicitly wants it in the MAIN eBay TITLE too (buyers search this brand by name). MANDATORY: START the eBay title with "'+brandGuess+'", then fill the remaining space to 76-80 characters with the top eBay-searched keywords. Also start the HTML HEADING with "'+brandGuess+'", weave it naturally into the DESCRIPTION, and set "Brand: '+brandGuess+'" as the first line of ITEM SPECIFICS. Word everything factually — never claim official/authorised/licensed status.';
     }
     kwLine += brandLine;
     var MARKET_LINES = {
@@ -1387,7 +1399,9 @@ async function generate(){
     +'=== BRAND CHECK ===\nUse the BRAND DEMAND guidance above to decide. Output:\nBrand: [name or Unbranded] | Searched by buyers: [Yes/No] | VeRO Risk: [High/Medium/Low] | Placement: [where you will mention it: Description + Item Specifics / Item Specifics only / Unbranded]\nReason: [one short line explaining your decision]\n\n'
     +'=== TITLE ===\n'
     +'eBay Title — RULE 1 (LENGTH): the title MUST be between 76 and 80 characters including spaces. This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count carefully. NO punctuation. Every word must be complete.\n'
-    +'eBay Title — RULE 2 (NO BRAND NAMES): do NOT put any brand or manufacturer name in the title. Brand names eat characters that buyers rarely search for, and they raise VeRO risk. Use that space for real buyer keywords instead. The brand belongs in the HTML HEADING, the DESCRIPTION, and the Brand field of ITEM SPECIFICS — never this eBay title.\n'
+    +(brandInTitle
+      ? 'eBay Title — RULE 2 (BRAND IN TITLE): the user wants the brand "'+brandGuess+'" in this title. Put it at the very FRONT, then maximise remaining space with top eBay keywords to reach 76-80 characters.\n'
+      : 'eBay Title — RULE 2 (NO BRAND NAMES): do NOT put any brand or manufacturer name in the title. Brand names eat characters that buyers rarely search for, and they raise VeRO risk. Use that space for real buyer keywords instead. The brand belongs in the HTML HEADING, the DESCRIPTION, and the Brand field of ITEM SPECIFICS — never this eBay title.\n')
     +'eBay Title — RULE 3 (MAX KEYWORDS, eBay FIRST): fill all 76-80 characters with high-value buyer search terms. PRIORITISE the eBay TOP-SEARCH KEYWORDS first — these are exactly what eBay buyers type, so they make the title strongest for eBay ranking. Put the most important eBay keywords near the FRONT of the title. Then fill remaining space with the other buyer keywords (product type, material, size, quantity, colour, feature, use-case). Pack in as many distinct keywords as read naturally. If short, ADD more until 76-80 characters.\n'
     +(compTitle ? 'BEAT THIS COMPETITOR: A top-selling competitor uses this eBay title: "'+compTitle.replace(/"/g,'')+'". Analyze it. Your title MUST be more SEO-optimized: include every strong keyword they use that fits this product, PLUS additional high-value buyer keywords they missed, in a better order. Do not copy it word-for-word — make it genuinely stronger and still 76-80 characters.\n' : '')
     +'[title here — must be 76 to 80 characters]\n\n'
@@ -1434,8 +1448,11 @@ async function generate(){
       kwLineT += '\n\nTIKTOK-SEARCHED KEYWORDS (HIGHEST PRIORITY — real TikTok-context searches): '+window.slfTikTokKws.join(' | ')+'\nHow to use them: product-type phrases go into the TITLE and SEARCH TERMS; problem/how-to phrases (like "jar wont open") belong in the DESCRIPTION opening (problem-solution hook) — do not force awkward how-to phrases into the title.';
     }
     var brandT=(document.getElementById('brandName').value||'').trim().slice(0,40);
+    var brandTitleT = brandT && document.getElementById('brandInTitle').checked;
     var brandLineT = brandT
-      ? '\n\nBRAND (USER SETTING): Brand is "'+brandT+'". Do NOT put it in the TITLE. DO mention it naturally once in the DESCRIPTION and set "Brand: '+brandT+'" as the first line of PRODUCT ATTRIBUTES.'
+      ? (brandTitleT
+        ? '\n\nBRAND (USER SETTING): Brand is "'+brandT+'" and the user wants it in the TITLE too — START the title with it, then continue with keywords. Also mention it in the DESCRIPTION and set "Brand: '+brandT+'" first in PRODUCT ATTRIBUTES.'
+        : '\n\nBRAND (USER SETTING): Brand is "'+brandT+'". Do NOT put it in the TITLE. DO mention it naturally once in the DESCRIPTION and set "Brand: '+brandT+'" as the first line of PRODUCT ATTRIBUTES.')
       : '\n\nBRAND (USER SETTING): Brand box is EMPTY. Do NOT mention any brand anywhere. In PRODUCT ATTRIBUTES set Brand: Unbranded. Never invent a brand.';
     var tiktokPrompt='You are a TikTok Shop USA listing expert for 2026. TikTok Shop is a social-commerce search engine: buyers search casual phrases ("jar opener for weak grip", "kitchen must haves"). Listings are ranked by title relevance, search terms, and listing quality tier.\n'
     +'MARKET: TikTok Shop USA. American English. USD.\n'
@@ -1492,6 +1509,7 @@ function saveSession(){
       product: document.getElementById('productInput').value,
       compTitle: document.getElementById('compTitle').value,
       brandName: document.getElementById('brandName').value,
+      brandInTitle: document.getElementById('brandInTitle').checked,
       imgUrls: document.getElementById('imgUrls').value,
       platform: platform,
       theme: theme,
@@ -1519,6 +1537,7 @@ function saveDraftDebounced(){
       data.product = document.getElementById('productInput').value;
       data.compTitle = document.getElementById('compTitle').value;
       data.brandName = document.getElementById('brandName').value;
+      data.brandInTitle = document.getElementById('brandInTitle').checked;
       data.imgUrls = document.getElementById('imgUrls').value;
       data.savedAt = Date.now();
       localStorage.setItem('slf_session', JSON.stringify(data));
@@ -1539,6 +1558,7 @@ function restoreSession(){
     }
     if(d.compTitle){ document.getElementById('compTitle').value = d.compTitle; }
     if(d.brandName){ document.getElementById('brandName').value = d.brandName; }
+    if(typeof d.brandInTitle==='boolean'){ document.getElementById('brandInTitle').checked = d.brandInTitle; }
     if(d.imgUrls){ document.getElementById('imgUrls').value = d.imgUrls; if(typeof onImagesInput==='function'){var note=document.getElementById('imgUrlsNote');} }
     // If a full listing was generated, restore the output too
     if(d.fullTxt || d.shopifyTxt || d.tiktokTxt){
@@ -2384,6 +2404,7 @@ function clearAll(){
   document.getElementById('productInput').value='';
   document.getElementById('compTitle').value='';
   document.getElementById('brandName').value='';
+  document.getElementById('brandInTitle').checked=false;
   document.getElementById('imgUrls').value='';
   var _n=document.getElementById('imgUrlsNote'); if(_n)_n.textContent='';
   document.getElementById('charCt').textContent='0 chars';
