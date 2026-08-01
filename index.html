@@ -1144,6 +1144,7 @@ async function fetchAllKeywords(apiKey,productTitle){
     realData.ebay = (d.ebay||[]).slice(0,10);
     lastCompetitors = d.competitors || [];
     window.slfTikTokKws = (d.tiktok||[]).slice(0,10);
+    window.slfAspects = d.aspects || null;
     // Mark which sources gave REAL data
     srcReal.google = realData.google.length>0;
     srcReal.amazon = realData.amazon.length>0;
@@ -1436,6 +1437,14 @@ async function generate(){
     if(brandInTitle){
       brandLine = '\n\nBRAND (USER SETTING): Brand is "'+brandGuess+'" and the user explicitly wants it in the MAIN eBay TITLE too (buyers search this brand by name). MANDATORY: START the eBay title with "'+brandGuess+'", then fill the remaining space to 76-80 characters with the top eBay-searched keywords. Also start the HTML HEADING with "'+brandGuess+'", weave it naturally into the DESCRIPTION, and set "Brand: '+brandGuess+'" as the first line of ITEM SPECIFICS. Word everything factually — never claim official/authorised/licensed status.';
     }
+    var A = window.slfAspects;
+    if(A && ((A.required && A.required.length) || (A.recommended && A.recommended.length))){
+      kwLine += '\n\n=== eBay OFFICIAL ITEM SPECIFICS (live from eBay Taxonomy API for this exact category) ===\n';
+      if(A.category) kwLine += 'eBay category: '+A.category+'\n';
+      if(A.required && A.required.length) kwLine += 'REQUIRED fields (eBay demands these — output EVERY one with an accurate value from the source data; never omit one):\n'+A.required.join('\n')+'\n';
+      if(A.recommended && A.recommended.length) kwLine += 'RECOMMENDED fields (these boost search ranking — include every one that applies):\n'+A.recommended.join('\n')+'\n';
+      kwLine += 'Use these EXACT field names in ITEM SPECIFICS. Where sample values are shown in brackets, prefer one of those exact values so eBay search filters match. Then add any other relevant fields.\n';
+    }
     kwLine += brandLine;
     if(isMultiVar){
       kwLine += '\n\n=== MULTI-VARIATION LISTING MODE (CRITICAL) ===\n'
@@ -1494,7 +1503,7 @@ async function generate(){
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. BRAND RULE: if the source data shows a brand name, START this heading with the brand (e.g. "Mainstays Cotton Bath Towel Set...") — the brand belongs HERE, not in the eBay title. If VeRO risk is high, only use the brand if the item genuinely is that brand. Use Title Case. NO trailing comma.\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. BRAND RULE: if the source data shows a brand name, mention it naturally here at least once (popular or not) — the description is where the brand lives. If buyers actively search the brand (see BRAND DEMAND), weave it in 2-3 times for SEO. Never put the brand in the eBay title.\n\n'
     +'=== ITEM SPECIFICS ===\n'
-    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
+    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, they OVERRIDE your own guesses — output EVERY required field and every applicable recommended field using those exact field names and preferred values. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
     +(isMultiVar
@@ -2069,11 +2078,11 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   var imgH='';
   if(imgs.length>0){
     imgH='<div class="section" style="text-align:center;">'
-      +'<img src="'+imgs[0]+'" alt="'+escHtml(headingText)+'" style="width:100%;max-width:520px;height:auto;border-radius:14px;border:1px solid '+T.bc+';box-shadow:0 10px 40px rgba(0,0,0,0.25);display:block;margin:0 auto;" onerror="this.style.display=\'none\'"/>';
+      +'<img src="'+imgs[0]+'" alt="'+escHtml(headingText)+'" style="width:100%;max-width:520px;height:auto;border-radius:14px;border:1px solid '+T.bc+';box-shadow:0 10px 40px rgba(0,0,0,0.25);display:block;margin:0 auto;"/>';
     if(imgs.length>1){
       imgH+='<div style="display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap;margin-top:1rem;">';
       for(var gi=1; gi<imgs.length; gi++){
-        imgH+='<img src="'+imgs[gi]+'" alt="Product view '+(gi+1)+'" style="width:31%;max-width:160px;min-width:110px;height:auto;border-radius:10px;border:1px solid '+T.rb+';" onerror="this.style.display=\'none\'"/>';
+        imgH+='<img src="'+imgs[gi]+'" alt="Product view '+(gi+1)+'" style="width:31%;max-width:160px;min-width:110px;height:auto;border-radius:10px;border:1px solid '+T.rb+';"/>';
       }
       imgH+='</div>';
     }
@@ -2261,6 +2270,16 @@ function renderQualityScore(text){
     }
     requestAnimationFrame(step);
   })();
+}
+
+function slfAspectBadge(){
+  var A=window.slfAspects;
+  if(!A || !A.category) return '';
+  var reqN=(A.required||[]).length, recN=(A.recommended||[]).length;
+  return '<div style="margin-bottom:10px;padding:10px 13px;background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.28);border-radius:9px;">'
+    +'<div style="font-size:10.5px;color:var(--teal);font-weight:700;margin-bottom:3px;">✓ eBay OFFICIAL CATEGORY DATA</div>'
+    +'<div style="font-size:11px;color:var(--fog);line-height:1.6;">'+escHtml(A.category)+'</div>'
+    +'<div style="font-size:9.5px;color:var(--dim);margin-top:4px;">'+reqN+' required + '+recN+' recommended fields fetched live from eBay — confirm in Seller Hub when listing.</div></div>';
 }
 
 function renderVeroCheck(text){
@@ -2509,7 +2528,8 @@ function renderListing(text){
       }
     }
 
-    div.innerHTML='<div class="ob"><div class="ob-hdr"><span class="ob-lbl '+m.c+'">'+m.l+'</span><button class="ib" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div><div class="ob-body">'+counterHtml+fmt+'</div></div>';
+    var badge = (sec.key==='ITEM SPECIFICS' && typeof slfAspectBadge==='function') ? slfAspectBadge() : '';
+    div.innerHTML='<div class="ob"><div class="ob-hdr"><span class="ob-lbl '+m.c+'">'+m.l+'</span><button class="ib" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div><div class="ob-body">'+badge+counterHtml+fmt+'</div></div>';
     cntEl.appendChild(div);
   });
 }
