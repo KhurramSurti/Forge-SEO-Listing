@@ -407,6 +407,9 @@ Free Shipping: No hidden fees.
     </div>
     <textarea class="product-ta" id="productInput" placeholder="TITLE: [Product title]&#10;&#10;DESCRIPTION:&#10;[Paste description...]&#10;&#10;SPECS:&#10;- Brand:&#10;- Weight:"></textarea>
     <div class="comp-title-wrap">
+      <label class="brand-title-opt" style="margin-top:0;"><input type="checkbox" id="multiVar" onchange="saveDraftDebounced()"/> <span>📦 Multi-Variation Listing <span style="color:var(--dim);font-weight:400;">(check karein jab aapne ek hi listing ke liye kai variations ki descriptions paste ki hon — sizes / colors / pack qty)</span></span></label>
+    </div>
+    <div class="comp-title-wrap">
       <div class="comp-title-lbl">🏆 Competitor's eBay Title <span style="color:var(--dim);font-weight:400;">(optional — paste a top seller's title to beat it)</span></div>
       <input type="text" class="comp-title-inp" id="compTitle" placeholder="Paste competitor's eBay title here (optional)..." oninput="saveDraftDebounced()"/>
     </div>
@@ -1046,6 +1049,13 @@ function slfSmartTrim(str, maxLen){
   if(lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace);
   return cut.trim();
 }
+// Filler and banned words that must never be padded into an eBay title
+var SLF_STOPWORDS = ['the','and','for','with','from','that','this','your','you','are','was','has','have',
+  'new','hot','sale','free','best','top','nice','great','wow','look','deal','deals','cheap','quality',
+  'premium','amazing','perfect','super','ultra','item','items','product','products','pcs','set','sale',
+  'shipping','fast','ship','buy','now','offer','special','high','good','very','more','most','all','any',
+  'can','will','one','two','use','used','using','get','gets','made','make','makes','also','into','onto'];
+
 // Words that must never be padded into a title (famous brands + this product's own brand)
 function slfIsBrandWord(w){
   var wl = w.toLowerCase();
@@ -1107,6 +1117,7 @@ function slfPadTitle(title){
       if(wl.length < 3) continue;
       if(titleLower.indexOf(wl) > -1) continue;
       if(slfIsBrandWord(word)) continue; // never pad a brand name into the title
+      if(SLF_STOPWORDS.indexOf(wl) > -1) continue; // never pad filler / banned words
       var candidate = title + ' ' + word;
       if(candidate.length <= 80){
         title = candidate;
@@ -1409,6 +1420,7 @@ async function generate(){
     // Box empty   => no brand anywhere; ITEM SPECIFICS Brand: Unbranded.
     var brandGuess = (document.getElementById('brandName').value||'').trim().slice(0,40);
     var brandInTitle = brandGuess && document.getElementById('brandInTitle').checked;
+    var isMultiVar = document.getElementById('multiVar').checked;
     var brandDemand = detectBrandDemand(brandGuess, allKws);
     var isVeroBrand = brandGuess && (typeof slfIsBrandWord==='function') && brandGuess.split(/\s+/).some(function(w){return slfIsBrandWord(w);});
     var brandLine;
@@ -1425,6 +1437,17 @@ async function generate(){
       brandLine = '\n\nBRAND (USER SETTING): Brand is "'+brandGuess+'" and the user explicitly wants it in the MAIN eBay TITLE too (buyers search this brand by name). MANDATORY: START the eBay title with "'+brandGuess+'", then fill the remaining space to 76-80 characters with the top eBay-searched keywords. Also start the HTML HEADING with "'+brandGuess+'", weave it naturally into the DESCRIPTION, and set "Brand: '+brandGuess+'" as the first line of ITEM SPECIFICS. Word everything factually — never claim official/authorised/licensed status.';
     }
     kwLine += brandLine;
+    if(isMultiVar){
+      kwLine += '\n\n=== MULTI-VARIATION LISTING MODE (CRITICAL) ===\n'
+        +'The RAW SOURCE DATA below contains MULTIPLE VARIATIONS of the SAME product pasted one after another (different sizes, colors, pack quantities, etc). This is ONE eBay listing with variations.\n'
+        +'1. You MUST read and use EVERY variation block in the source data — from the first line to the very last. Never stop after the first description. Never ignore, skip, or treat later blocks as duplicates.\n'
+        +'2. MERGE them into ONE unified listing: state shared features (material, construction, brand, purpose, care) ONCE — do not repeat them per variation.\n'
+        +'3. Capture what DIFFERS per variation: color, size, dimensions, weight, pack quantity, capacity, model/part number.\n'
+        +'4. TITLE RULE FOR VARIATIONS: the eBay title must be COMPLETELY GENERIC — do NOT name any specific color, size, or pack quantity, and do NOT write phrases like "Multi Color", "Various Sizes", "S M L" or "2/4/6 Pack". eBay shows the variation dropdown separately and already indexes those values. Use every one of the 76-80 characters for real buyer keywords that apply to ALL variations.\n'
+        +'5. In the DESCRIPTION, add one short paragraph telling buyers to choose their option from the dropdown, and weave the variation words (colors, sizes, pack counts) naturally into the copy for long-tail SEO.\n'
+        +'6. In ITEM SPECIFICS, for fields that differ across variations, list the values comma-separated (e.g. Color: Black, Blue, Red | Size: S, M, L) instead of picking one.\n'
+        +'7. Output the full === VARIATIONS === section described below with EVERY variation listed.\n';
+    }
     var MARKET_LINES = {
       gb: 'MARKET: eBay UK (ebay.co.uk). Use British English spelling (colour, organise, personalise, favourite). Use GBP (£) for any prices. Use UK terms and sizes where relevant.',
       au: 'MARKET: eBay Australia (ebay.com.au). Use Australian English spelling (colour, organise, tyre, aluminium). Use AUD ($) for any prices. Use metric units and Australian terms where relevant.',
@@ -1455,7 +1478,16 @@ async function generate(){
     +(brandInTitle
       ? 'eBay Title — RULE 2 (BRAND IN TITLE): the user wants the brand "'+brandGuess+'" in this title. Put it at the very FRONT, then maximise remaining space with top eBay keywords to reach 76-80 characters.\n'
       : 'eBay Title — RULE 2 (NO BRAND NAMES): do NOT put any brand or manufacturer name in the title. Brand names eat characters that buyers rarely search for, and they raise VeRO risk. Use that space for real buyer keywords instead. The brand belongs in the HTML HEADING, the DESCRIPTION, and the Brand field of ITEM SPECIFICS — never this eBay title.\n')
-    +'eBay Title — RULE 3 (MAX KEYWORDS, eBay FIRST): fill all 76-80 characters with high-value buyer search terms. PRIORITISE the eBay TOP-SEARCH KEYWORDS first — these are exactly what eBay buyers type, so they make the title strongest for eBay ranking. Put the most important eBay keywords near the FRONT of the title. Then fill remaining space with the other buyer keywords (product type, material, size, quantity, colour, feature, use-case). Pack in as many distinct keywords as read naturally. If short, ADD more until 76-80 characters.\n'
+    +'eBay Title — RULE 3 (KEYWORD SELECTION & ORDER — this decides your ranking):\n'
+    +'  3a. STRUCTURE the title in this order: [main product type/noun] + [top eBay keyword phrases] + [key attributes: material, size, quantity, capacity, style] + [use-case / buyer-intent words]. The core product noun and the strongest eBay keyword must both appear in the FIRST 30 characters — eBay weights early words most and mobile truncates the rest.\n'
+    +'  3b. SOURCE the words from the supplied keyword lists, in this priority: (1) eBay TOP-SEARCH KEYWORDS, (2) Amazon keywords, (3) Google keywords. Prefer phrases that appear in MORE THAN ONE source — repeated demand across platforms means proven search volume.\n'
+    +'  3c. USE the exact buyer wording from those lists, not synonyms you invent. If buyers search "heavy duty" do not write "robust"; if they search "stainless steel" do not write "metal".\n'
+    +'  3d. NEVER REPEAT a word. Each word may appear only once in the whole title — duplicates waste characters and add zero ranking value (exception: unavoidable compound terms).\n'
+    +'  3e. BAN these space-wasting words entirely: New, Hot, Sale, Free Shipping, Fast Shipping, Best, Top, Premium Quality, High Quality, Amazing, Perfect, Great, Nice, Wow, L@@K, plus filler words (the, a, an, for the, with a) and ALL punctuation/symbols (! * & ~ - / |). They earn no searches and eBay may penalise them.\n'
+    +'  3f. COVER DIFFERENT SEARCH ANGLES rather than near-duplicates: one product-type phrase, one material/spec phrase, one use-case phrase, one buyer-intent phrase. Do not stack three variations of the same idea.\n'
+    +'  3g. INCLUDE high-value specifics when present in the source data: exact size/dimensions, quantity (e.g. 50Pcs), capacity (32oz), colour family, and compatible model/part numbers — buyers search these directly.\n'
+    +'  3h. READABILITY: it should still read as a scannable product title a human understands, not random comma-free word soup. No commas needed; separate ideas with spaces.\n'
+    +'  3i. FILL the space: if under 76 characters, ADD another distinct high-value keyword from the lists until you reach 76-80. Never submit a short title.\n'
     +(compTitle ? 'BEAT THIS COMPETITOR: A top-selling competitor uses this eBay title: "'+compTitle.replace(/"/g,'')+'". Analyze it. Your title MUST be more SEO-optimized: include every strong keyword they use that fits this product, PLUS additional high-value buyer keywords they missed, in a better order. Do not copy it word-for-word — make it genuinely stronger and still 76-80 characters.\n' : '')
     +'[title here — must be 76 to 80 characters]\n\n'
     +'=== HTML HEADING ===\n'
@@ -1465,6 +1497,9 @@ async function generate(){
     +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
+    +(isMultiVar
+      ? '=== VARIATIONS ===\nList EVERY variation from the source data, one per line, in this exact pipe format (include only the attributes that exist):\nOption: [name] | Color: [x] | Size: [x] | Qty: [x] | Details: [what is unique about this one]\nDo not summarise, do not write "and more", do not merge two variations into one line. Every single variation block in the source data must appear here.\n\n'
+      : '')
     +'=== COMPATIBLE MODELS ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA lists compatible models, vehicles, devices, machines, part numbers or years. If it does, you MUST list EVERY SINGLE compatible model from the source data COMPLETELY — never summarize, compress, shorten, or write "and more". Copy the full compatibility list, organised one model (or model-group) per line, grouped by brand/series where natural. This list is valuable SEO content and buyers search by exact model. If the source data has no compatibility list, OMIT this entire section (do not even print the header).\n\n'
     +'=== SAFETY INFORMATION ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA contains safety information — warnings, hazard notes, choking/age warnings, battery/chemical warnings, California Prop 65 notices, usage cautions, care/safety instructions. Reproduce them ACCURATELY and COMPLETELY (do not soften, shorten or drop any warning — these can be legally required). One point per line. If the source data has no safety information, OMIT this entire section (do not print the header).\n\n'
     +'=== PRO TIPS ===\n5 practical tips numbered: 1. tip\n\n'
@@ -1473,7 +1508,7 @@ async function generate(){
     +'=== SEO METADATA ===\nMeta Title: (under 60 chars)\nMeta Description: (50-160 chars)\nURL Handle: (dashes only)\n\n'
     +'=== TAGS ===\neBay Keywords: (10 terms)\nSocial Hashtags: (10 hashtags)\n\n'
     +'=== RAW SOURCE DATA ===\n'+product;
-    try{var r=await claudeCall(apiKey,ebayPrompt,4500);fullTxt=r;}
+    try{var r=await claudeCall(apiKey,ebayPrompt,isMultiVar?7000:4500);fullTxt=r;}
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
@@ -1563,6 +1598,7 @@ function saveSession(){
       compTitle: document.getElementById('compTitle').value,
       brandName: document.getElementById('brandName').value,
       brandInTitle: document.getElementById('brandInTitle').checked,
+      multiVar: document.getElementById('multiVar').checked,
       imgUrls: document.getElementById('imgUrls').value,
       platform: platform,
       theme: theme,
@@ -1591,6 +1627,7 @@ function saveDraftDebounced(){
       data.compTitle = document.getElementById('compTitle').value;
       data.brandName = document.getElementById('brandName').value;
       data.brandInTitle = document.getElementById('brandInTitle').checked;
+      data.multiVar = document.getElementById('multiVar').checked;
       data.imgUrls = document.getElementById('imgUrls').value;
       data.savedAt = Date.now();
       localStorage.setItem('slf_session', JSON.stringify(data));
@@ -1612,6 +1649,7 @@ function restoreSession(){
     if(d.compTitle){ document.getElementById('compTitle').value = d.compTitle; }
     if(d.brandName){ document.getElementById('brandName').value = d.brandName; }
     if(typeof d.brandInTitle==='boolean'){ document.getElementById('brandInTitle').checked = d.brandInTitle; }
+    if(typeof d.multiVar==='boolean'){ document.getElementById('multiVar').checked = d.multiVar; }
     if(d.imgUrls){ document.getElementById('imgUrls').value = d.imgUrls; if(typeof onImagesInput==='function'){var note=document.getElementById('imgUrlsNote');} }
     // If a full listing was generated, restore the output too
     if(d.fullTxt || d.shopifyTxt || d.tiktokTxt){
@@ -1840,7 +1878,7 @@ function buildShopifyPlainText(S){
 }
 
 function parseListingSections(text){
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var out={},cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -2060,6 +2098,28 @@ function buildHtmlFromListing(listingText,storeName,themeName){
 
   var idealH=tagLines.length>0?'<div class="section"><div class="sec-title">⟡ IDEAL FOR</div><div class="tag-cloud">'+tagLines.map(function(t){return '<span class="tag"><span class="tag-dot">◆</span>'+escHtml(t)+'</span>';}).join('')+'</div></div>':'';
 
+  // Variations — premium option table (conditional)
+  var varH='';
+  var varLines=(S['VARIATIONS']||'').split('\n').map(function(l){return l.replace(/^\s*[-–—•◆▸]\s*/,'').trim();}).filter(function(l){return l.length>2;});
+  if(varLines.length>0){
+    varH='<div class="section"><div class="sec-title">⟡ AVAILABLE OPTIONS</div>'
+      +'<div style="font-size:0.8rem;color:'+T.txt+';opacity:0.85;margin-bottom:0.9rem;">Select your preferred option from the dropdown above before purchase.</div>'
+      +'<div style="display:flex;flex-direction:column;gap:0.5rem;">'
+      +varLines.map(function(l){
+          var parts=l.split('|').map(function(p){return p.trim();}).filter(Boolean);
+          var cells=parts.map(function(p){
+            var ix=p.indexOf(':');
+            if(ix>0){
+              var lab=p.slice(0,ix).trim(), val=p.slice(ix+1).trim();
+              return '<span style="font-size:0.78rem;color:'+T.txt+';"><span style="color:'+T.acc+';font-weight:600;">'+escHtml(lab)+':</span> '+escHtml(val)+'</span>';
+            }
+            return '<span style="font-size:0.78rem;color:'+T.txt+';">'+escHtml(p)+'</span>';
+          }).join('<span style="color:'+T.rb+';margin:0 0.15rem;">|</span>');
+          return '<div style="padding:0.6rem 0.85rem;background:'+T.bg+';border:1px solid '+T.rb+';border-radius:9px;display:flex;flex-wrap:wrap;gap:0.35rem 0.6rem;align-items:center;">'+cells+'</div>';
+        }).join('')
+      +'</div></div>';
+  }
+
   // Compatible Models — full list in a 2-column grid (conditional)
   var compatH='';
   var compatLines=(S['COMPATIBLE MODELS']||'').split('\n').map(function(l){return l.replace(/^\s*[-–—•◆▸]\s*/,'').trim();}).filter(function(l){return l.length>1;});
@@ -2083,12 +2143,12 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   var polH='';
   if(polLines.length>0){polH='<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
 
-  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+imgH+descH+featH+specsH+compatH+tipsH+idealH+safetyH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+imgH+descH+featH+specsH+varH+compatH+tipsH+idealH+safetyH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
 }
 
 function computeQualityScore(text){
   var S={};
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -2210,7 +2270,7 @@ function renderVeroCheck(text){
   if(ot)ot.remove(); if(os)os.remove();
 
   // parse sections so we can say WHERE a term appears
-  var S={}, KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var S={}, KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -2395,8 +2455,8 @@ function highlightKeywords(text,keywords){
 }
 
 function renderListing(text){
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
-  var META={'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'COMPATIBLE MODELS':{l:'🔧 Compatible',c:'c3'},'SAFETY INFORMATION':{l:'⚠ Safety',c:'c5'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
+  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var META={'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'VARIATIONS':{l:'📦 Variations',c:'c4'},'COMPATIBLE MODELS':{l:'🔧 Compatible',c:'c3'},'SAFETY INFORMATION':{l:'⚠ Safety',c:'c5'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
   var parsed=[],cur=null,buf=[];
   text.split('\n').forEach(function(line){var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();if(KEYS.indexOf(cl)>-1){if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});cur=cl;buf=[];}else if(cur)buf.push(line);});
   if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});
@@ -2466,6 +2526,7 @@ function clearAll(){
   document.getElementById('compTitle').value='';
   document.getElementById('brandName').value='';
   document.getElementById('brandInTitle').checked=false;
+  document.getElementById('multiVar').checked=false;
   document.getElementById('imgUrls').value='';
   var _n=document.getElementById('imgUrlsNote'); if(_n)_n.textContent='';
   document.getElementById('charCt').textContent='0 chars';
