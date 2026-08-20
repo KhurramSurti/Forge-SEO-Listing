@@ -108,6 +108,15 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .imgbb-key-inp::placeholder{color:var(--dim);}
 .brand-title-opt{display:flex;align-items:flex-start;gap:8px;margin-top:8px;font-size:11px;color:var(--mist);cursor:pointer;line-height:1.5;}
 .brand-title-opt input{margin-top:2px;accent-color:var(--gold);cursor:pointer;}
+.client-sel{width:100%;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;padding:8px 10px;color:var(--snow);font-family:'Geist',sans-serif;font-size:11px;outline:none;cursor:pointer;margin-bottom:6px;}
+.client-sel:focus{border-color:var(--gold);}
+.client-row{display:flex;gap:5px;margin-bottom:5px;}
+.client-inp{flex:1;background:var(--ink3);border:1px solid var(--wire);border-radius:7px;padding:7px 9px;color:var(--snow);font-family:'Geist',sans-serif;font-size:10.5px;outline:none;}
+.client-inp:focus{border-color:var(--gold);}
+.client-btn{padding:7px 10px;border-radius:7px;border:1px solid var(--wire);background:var(--ink3);color:var(--fog);font-family:'Geist',sans-serif;font-size:10.5px;cursor:pointer;transition:all 0.16s;white-space:nowrap;}
+.client-btn:hover{border-color:var(--gold);color:var(--snow);}
+.client-btn.danger:hover{border-color:#fb7185;color:#fb7185;}
+.client-note{font-size:9px;color:var(--dim);line-height:1.5;margin-top:3px;}
 .product-ta:focus{border-color:rgba(212,168,71,0.35);}
 .product-ta::placeholder{color:var(--dim);font-size:11px;}
 .kw-found{display:none;margin-top:10px;padding:10px 13px;background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.15);border-radius:var(--r);}
@@ -356,6 +365,23 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       </button>
     </div>
   </div>
+  <div class="sb-sec theme-section" id="clientSection">
+    <div class="sb-lbl">👤 Client Profile <span style="font-size:8px;color:var(--dim);margin-left:4px;">(each client = own design)</span></div>
+    <select id="clientSelect" class="client-sel" onchange="onClientChange()"></select>
+    <div class="client-row">
+      <input type="text" id="clientNew" class="client-inp" placeholder="New client name..."/>
+      <button class="client-btn" onclick="addClient()">+ Add</button>
+    </div>
+    <div class="client-row">
+      <button class="client-btn" onclick="saveClient()" style="flex:1;">💾 Save current design</button>
+      <button class="client-btn danger" onclick="deleteClient()">🗑</button>
+    </div>
+    <div class="client-note" id="clientNote"></div>
+  </div>
+  <div class="sb-sec theme-section" id="layoutSection">
+    <div class="sb-lbl">🧩 HTML Layout <span style="font-size:8px;color:var(--dim);margin-left:4px;">(structure, not just color)</span></div>
+    <select id="layoutSelect" class="client-sel" onchange="setLayout(this.value)"></select>
+  </div>
   <div class="sb-sec theme-section" id="themeSection">
     <div class="sb-lbl">HTML Theme <span style="font-size:8px;color:var(--dim);margin-left:4px;">(eBay only)</span></div>
     <div class="th-grid" id="thGrid">
@@ -496,6 +522,9 @@ var lastProduct='', lastStore='';
 window.onload=function(){
   var savedDesign=localStorage.getItem('slf_design')||'glass'; setDesign(savedDesign);
   var savedMarket=localStorage.getItem('slf_market')||'us'; setMarket(savedMarket);
+  layout = localStorage.getItem('slf_layout') || 'editorial';
+  if(!LAYOUTS[layout]) layout='editorial';
+  refreshClientUI();
   var savedImgbb=localStorage.getItem('slf_imgbb'); if(savedImgbb){var ik=document.getElementById('imgbbKey'); if(ik) ik.value=savedImgbb;}
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
   var th=localStorage.getItem('slf_th')||'auto'; theme=th;
@@ -623,6 +652,108 @@ function confirmProceed(){
 }
 var customColor='#ec4899', customMode='dark';
 
+// ══ CLIENT PROFILES ═══════════════════════════════════════════
+// Each client gets its own layout + theme + color + policies so no two
+// stores look like they were built by the same person.
+function slfClients(){ try{ return JSON.parse(localStorage.getItem('slf_clients')||'[]'); }catch(e){ return []; } }
+function slfSaveClients(list){ localStorage.setItem('slf_clients', JSON.stringify(list)); }
+
+function refreshClientUI(){
+  var sel=document.getElementById('clientSelect'); if(!sel) return;
+  var list=slfClients(), cur=localStorage.getItem('slf_client_cur')||'';
+  sel.innerHTML='<option value="">— No client (manual) —</option>'+list.map(function(cl){
+    return '<option value="'+escHtml(cl.name)+'"'+(cl.name===cur?' selected':'')+'>'+escHtml(cl.name)+'</option>';
+  }).join('');
+  var ls=document.getElementById('layoutSelect');
+  if(ls && !ls.options.length){
+    ls.innerHTML=LAYOUT_IDS.map(function(id){ return '<option value="'+id+'">'+LAYOUTS[id].name+'</option>'; }).join('');
+  }
+  if(ls) ls.value=layout;
+  var note=document.getElementById('clientNote');
+  if(note) note.textContent = list.length ? list.length+' client profile'+(list.length>1?'s':'')+' saved on this browser.' : 'Add a client to lock in a unique design for their store.';
+}
+
+function addClient(){
+  var inp=document.getElementById('clientNew');
+  var name=(inp.value||'').trim().slice(0,40);
+  if(!name){ inp.focus(); return; }
+  var list=slfClients();
+  if(list.some(function(c){return c.name.toLowerCase()===name.toLowerCase();})){
+    document.getElementById('clientNote').textContent='⚠ That client already exists.';
+    return;
+  }
+  // auto-assign the next unused layout so each client differs by default
+  var used={}; list.forEach(function(c){used[c.layout]=1;});
+  var pick=LAYOUT_IDS.find(function(id){return !used[id];}) || LAYOUT_IDS[list.length % LAYOUT_IDS.length];
+  list.push({name:name, layout:pick, theme:theme, color:(typeof customColor!=='undefined'?customColor:'#2dd4bf'), policies:(document.getElementById('policies')?document.getElementById('policies').value:'')});
+  slfSaveClients(list);
+  localStorage.setItem('slf_client_cur', name);
+  inp.value='';
+  applyClient(name);
+  refreshClientUI();
+  document.getElementById('clientNote').textContent='✓ "'+name+'" added with the '+LAYOUTS[pick].name+' layout.';
+}
+
+function applyClient(name){
+  var cl=slfClients().find(function(c){return c.name===name;});
+  if(!cl) return;
+  layout = cl.layout || 'editorial';
+  localStorage.setItem('slf_layout', layout);
+  if(cl.color){ customColor=cl.color; localStorage.setItem('slf_cc',cl.color); var ci=document.getElementById('customColor'); if(ci) ci.value=cl.color; }
+  if(cl.policies!==undefined && document.getElementById('policies')) document.getElementById('policies').value=cl.policies;
+  if(cl.theme){
+    theme=cl.theme; localStorage.setItem('slf_th',theme);
+    var btns=document.querySelectorAll('#thGrid .th-opt');
+    btns.forEach(function(b){b.classList.remove('on');});
+    btns.forEach(function(b){ if((b.getAttribute('onclick')||'').indexOf("'"+theme+"'")>-1) b.classList.add('on'); });
+  }
+  var ls=document.getElementById('layoutSelect'); if(ls) ls.value=layout;
+  rebuildHtmlFree();
+}
+
+function onClientChange(){
+  var name=document.getElementById('clientSelect').value;
+  localStorage.setItem('slf_client_cur', name);
+  if(name){ applyClient(name); document.getElementById('clientNote').textContent='Design loaded for "'+name+'".'; }
+  else { document.getElementById('clientNote').textContent='Manual mode — layout & theme not tied to a client.'; }
+}
+
+function saveClient(){
+  var name=document.getElementById('clientSelect').value;
+  if(!name){ document.getElementById('clientNote').textContent='⚠ Select a client first (or add one).'; return; }
+  var list=slfClients();
+  var cl=list.find(function(c){return c.name===name;});
+  if(!cl) return;
+  cl.layout=layout; cl.theme=theme;
+  cl.color=(typeof customColor!=='undefined'?customColor:cl.color);
+  if(document.getElementById('policies')) cl.policies=document.getElementById('policies').value;
+  slfSaveClients(list);
+  document.getElementById('clientNote').textContent='✓ Design saved for "'+name+'" ('+LAYOUTS[layout].name+' layout).';
+}
+
+function deleteClient(){
+  var name=document.getElementById('clientSelect').value;
+  if(!name) return;
+  var list=slfClients().filter(function(c){return c.name!==name;});
+  slfSaveClients(list);
+  localStorage.removeItem('slf_client_cur');
+  refreshClientUI();
+  document.getElementById('clientNote').textContent='Deleted "'+name+'".';
+}
+
+function setLayout(id){
+  layout = LAYOUTS[id] ? id : 'editorial';
+  localStorage.setItem('slf_layout', layout);
+  rebuildHtmlFree();
+}
+
+// Free re-render of the HTML with current layout/theme (no API call)
+function rebuildHtmlFree(){
+  if(platform==='ebay' && fullTxt){
+    try{ genHtml=buildHtmlFromListing(fullTxt,'',resolveTheme(theme)); renderHtml(genHtml); saveSession(); }catch(e){}
+  }
+}
+
 function setTheme(t,btn){
   theme=t; localStorage.setItem('slf_th',t);
   document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});
@@ -662,6 +793,26 @@ function setStep(n){for(var i=1;i<=3;i++){var el=document.getElementById('ps'+i)
 function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getElementById('kc-'+id),d=r.querySelector('.kw-d');r.classList.remove('kw-ok','kw-go','kw-no');d.classList.remove('sp');if(st==='go'){r.classList.add('kw-go');d.classList.add('sp');}else if(st==='ok')r.classList.add('kw-ok');else if(st==='no')r.classList.add('kw-no');if(ct!==undefined)c.textContent=ct>0?ct+'kws':'0';}
 
 // Backend URL — your deployed Vercel server for REAL keywords
+// ══ LAYOUT TEMPLATES (structurally different HTML per client) ══
+// Colors alone are not enough — each client needs a different STRUCTURE so
+// their listings don't look like they came from the same operator.
+var LAYOUTS = {
+  editorial: { name:'Editorial',   mark:'⟡ ', align:'left',   caseT:'upper', feat:'grid',    spec:'rows',   order:'default',    radius:14, hFont:"'Inter',sans-serif",              foot:'Premium Quality Products | Fast and Free Shipping | Trusted Seller', divider:false, card:'raised',  hero:'gradient' },
+  minimal:   { name:'Minimal',     mark:'',   align:'left',   caseT:'title', feat:'list',    spec:'rows',   order:'default',    radius:4,  hFont:"'Inter',sans-serif",              foot:'Quality Guaranteed · Fast Dispatch · Easy Returns',                  divider:true,  card:'flat',    hero:'plain' },
+  boxed:     { name:'Boxed',       mark:'▪ ', align:'left',   caseT:'upper', feat:'cards',   spec:'table',  order:'specsfirst', radius:10, hFont:"'Inter',sans-serif",              foot:'Fast Shipping | Secure Packaging | Buy With Confidence',             divider:false, card:'outline', hero:'bordered' },
+  centered:  { name:'Centered',    mark:'',   align:'center', caseT:'upper', feat:'grid',    spec:'table',  order:'default',    radius:18, hFont:"'Inter',sans-serif",              foot:'Trusted Seller · Quick Delivery · Satisfaction First',               divider:true,  card:'raised',  hero:'band' },
+  classic:   { name:'Classic',     mark:'',   align:'left',   caseT:'title', feat:'numbered',spec:'rows',   order:'featlast',   radius:6,  hFont:"Georgia,'Times New Roman',serif", foot:'Established Quality — Dispatched Same Working Day',                  divider:true,  card:'outline', hero:'plain' },
+  compact:   { name:'Compact',     mark:'● ', align:'left',   caseT:'title', feat:'list',    spec:'inline', order:'specsfirst', radius:8,  hFont:"'Inter',sans-serif",              foot:'Ships Fast · 30-Day Returns · Rated Seller',                         divider:false, card:'flat',    hero:'plain' },
+  gallery:   { name:'Gallery',     mark:'',   align:'center', caseT:'title', feat:'cards',   spec:'cards',  order:'default',    radius:20, hFont:"'Inter',sans-serif",              foot:'Curated Selection · Carefully Packed · Fast Worldwide Dispatch',     divider:false, card:'none',    hero:'band' },
+  technical: { name:'Technical',   mark:'▸ ', align:'left',   caseT:'upper', feat:'table',   spec:'table',  order:'specsfirst', radius:2,  hFont:"'Inter',sans-serif",              foot:'Accurate Specifications | Tested Quality | Rapid Dispatch',          divider:true,  card:'outline', hero:'bordered' },
+  journal:   { name:'Journal',     mark:'— ', align:'left',   caseT:'title', feat:'list',    spec:'twocol', order:'featlast',   radius:0,  hFont:"Georgia,'Times New Roman',serif", foot:'Thoughtfully Sourced — Shipped With Care',                           divider:true,  card:'none',    hero:'plain' },
+  showcase:  { name:'Showcase',    mark:'✦ ', align:'center', caseT:'upper', feat:'numbered',spec:'rows',   order:'default',    radius:16, hFont:"'Inter',sans-serif",              foot:'Handpicked Quality · Secure Checkout · Fast Delivery',               divider:false, card:'raised',  hero:'gradient' },
+  utility:   { name:'Utility',     mark:'» ', align:'left',   caseT:'upper', feat:'twocheck',spec:'twocol', order:'specsfirst', radius:6,  hFont:"'Inter',sans-serif",              foot:'Built To Last | Same-Day Handling | Hassle-Free Returns',            divider:true,  card:'flat',    hero:'bordered' },
+  softcard:  { name:'Soft Card',   mark:'',   align:'left',   caseT:'title', feat:'twocheck',spec:'cards',  order:'default',    radius:22, hFont:"'Inter',sans-serif",              foot:'Friendly Service · Quick Shipping · Easy Returns',                   divider:false, card:'raised',  hero:'band' }
+};
+var LAYOUT_IDS = ['editorial','minimal','boxed','centered','classic','compact','gallery','technical','journal','showcase','utility','softcard'];
+var layout = 'editorial';
+
 // ══ CATEGORY → THEME AUTO-DETECTION ═══════════════════════════
 // Reads the product text and picks the best-matching premium theme.
 var CATEGORY_THEMES = [
@@ -1608,6 +1759,7 @@ function saveSession(){
       brandName: document.getElementById('brandName').value,
       brandInTitle: document.getElementById('brandInTitle').checked,
       multiVar: document.getElementById('multiVar').checked,
+      layout: layout,
       imgUrls: document.getElementById('imgUrls').value,
       platform: platform,
       theme: theme,
@@ -1667,6 +1819,7 @@ function restoreSession(){
       fullTxt = d.fullTxt||'';
       genHtml = d.genHtml||'';
       shopifyTxt = d.shopifyTxt||'';
+      if(d.layout && LAYOUTS[d.layout]){ layout=d.layout; var _ls=document.getElementById('layoutSelect'); if(_ls)_ls.value=layout; }
       tiktokTxt = d.tiktokTxt||'';
       allKws = d.allKws||[];
       lastCompetitors = d.competitors||[];
@@ -1971,6 +2124,14 @@ function buildHtmlFromListing(listingText,storeName,themeName){
     rose:{bg:'#FDF4F7',card:'#FFFFFF',bc:'rgba(224,68,124,0.25)',acc:'#e0447c',txt:'#5B4049',h1:'#3D1F2B,#E0447C',badge:'rgba(224,68,124,0.1)',badgeTxt:'#e0447c',rb:'rgba(224,68,124,0.16)'},
   };
   var T=TH[themeName]||TH.heritage;
+  var L = LAYOUTS[layout] || LAYOUTS.editorial;
+  function ST(t){
+    var txt = L.caseT==='upper' ? t.toUpperCase() : toTitleCase(t.toLowerCase());
+    var extra = 'text-align:'+L.align+';display:block;';
+    if(L.divider) extra += 'border-bottom:1px solid '+T.rb+';padding-bottom:0.5rem;';
+    return '<div class="sec-title" style="'+extra+'">'+L.mark+txt+'</div>';
+  }
+
 
   // Custom theme: build a full palette from one picked color + dark/light mode
   if(themeName==='custom'){
@@ -2044,9 +2205,14 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   function fd(p){return p.trim().replace(/\*\*(.*?)\*\*/g,'<strong style="color:'+T.acc+'">$1</strong>');}
 
   var css='*{margin:0;padding:0;box-sizing:border-box;}'
-  +'body{font-family:Inter,-apple-system,sans-serif;background:'+T.bg+';color:'+T.txt+';line-height:1.5;}'
+  +'body{font-family:'+L.hFont+',-apple-system,sans-serif;background:'+T.bg+';color:'+T.txt+';line-height:1.5;}'
   +'.wrap{max-width:1280px;margin:0 auto;padding:2rem 1.5rem;}'
-  +'.section{margin-bottom:2rem;background:'+T.card+';border-radius:28px;padding:1.8rem 2rem;border:1px solid '+T.bc+';box-shadow:0 20px 35px -10px rgba(0,0,0,0.5);}'
+  +'.section{'+(
+      L.card==='none'    ? 'margin-bottom:2.4rem;background:transparent;border:none;padding:0 0 1.4rem 0;border-bottom:1px solid '+T.rb+';'
+    : L.card==='flat'    ? 'margin-bottom:1.6rem;background:'+T.card+';border:none;border-left:3px solid '+T.acc+';border-radius:'+L.radius+'px;padding:1.4rem 1.6rem;'
+    : L.card==='outline' ? 'margin-bottom:1.8rem;background:transparent;border:1px solid '+T.bc+';border-radius:'+L.radius+'px;padding:1.5rem 1.8rem;'
+    : 'margin-bottom:2rem;background:'+T.card+';border-radius:'+(L.radius*1.6)+'px;padding:1.8rem 2rem;border:1px solid '+T.bc+';box-shadow:0 20px 35px -10px rgba(0,0,0,0.45);'
+    )+'}'
   +'.sec-title{font-size:1.6rem;font-weight:700;margin-bottom:1.2rem;display:inline-block;background:linear-gradient(135deg,'+T.h1+');-webkit-background-clip:text;background-clip:text;color:transparent;border-left:4px solid '+T.acc+';padding-left:1rem;}'
   +'.desc-text{font-size:1rem;line-height:1.65;color:'+T.txt+';margin-bottom:1rem;}'
   +'.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.9rem;margin-top:0.5rem;}'
@@ -2069,8 +2235,15 @@ function buildHtmlFromListing(listingText,storeName,themeName){
 
   var headColor = T.acc;
   if(T.h1){ var hp=T.h1.split(','); headColor = (hp[0].trim().toUpperCase()==='#FFFFFF' && (typeof customMode==='undefined' || customMode!=='light')) ? (hp[1]?hp[1].trim():T.acc) : hp[0].trim(); }
-  var heroH='<div class="section" style="background:linear-gradient(125deg,'+T.card+' 0%,'+T.bg+' 100%);border:1px solid '+T.bc+';">'
-  +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;color:'+headColor+';">'+escHtml(headingText)+'</h1>'
+  var heroBg =
+      L.hero==='band'     ? 'background:'+T.acc+';border:none;'
+    : L.hero==='plain'    ? 'background:transparent;border:none;border-bottom:2px solid '+T.acc+';box-shadow:none;'
+    : L.hero==='bordered' ? 'background:'+T.card+';border:2px solid '+T.acc+';box-shadow:none;'
+    : 'background:linear-gradient(125deg,'+T.card+' 0%,'+T.bg+' 100%);border:1px solid '+T.bc+';';
+  var heroColor = (L.hero==='band') ? (T.bg.toLowerCase()==='#ffffff' ? '#111111' : '#FFFFFF') : headColor;
+  var heroAlign = (L.align==='center') ? 'text-align:center;' : '';
+  var heroH='<div class="section" style="'+heroBg+heroAlign+'">'
+  +'<h1 style="font-size:2.4rem;font-weight:800;line-height:1.25;color:'+heroColor+';">'+escHtml(headingText)+'</h1>'
   +'</div>';
 
   // ── Product images: hero + gallery (URL-based, eBay-safe) ──
@@ -2089,29 +2262,78 @@ function buildHtmlFromListing(listingText,storeName,themeName){
     imgH+='</div>';
   }
 
-  var descH=descParas.length>0?'<div class="section"><div class="sec-title">⟡ DESCRIPTION</div>'+descParas.map(function(p){return '<p class="desc-text">'+fd(p)+'</p>';}).join('')+'</div>':'';
+  var descH=descParas.length>0?'<div class="section">'+ST('DESCRIPTION')+descParas.map(function(p){return '<p class="desc-text">'+fd(p)+'</p>';}).join('')+'</div>':'';
 
   var featH='';
   if(featLines.length>0){
-    var fg='<div class="feat-grid">';
-    featLines.forEach(function(f){var c=f.replace(/^✅\s*/,'').replace(/^[-•]\s*/,''),parts=c.split(/\s*—\s*/),b=parts[0]||c,d=parts[1]||'';fg+='<div class="feat-item"><span style="font-size:1.1rem;color:'+T.acc+';flex-shrink:0;">'+(f.indexOf('✅')>-1?'✅':'🔹')+'</span><span style="font-size:0.92rem;color:'+T.txt+';"><strong style="color:'+T.acc+';">'+escHtml(b)+'</strong>'+(d?' — <span style="opacity:0.8;">'+escHtml(d)+'</span>':'')+'</span></div>';});
-    fg+='</div>';
-    featH='<div class="section"><div class="sec-title">⟡ KEY FEATURES</div>'+fg+'</div>';
+    var items = featLines.map(function(f){
+      var cc=f.replace(/^✅\s*/,'').replace(/^[-•]\s*/,''), parts=cc.split(/\s*—\s*/);
+      return {b:(parts[0]||cc), d:(parts[1]||'')};
+    });
+    var fg='';
+    if(L.feat==='list'){
+      fg='<div style="display:flex;flex-direction:column;gap:0.55rem;">'+items.map(function(it){
+        return '<div style="display:flex;gap:0.6rem;align-items:flex-start;font-size:0.9rem;color:'+T.txt+';"><span style="color:'+T.acc+';">✓</span><span><strong style="color:'+T.acc+';">'+escHtml(it.b)+'</strong>'+(it.d?' — <span style="opacity:0.85;">'+escHtml(it.d)+'</span>':'')+'</span></div>';
+      }).join('')+'</div>';
+    } else if(L.feat==='cards'){
+      fg='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0.7rem;">'+items.map(function(it){
+        return '<div style="background:'+T.bg+';border:1px solid '+T.rb+';border-radius:'+L.radius+'px;padding:0.85rem 1rem;"><div style="font-size:0.9rem;font-weight:700;color:'+T.acc+';margin-bottom:0.3rem;">'+escHtml(it.b)+'</div>'+(it.d?'<div style="font-size:0.82rem;color:'+T.txt+';opacity:0.85;line-height:1.55;">'+escHtml(it.d)+'</div>':'')+'</div>';
+      }).join('')+'</div>';
+    } else if(L.feat==='numbered'){
+      fg='<div style="display:flex;flex-direction:column;gap:0.6rem;">'+items.map(function(it,ix){
+        return '<div style="display:flex;gap:0.75rem;align-items:flex-start;"><span style="min-width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid '+T.bc+';color:'+T.acc+';font-size:0.75rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">'+(ix+1)+'</span><span style="font-size:0.9rem;color:'+T.txt+';"><strong style="color:'+T.acc+';">'+escHtml(it.b)+'</strong>'+(it.d?' — <span style="opacity:0.85;">'+escHtml(it.d)+'</span>':'')+'</span></div>';
+      }).join('')+'</div>';
+    } else if(L.feat==='table'){
+      fg='<table style="width:100%;border-collapse:collapse;">'+items.map(function(it,ix){
+        return '<tr><td style="padding:0.5rem 0.8rem;border:1px solid '+T.rb+';background:'+(ix%2===0?T.bg:'transparent')+';font-size:0.85rem;color:'+T.acc+';font-weight:600;width:34%;">'+escHtml(it.b)+'</td><td style="padding:0.5rem 0.8rem;border:1px solid '+T.rb+';font-size:0.84rem;color:'+T.txt+';">'+escHtml(it.d||'Included')+'</td></tr>';
+      }).join('')+'</table>';
+    } else if(L.feat==='twocheck'){
+      fg='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0.5rem 1.4rem;">'+items.map(function(it){
+        return '<div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.35rem 0;border-bottom:1px solid '+T.rb+';"><span style="color:'+T.acc+';font-weight:700;">✓</span><span style="font-size:0.86rem;color:'+T.txt+';"><strong style="color:'+T.acc+';">'+escHtml(it.b)+'</strong>'+(it.d?'<br><span style="opacity:0.8;font-size:0.8rem;">'+escHtml(it.d)+'</span>':'')+'</span></div>';
+      }).join('')+'</div>';
+    } else {
+      fg='<div class="feat-grid">'+items.map(function(it){
+        return '<div class="feat-item"><span style="font-size:1.1rem;color:'+T.acc+';flex-shrink:0;">🔹</span><span style="font-size:0.92rem;color:'+T.txt+';"><strong style="color:'+T.acc+';">'+escHtml(it.b)+'</strong>'+(it.d?' — <span style="opacity:0.8;">'+escHtml(it.d)+'</span>':'')+'</span></div>';
+      }).join('')+'</div>';
+    }
+    featH='<div class="section">'+ST('KEY FEATURES')+''+fg+'</div>';
   }
 
   var specsH='';
-  if(specParsed.length>0){var sr='<div class="specs-wrap">'+specParsed.map(function(s){return '<div class="spec-row"><div class="spec-l">'+escHtml(s.label)+'</div><div class="spec-v">'+escHtml(s.value)+'</div></div>';}).join('')+'</div>';specsH='<div class="section"><div class="sec-title">⟡ SPECIFICATIONS</div>'+sr+'</div>';}
+  if(specParsed.length>0){
+    var sr='';
+    if(L.spec==='table'){
+      sr='<table style="width:100%;border-collapse:collapse;">'+specParsed.map(function(s,ix){
+        return '<tr style="background:'+(ix%2===0?T.bg:'transparent')+';"><td style="padding:0.55rem 0.85rem;font-size:0.82rem;color:'+T.acc+';font-weight:600;border:1px solid '+T.rb+';width:38%;">'+escHtml(s.label)+'</td><td style="padding:0.55rem 0.85rem;font-size:0.85rem;color:'+T.txt+';border:1px solid '+T.rb+';">'+escHtml(s.value)+'</td></tr>';
+      }).join('')+'</table>';
+    } else if(L.spec==='inline'){
+      sr='<div style="display:flex;flex-wrap:wrap;gap:0.45rem;">'+specParsed.map(function(s){
+        return '<span style="font-size:0.78rem;padding:0.35rem 0.7rem;border:1px solid '+T.rb+';border-radius:'+L.radius+'px;color:'+T.txt+';background:'+T.bg+';"><span style="color:'+T.acc+';font-weight:600;">'+escHtml(s.label)+':</span> '+escHtml(s.value)+'</span>';
+      }).join('')+'</div>';
+    } else if(L.spec==='twocol'){
+      sr='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0.3rem 1.6rem;">'+specParsed.map(function(s){
+        return '<div style="display:flex;justify-content:space-between;gap:0.8rem;padding:0.4rem 0;border-bottom:1px dotted '+T.rb+';"><span style="font-size:0.8rem;color:'+T.acc+';font-weight:600;">'+escHtml(s.label)+'</span><span style="font-size:0.82rem;color:'+T.txt+';text-align:right;">'+escHtml(s.value)+'</span></div>';
+      }).join('')+'</div>';
+    } else if(L.spec==='cards'){
+      sr='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.6rem;">'+specParsed.map(function(s){
+        return '<div style="background:'+T.bg+';border:1px solid '+T.rb+';border-radius:'+L.radius+'px;padding:0.7rem 0.85rem;text-align:center;"><div style="font-size:0.68rem;color:'+T.acc+';text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">'+escHtml(s.label)+'</div><div style="font-size:0.88rem;color:'+T.txt+';font-weight:600;">'+escHtml(s.value)+'</div></div>';
+      }).join('')+'</div>';
+    } else {
+      sr='<div class="specs-wrap">'+specParsed.map(function(s){return '<div class="spec-row"><div class="spec-l">'+escHtml(s.label)+'</div><div class="spec-v">'+escHtml(s.value)+'</div></div>';}).join('')+'</div>';
+    }
+    specsH='<div class="section">'+ST('SPECIFICATIONS')+sr+'</div>';
+  }
 
   var tipsH='';
-  if(parsedTips.length>0){tipsH='<div class="section"><div class="sec-title">⟡ PRO TIPS</div>'+parsedTips.map(function(t,i){return '<div class="tip-card"><div class="tip-num">0'+(i+1)+'</div><div class="tip-body"><strong>'+escHtml(t.title)+'</strong>'+(t.body?' — '+escHtml(t.body):'')+'</div></div>';}).join('')+'</div>';}
+  if(parsedTips.length>0){tipsH='<div class="section">'+ST('PRO TIPS')+''+parsedTips.map(function(t,i){return '<div class="tip-card"><div class="tip-num">0'+(i+1)+'</div><div class="tip-body"><strong>'+escHtml(t.title)+'</strong>'+(t.body?' — '+escHtml(t.body):'')+'</div></div>';}).join('')+'</div>';}
 
-  var idealH=tagLines.length>0?'<div class="section"><div class="sec-title">⟡ IDEAL FOR</div><div class="tag-cloud">'+tagLines.map(function(t){return '<span class="tag"><span class="tag-dot">◆</span>'+escHtml(t)+'</span>';}).join('')+'</div></div>':'';
+  var idealH=tagLines.length>0?'<div class="section">'+ST('IDEAL FOR')+'<div class="tag-cloud">'+tagLines.map(function(t){return '<span class="tag"><span class="tag-dot">◆</span>'+escHtml(t)+'</span>';}).join('')+'</div></div>':'';
 
   // Variations — premium option table (conditional)
   var varH='';
   var varLines=(S['VARIATIONS']||'').split('\n').map(function(l){return l.replace(/^\s*[-–—•◆▸]\s*/,'').trim();}).filter(function(l){return l.length>2;});
   if(varLines.length>0){
-    varH='<div class="section"><div class="sec-title">⟡ AVAILABLE OPTIONS</div>'
+    varH='<div class="section">'+ST('AVAILABLE OPTIONS')+''
       +'<div style="font-size:0.8rem;color:'+T.txt+';opacity:0.85;margin-bottom:0.9rem;">Select your preferred option from the dropdown above before purchase.</div>'
       +'<div style="display:flex;flex-direction:column;gap:0.5rem;">'
       +varLines.map(function(l){
@@ -2133,7 +2355,7 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   var compatH='';
   var compatLines=(S['COMPATIBLE MODELS']||'').split('\n').map(function(l){return l.replace(/^\s*[-–—•◆▸]\s*/,'').trim();}).filter(function(l){return l.length>1;});
   if(compatLines.length>0){
-    compatH='<div class="section"><div class="sec-title">⟡ COMPATIBLE MODELS</div>'
+    compatH='<div class="section">'+ST('COMPATIBLE MODELS')+''
       +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:0.45rem 1.2rem;">'
       +compatLines.map(function(l){return '<div style="font-size:0.82rem;color:'+T.txt+';padding:0.3rem 0;border-bottom:1px solid '+T.rb+';"><span style="color:'+T.acc+';margin-right:0.5rem;">✓</span>'+escHtml(l)+'</div>';}).join('')
       +'</div></div>';
@@ -2144,15 +2366,21 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   var safetyLines=(S['SAFETY INFORMATION']||'').split('\n').map(function(l){return l.replace(/^\s*[-–—•◆▸]\s*/,'').trim();}).filter(function(l){return l.length>1;});
   if(safetyLines.length>0){
     safetyH='<div class="section" style="border:1px solid rgba(245,158,11,0.45);background:'+T.card+';">'
-      +'<div class="sec-title" style="color:#f59e0b;-webkit-text-fill-color:#f59e0b;">⚠ SAFETY INFORMATION</div>'
+      +'<div class="sec-title" style="color:#f59e0b;-webkit-text-fill-color:#f59e0b;text-align:'+L.align+';display:block;">⚠ '+(L.caseT==='upper'?'SAFETY INFORMATION':'Safety Information')+'</div>'
       +safetyLines.map(function(l){return '<div style="font-size:0.84rem;color:'+T.txt+';padding:0.35rem 0;line-height:1.6;"><span style="color:#f59e0b;margin-right:0.5rem;">⚠</span>'+escHtml(l)+'</div>';}).join('')
       +'</div>';
   }
 
   var polH='';
-  if(polLines.length>0){polH='<div class="section"><div class="sec-title">⟡ SHIPPING &amp; RETURNS</div><div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
+  if(polLines.length>0){polH='<div class="section">'+ST('SHIPPING &amp; RETURNS')+'<div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
 
-  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+heroH+imgH+descH+featH+specsH+varH+compatH+tipsH+idealH+safetyH+polH+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">Premium Quality Products &nbsp;|&nbsp; Fast and Free Shipping &nbsp;|&nbsp; Trusted Seller</div>\n</div>\n</body>\n</html>';
+  // Section order varies by layout so two clients never share the same flow
+  var bodyOrder;
+  if(L.order==='specsfirst')    bodyOrder = heroH+imgH+descH+specsH+varH+featH+compatH+tipsH+idealH+safetyH+polH;
+  else if(L.order==='featlast') bodyOrder = heroH+imgH+descH+specsH+varH+compatH+idealH+featH+tipsH+safetyH+polH;
+  else                          bodyOrder = heroH+imgH+descH+featH+specsH+varH+compatH+tipsH+idealH+safetyH+polH;
+
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+bodyOrder+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">'+escHtml(L.foot)+'</div>\n</div>\n</body>\n</html>';
 }
 
 function computeQualityScore(text){
