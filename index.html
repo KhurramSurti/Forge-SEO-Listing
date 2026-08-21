@@ -1200,6 +1200,25 @@ function slfSmartTrim(str, maxLen){
   if(lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace);
   return cut.trim();
 }
+// A token that looks like a spec (2m, 32oz, 50pcs, 12v, 1080p, 5-pack, 100ml...).
+// These come from OTHER sellers' keywords, so padding one in would state a false
+// measurement. Only allow it if that exact token is in the user's own product text.
+function slfIsSpecToken(word){
+  var wl=String(word).toLowerCase();
+  var looksSpec = /^\d+[a-z"']*$/.test(wl)                      // 2m, 32oz, 50pcs, 12v
+    || /^\d+[.,]\d+/.test(wl)                                   // 1.5m
+    || /^\d+[-x×]\d+/.test(wl)                                  // 10x20, 5-pack
+    || /^(x|pack|pcs|pc|set|pair|count|ct)$/.test(wl) === false && /\d/.test(wl); // any token containing a digit
+  if(!looksSpec) return false;
+  try{
+    var src=(document.getElementById('productInput').value||'').toLowerCase();
+    var esc=wl.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    // allow only if the user's own source data contains this exact token
+    if(new RegExp('(^|[^a-z0-9])'+esc+'([^a-z0-9]|$)','i').test(src)) return false;
+  }catch(e){}
+  return true;
+}
+
 // Filler and banned words that must never be padded into an eBay title
 var SLF_STOPWORDS = ['the','and','for','with','from','that','this','your','you','are','was','has','have',
   'new','hot','sale','free','best','top','nice','great','wow','look','deal','deals','cheap','quality',
@@ -1269,6 +1288,7 @@ function slfPadTitle(title){
       if(titleLower.indexOf(wl) > -1) continue;
       if(slfIsBrandWord(word)) continue; // never pad a brand name into the title
       if(SLF_STOPWORDS.indexOf(wl) > -1) continue; // never pad filler / banned words
+      if(slfIsSpecToken(word)) continue; // never pad a measurement/quantity that isn't in the source data
       var candidate = title + ' ' + word;
       if(candidate.length <= 80){
         title = candidate;
@@ -1630,6 +1650,15 @@ async function generate(){
     +'9. If the competitor title provided contains brand names your product is not, do NOT copy those brand names into your title.\n'
     +'10. NEVER use trademarked feature/material/product-type words as generic descriptions — these trigger instant eBay blocks. Use the generic term instead: Lightning→"fast charging"/"for 8-pin devices", MagSafe→"magnetic wireless charging", Velcro→"hook and loop", Teflon→"non-stick", Styrofoam→"foam", Plexiglass→"acrylic", Kleenex→"facial tissue", Band-Aid→"adhesive bandage", Q-tips→"cotton swabs", Frisbee→"flying disc", Thermos→"vacuum insulated flask", Crock-Pot→"slow cooker", Tupperware→"food storage container", Bubble Wrap→"air cushion wrap", Jibbitz→"shoe charms", PopSocket→"phone grip", Squishmallow→"plush toy", Sawzall→"reciprocating saw", Onesie→"infant bodysuit". Only name such a term if the source data proves the item genuinely IS that branded product.\n'
     +'When unsure, choose the safer, brand-free wording. A slightly less keyword-rich listing that stays live beats an optimised listing that gets removed.\n\n'
+    +'=== FACTUAL ACCURACY — NEVER INVENT PRODUCT DATA (HIGHEST PRIORITY) ===\n'
+    +'Buyers order based on these numbers, and a wrong one causes returns, refunds and defects on the account. Therefore:\n'
+    +'1. NEVER state any measurement, dimension, length, width, height, diameter, weight, capacity, volume, wattage, voltage, material, colour, pack quantity or model number unless that exact value appears in the RAW SOURCE DATA below. Do not infer it, do not use a typical value for this kind of product, do not guess from the product name, and do not rely on anything you know about similar products.\n'
+    +'2. The supplied KEYWORD LISTS are for SEO wording ONLY. They come from other sellers listings and describe DIFFERENT products. Never take a number, size, capacity or pack count from a keyword (e.g. if a keyword says "32oz" or "2 pack" but the source data does not, that value is FALSE for this item and must not be used anywhere).\n'
+    +'3. If a spec is not in the source data, OMIT that field completely. Do not write a placeholder number, do not estimate a range, and do not write "approx". Omitting a field is always safer than inventing one.\n'
+    +'4. In ITEM SPECIFICS, only output fields whose values are supported by the source data. If eBay marks a field as required but the source data has no value for it, write "See title and photos" or an accurate non-numeric value — never a made-up number.\n'
+    +'5. In the TITLE, only include a size, length, capacity or quantity if that exact value is in the source data.\n'
+    +'6. In DESCRIPTION, KEY FEATURES and PRO TIPS, do not describe capabilities, certifications, compatibility or performance figures that are not stated in the source data.\n'
+    +'7. If the source data is vague, write persuasive copy about what IS stated rather than filling gaps with invented detail.\n\n'
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
     +'=== BRAND CHECK ===\nUse the BRAND DEMAND guidance above to decide. Output:\nBrand: [name or Unbranded] | Searched by buyers: [Yes/No] | VeRO Risk: [High/Medium/Low] | Placement: [where you will mention it: Description + Item Specifics / Item Specifics only / Unbranded]\nReason: [one short line explaining your decision]\n\n'
@@ -1656,7 +1685,7 @@ async function generate(){
     +'=== ITEM SPECIFICS ===\n'
     +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, they OVERRIDE your own guesses — output EVERY required field and every applicable recommended field using those exact field names and preferred values. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
-    +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value\n\n'
+    +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value. ONLY list specs whose values appear in the RAW SOURCE DATA. Never invent or estimate a measurement, weight, capacity or material, and never take one from the keyword lists. If a spec is unknown, leave it out entirely.\n\n'
     +(isMultiVar
       ? '=== VARIATIONS ===\nList EVERY variation from the source data, one per line, in this exact pipe format (include only the attributes that exist):\nOption: [name] | Color: [x] | Size: [x] | Qty: [x] | Details: [what is unique about this one]\nDo not summarise, do not write "and more", do not merge two variations into one line. Every single variation block in the source data must appear here.\n\n'
       : '')
@@ -1675,6 +1704,7 @@ async function generate(){
   if(platform==='shopify'){
     var kwLineS=allKws.length>0?'\n\nKEYWORDS TO USE:\n'+allKws.join(', '):'';
     var shopifyPrompt='You are a Shopify SEO Copywriter for 2026.\n'
+    +'FACTUAL ACCURACY (critical): never state any measurement, dimension, weight, capacity, material, colour, pack quantity or model number unless it appears in the RAW SOURCE DATA. Do not infer typical values for this kind of product and do not take numbers from keyword lists. If a spec is unknown, omit it entirely.\n'
     +'CRITICAL RULES: NO markdown (*,**,#,>,`,~,_). NO dashes as list markers. NO em/en dashes. Section headings ALL CAPS on own line.\n'
     +kwLineS+'\n\n'
     +'SHOPIFY TITLE\n\n[50-70 char title]\n\n'
@@ -1706,6 +1736,7 @@ async function generate(){
     +'MARKET: TikTok Shop USA. American English. USD.\n'
     +'CRITICAL: NO markdown symbols (*,**,#,>,`). Use EXACTLY these === section markers.\n'
     +kwLineT+brandLineT+'\n\n'
+    +'=== FACTUAL ACCURACY: never state any measurement, dimension, weight, capacity, material, colour, pack quantity or model number unless it appears in the RAW SOURCE DATA. Do not infer typical values and do not take numbers from the keyword lists (those come from other sellers different products). If a spec is unknown, omit it. ===\n\n'
     +'=== eBay-style VeRO / IP COMPLIANCE ALSO APPLIES: no counterfeit words (replica, inspired by, 1:1, AAA), no unauthorised brand names, no protected characters/franchises, 100% original copy. TikTok screens counterfeits strictly. ===\n\n'
     +'=== CATEGORY ===\n'
     +'Pick the best TikTok Shop US category path for this product from this L1 list (then suggest the deeper L2 > L3 path from your knowledge):\n'+TIKTOK_CATS.join('\n')+'\n'
