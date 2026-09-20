@@ -614,8 +614,19 @@ function closeSidebarMobile(){
   }
 }
 
-function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p!=='ebay');
-  var _tw=document.getElementById('ttKwWrap'); if(_tw) _tw.style.display = (p==='tiktok') ? 'block' : 'none';}
+// Keep the sidebar in sync with the actual platform value (used after session restore)
+function syncPlatformUI(){
+  document.querySelectorAll('#platOpts .p-opt').forEach(function(b){
+    var oc=b.getAttribute('onclick')||'';
+    b.classList.toggle('on', oc.indexOf("'"+platform+"'")>-1);
+  });
+  var ts=document.getElementById('themeSection'); if(ts) ts.classList.toggle('hidden', platform!=='ebay');
+  var ls=document.getElementById('layoutSection'); if(ls) ls.style.display = (platform==='ebay') ? '' : 'none';
+  var cs=document.getElementById('clientSection'); if(cs) cs.style.display = (platform==='ebay') ? '' : 'none';
+  var tw=document.getElementById('ttKwWrap'); if(tw) tw.style.display = (platform==='tiktok') ? 'block' : 'none';
+}
+
+function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');syncPlatformUI();}
 
 // Confirmation modal logic for Shopify & Off-Page SEO (extra safety layer to avoid accidental credit use)
 var pendingAction=null, pendingBtn=null;
@@ -1903,7 +1914,7 @@ function restoreSession(){
     // If a full listing was generated, restore the output too
     if(d.fullTxt || d.shopifyTxt || d.tiktokTxt){
       platform = d.platform||'ebay';
-      var _tw2=document.getElementById('ttKwWrap'); if(_tw2) _tw2.style.display = (platform==='tiktok') ? 'block' : 'none';
+      syncPlatformUI();
       theme = d.theme||'heritage';
       fullTxt = d.fullTxt||'';
       genHtml = d.genHtml||'';
