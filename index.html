@@ -439,6 +439,10 @@ Free Shipping: No hidden fees.
       <div class="comp-title-lbl">🏆 Competitor's eBay Title <span style="color:var(--dim);font-weight:400;">(optional — paste a top seller's title to beat it)</span></div>
       <input type="text" class="comp-title-inp" id="compTitle" placeholder="Paste competitor's eBay title here (optional)..." oninput="saveDraftDebounced()"/>
     </div>
+    <div class="comp-title-wrap" id="ttKwWrap" style="display:none;">
+      <div class="comp-title-lbl">📈 TikTok Trending Keywords <span style="color:var(--dim);font-weight:400;">(optional — paste the keywords TikTok suggests in Product Opportunity; comma or line separated)</span></div>
+      <textarea class="img-urls-inp" id="ttTrendKws" placeholder="e.g. jar opener for weak grip, kitchen gadgets, easy open lids" oninput="saveDraftDebounced()"></textarea>
+    </div>
     <div class="comp-title-wrap">
       <div class="comp-title-lbl">🏷 Brand Name <span style="color:var(--dim);font-weight:400;">(optional — fill it and the brand WILL appear in HTML heading, description &amp; specs; leave empty for no brand anywhere. Never in eBay title.)</span></div>
       <input type="text" class="comp-title-inp" id="brandName" placeholder="e.g. Mainstays (leave empty = no brand / Unbranded)" oninput="saveDraftDebounced()"/>
@@ -610,7 +614,8 @@ function closeSidebarMobile(){
   }
 }
 
-function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p!=='ebay');}
+function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.getElementById('themeSection').classList.toggle('hidden',p!=='ebay');
+  var _tw=document.getElementById('ttKwWrap'); if(_tw) _tw.style.display = (p==='tiktok') ? 'block' : 'none';}
 
 // Confirmation modal logic for Shopify & Off-Page SEO (extra safety layer to avoid accidental credit use)
 var pendingAction=null, pendingBtn=null;
@@ -1736,6 +1741,18 @@ async function generate(){
       kwLineT += '\n\nTIKTOK-SEARCHED KEYWORDS (HIGHEST PRIORITY — real TikTok-context searches): '+window.slfTikTokKws.join(' | ')+'\nHow to use them: product-type phrases go into the TITLE and SEARCH TERMS; problem/how-to phrases (like "jar wont open") belong in the DESCRIPTION opening (problem-solution hook) — do not force awkward how-to phrases into the title.';
     }
     var brandT=(document.getElementById('brandName').value||'').trim().slice(0,40);
+    var ttTrend = (document.getElementById('ttTrendKws').value||'').split(/[\n,]+/).map(function(k){return k.trim();}).filter(function(k){return k.length>1;}).slice(0,25);
+    if(ttTrend.length>0){
+      kwLineT += '\n\n=== TIKTOK TRENDING KEYWORDS (FIRST-PARTY DATA — HIGHEST PRIORITY) ===\n'
+        +ttTrend.join(' | ')+'\n'
+        +'These came from TikTok\'s own Product Opportunity dashboard, so they are what TikTok itself reports as trending for this product. They outrank every other keyword source. Use them as follows:\n'
+        +'a) TITLE: work the most relevant trending phrases into the title naturally, with the strongest one inside the first 30-40 characters. Keep the title readable — do not stack them as a comma list.\n'
+        +'b) SEARCH TERMS: include every trending phrase that genuinely describes THIS product type, within the 12-15 keyword and 250 character limits, before adding any other keyword.\n'
+        +'c) DESCRIPTION: weave the trending phrases into real sentences — the opening hook should use the problem-style trending phrase a buyer would type. Never dump them as a list.\n'
+        +'d) HASHTAGS: base several hashtags on these phrases.\n'
+        +'e) COMPLIANCE STILL APPLIES: if a trending phrase contains a medical word, an effect claim, a superlative, a brand, or names a different product type, DO NOT use it as-is — either rewrite it into a compliant phrase or leave it out. TikTok will reject non-compliant search terms even if TikTok suggested the topic.\n'
+        +'f) ACCURACY STILL APPLIES: a trending phrase is not product data. Never take a size, capacity, material or pack count from it.\n';
+    }
     var brandTitleT = brandT && document.getElementById('brandInTitle').checked;
     var brandLineT = brandT
       ? (brandTitleT
@@ -1764,7 +1781,16 @@ async function generate(){
     +'Pick the best TikTok Shop US category path from this L1 list (then the deeper L2 > L3 from your knowledge):\n'+TIKTOK_CATS.join('\n')+'\n'
     +'Output exactly:\nBest: [L1] > [L2] > [L3]\nAlternate: [L1] > [L2] > [L3]\nNote: [one line why + reminder to confirm the exact path in Seller Center]\n\n'
     +'=== TITLE ===\n'
-    +'Length 200-255 characters, target 230-255 — use the full space. Rules: (1) READABLE natural language with complete keyword phrases that flow, NOT a comma-stuffed keyword dump. (2) Product type + its most important attribute in the FIRST 30-40 characters (mobile truncates the rest). (3) Title Case, except with/at/by/to/in/for/from/of/and/or/the/a/an. (4) Abbreviate measurements: oz, in, cm, kg, ml, lb. (5) Use the buyers real search wording, not invented synonyms. (6) Brand only if the BRAND setting allows it. (7) No medical words, no effect claims, no superlatives, no symbols or emojis. (8) Only include a size, capacity or quantity that appears in the source data.\n\n'
+    +'LENGTH: TikTok allows 255 characters and that space is free search real estate — TARGET 245-255 characters and never finish below 240. A short TikTok title wastes indexed keywords. Count the characters before you output, and if you are under 240, ADD another distinct high-search keyword phrase until you reach 245-255. Never exceed 255.\n'
+    +'KEYWORD SELECTION (this decides how much search traffic the listing can reach):\n'
+    +'  1. PRIORITY ORDER of the words you choose: (a) TikTok trending keywords if supplied, (b) TikTok-searched keywords, (c) Amazon keywords, (d) Google keywords. Prefer phrases that appear in more than one source — repeated demand means proven search volume.\n'
+    +'  2. FRONT LOAD: the product type plus the single strongest keyword must sit inside the FIRST 30-40 characters, because mobile truncates the rest and TikTok weights early words most.\n'
+    +'  3. COVER DIFFERENT SEARCH ANGLES — do not stack three versions of the same idea. Across the title include, where the source data supports them: the product type, a material or build phrase, a key feature phrase, a use-case phrase, an audience phrase (who it is for), a compatibility or fit phrase, and an occasion or place-of-use phrase. Each angle catches a different search.\n'
+    +'  4. NO REPEATED WORDS: each significant word appears only once in the whole title. Repeats waste characters and add no reach (unavoidable small words like for/and/with are fine).\n'
+    +'  5. EXACT BUYER WORDING: use the phrasing buyers actually type, not invented synonyms. If people search "weak grip" do not write "reduced hand strength".\n'
+    +'  6. NO FILLER: never pad with empty words such as new, hot, sale, premium quality, high quality, amazing, perfect, must have, or with symbols and emojis. Every added phrase must be a real search term.\n'
+    +'FORMATTING: (a) READABLE flowing phrases — comma-separated phrase GROUPS are fine, but never a raw comma-stuffed word dump and never a run-on sentence. (b) Title Case, except with/at/by/to/in/for/from/of/and/or/the/a/an. (c) Abbreviate measurements: oz, in, cm, kg, ml, lb. (d) Brand only if the BRAND setting allows it. (e) No medical words, no effect claims, no superlatives. (f) Only include a size, capacity or quantity that appears in the source data.\n'
+    +'SELF-CHECK before output: count the characters (must be 245-255), confirm no word repeats, confirm at least four different search angles are covered, and confirm every phrase passes RULE SET B.\n\n'
     +'=== SEARCH TERMS ===\n'
     +'EXACTLY 12-15 keywords, comma-separated, one line. HARD LIMITS: max 15 keywords, and the whole line including commas UNDER 250 characters. All lowercase, 1-3 words each, every term describes THIS exact product type, and every term passes RULE SET B.\n\n'
     +'=== DESCRIPTION ===\n'
@@ -1780,7 +1806,7 @@ async function generate(){
     +'SEARCH TERMS: jar opener,bottle opener,lid gripper,jar gripper,stainless steel opener,adjustable opener,kitchen gadget,kitchen tool,manual jar opener,twist off opener,non slip opener,jar lid remover,opening tool,grip helper\n'
     +'DESCRIPTION opening: "Struggling with a jar that will not open? A tight lid can turn a quick meal into a ten minute fight with the kitchen counter." followed by short paragraphs, then plain benefit lines such as "Adjustable jaws fit a wide range of lid sizes" and "Non slip handle stays steady in wet hands", ending with a care line.\n'
     +'SELLING POINT example: "Fits a wide range of lid sizes, so one adjustable tool covers sauce jars, pickle jars and bottles instead of several single-size gadgets."\n'
-    +'Note how the title reads as flowing phrases rather than stacked keywords, the search terms are all the same product type, and nothing medical or exaggerated appears anywhere.\n\n'
+    +'Note how the title reads as flowing phrases rather than stacked keywords and covers several different search angles (product type, material, feature, audience, compatibility). That sample title is about 230 characters — yours should be slightly longer, 245-255, using the remaining space for another real search phrase.\n\n'
     +'RAW SOURCE DATA:\n'+product;
     try{var rt=await claudeCall(apiKey,tiktokPrompt,5000);tiktokTxt=rt;}
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
@@ -1817,6 +1843,7 @@ function saveSession(){
       compTitle: document.getElementById('compTitle').value,
       brandName: document.getElementById('brandName').value,
       brandInTitle: document.getElementById('brandInTitle').checked,
+      ttTrendKws: document.getElementById('ttTrendKws').value,
       multiVar: document.getElementById('multiVar').checked,
       layout: layout,
       imgUrls: document.getElementById('imgUrls').value,
@@ -1847,6 +1874,7 @@ function saveDraftDebounced(){
       data.compTitle = document.getElementById('compTitle').value;
       data.brandName = document.getElementById('brandName').value;
       data.brandInTitle = document.getElementById('brandInTitle').checked;
+      data.ttTrendKws = document.getElementById('ttTrendKws').value;
       data.multiVar = document.getElementById('multiVar').checked;
       data.imgUrls = document.getElementById('imgUrls').value;
       data.savedAt = Date.now();
@@ -1869,11 +1897,13 @@ function restoreSession(){
     if(d.compTitle){ document.getElementById('compTitle').value = d.compTitle; }
     if(d.brandName){ document.getElementById('brandName').value = d.brandName; }
     if(typeof d.brandInTitle==='boolean'){ document.getElementById('brandInTitle').checked = d.brandInTitle; }
+    if(d.ttTrendKws){ document.getElementById('ttTrendKws').value = d.ttTrendKws; }
     if(typeof d.multiVar==='boolean'){ document.getElementById('multiVar').checked = d.multiVar; }
     if(d.imgUrls){ document.getElementById('imgUrls').value = d.imgUrls; if(typeof onImagesInput==='function'){var note=document.getElementById('imgUrlsNote');} }
     // If a full listing was generated, restore the output too
     if(d.fullTxt || d.shopifyTxt || d.tiktokTxt){
       platform = d.platform||'ebay';
+      var _tw2=document.getElementById('ttKwWrap'); if(_tw2) _tw2.style.display = (platform==='tiktok') ? 'block' : 'none';
       theme = d.theme||'heritage';
       fullTxt = d.fullTxt||'';
       genHtml = d.genHtml||'';
@@ -1988,9 +2018,12 @@ function renderTikTokListing(tiktokText){
   if(S['TITLE']){
     var t=S['TITLE'].split('\n')[0].trim();
     var tl=t.length;
-    var tcol = (tl>=200&&tl<=255)?'#4ade80':(tl>=150?'#fbbf24':'#fb7185');
-    var tmsg = (tl>=200&&tl<=255)?'Perfect length':(tl>255?'TOO LONG — trim to 255':'Short — TikTok allows up to 255, use more complete keywords');
-    var inner='<div style="margin-bottom:10px;padding:10px 14px;border:1px solid '+tcol+';border-radius:9px;display:flex;justify-content:space-between;align-items:center;"><span style="color:'+tcol+';font-weight:700;font-size:12px;">'+tl+'/255 <span style="font-weight:400;">'+tmsg+'</span></span><span style="font-size:9px;color:var(--dim);">TikTok limit: 255</span></div>'+copyBox('TikTok Title','c2',t);
+    var tcol = (tl>=245&&tl<=255)?'#4ade80':(tl>255?'#fb7185':(tl>=200?'#fbbf24':'#fb7185'));
+    var tmsg = (tl>=245&&tl<=255)?'Perfect — full 255 space used'
+             : (tl>255?'TOO LONG — trim to 255'
+             : (tl>=200?(255-tl)+' characters unused — add another real search phrase'
+             : 'Too short — TikTok allows 255; regenerate or add more keyword phrases'));
+    var inner='<div style="margin-bottom:10px;padding:10px 14px;border:1px solid '+tcol+';border-radius:9px;display:flex;justify-content:space-between;align-items:center;"><span style="color:'+tcol+';font-weight:700;font-size:12px;">'+tl+'/255 <span style="font-weight:400;">'+tmsg+'</span></span><span style="font-size:9px;color:var(--dim);">TikTok limit: 255 · target 245-255</span></div>'+copyBox('TikTok Title','c2',t);
     mkTab('Title','tt-title',false); mkSec('tt-title',inner,false);
   }
 
@@ -2867,6 +2900,7 @@ function clearAll(){
   document.getElementById('compTitle').value='';
   document.getElementById('brandName').value='';
   document.getElementById('brandInTitle').checked=false;
+  document.getElementById('ttTrendKws').value='';
   document.getElementById('multiVar').checked=false;
   document.getElementById('imgUrls').value='';
   var _n=document.getElementById('imgUrlsNote'); if(_n)_n.textContent='';
