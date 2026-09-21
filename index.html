@@ -397,6 +397,9 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <button class="th-opt" id="customThemeBtn" onclick="setTheme('custom',this)" style="grid-column:1/-1;"><div class="th-sw" id="customSwatch" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)">🎨</div>Custom Color</button>
       <button class="th-opt" id="imgColorBtn" onclick="matchImageColor()" style="grid-column:1/-1;"><div class="th-sw" style="background:linear-gradient(135deg,#333,#0aa)">🖼</div>Match Product Image Color</button>
     </div>
+    <div class="sb-lbl" style="margin-top:12px;">🎉 Seasonal / Occasion <span style="font-size:8px;color:var(--dim);margin-left:4px;">(overrides theme)</span></div>
+    <select id="seasonSelect" class="client-sel" onchange="onSeasonChange(this.value)"></select>
+    <div class="client-note" id="seasonNote"></div>
     <div id="customPanel" style="display:none;margin-top:8px;padding:11px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <input type="color" id="customColor" value="#ec4899" oninput="onCustomColor()" style="width:42px;height:32px;border:none;border-radius:6px;background:none;cursor:pointer;padding:0;"/>
@@ -529,6 +532,7 @@ window.onload=function(){
   layout = localStorage.getItem('slf_layout') || 'editorial';
   if(!LAYOUTS[layout]) layout='editorial';
   refreshClientUI();
+  refreshSeasonUI();
   var savedImgbb=localStorage.getItem('slf_imgbb'); if(savedImgbb){var ik=document.getElementById('imgbbKey'); if(ik) ik.value=savedImgbb;}
   var k=localStorage.getItem('slf_k'); if(k){document.getElementById('apiKey').value=k;onKey();}
   var th=localStorage.getItem('slf_th')||'auto'; theme=th;
@@ -539,7 +543,7 @@ window.onload=function(){
       var oc=b.getAttribute('onclick')||'';
       if(oc.indexOf("'"+th+"'")>-1 && !matched){ b.classList.add('on'); matched=true; }
     });
-    if(!matched && btns[0]){ btns[0].classList.add('on'); theme='auto'; }
+    if(!matched && btns[0]){ if(typeof SEASONS!=='undefined' && SEASONS[th]){ theme=th; } else { btns[0].classList.add('on'); theme='auto'; } }
     if(theme==='custom')document.getElementById('customPanel').style.display='block';
   })();
   var cc=localStorage.getItem('slf_cc'); if(cc){customColor=cc;document.getElementById('customColor').value=cc;document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+cc+','+cc+')';}
@@ -592,6 +596,7 @@ var DESIGN_STYLES={
 function setMarket(m){
   market=m;
   localStorage.setItem('slf_market', m);
+  if(typeof refreshSeasonUI==='function') refreshSeasonUI();
   document.querySelectorAll('.market-btn').forEach(function(b){b.classList.toggle('market-on', b.getAttribute('data-market')===m);});
 }
 
@@ -724,6 +729,7 @@ function applyClient(name){
     btns.forEach(function(b){ if((b.getAttribute('onclick')||'').indexOf("'"+theme+"'")>-1) b.classList.add('on'); });
   }
   var ls=document.getElementById('layoutSelect'); if(ls) ls.value=layout;
+  if(typeof refreshSeasonUI==='function') refreshSeasonUI();
   rebuildHtmlFree();
 }
 
@@ -770,10 +776,47 @@ function rebuildHtmlFree(){
   }
 }
 
+// ══ SEASONAL UI ══════════════════════════════════════════════
+function seasonInSeason(key){
+  var s=SEASONS[key]; if(!s) return false;
+  var mm=(new Date()).getMonth()+1;
+  var list=(s.months && s.months[market]) || [];
+  return list.indexOf(mm)>-1;
+}
+function refreshSeasonUI(){
+  var sel=document.getElementById('seasonSelect'); if(!sel) return;
+  var now=[], rest=[];
+  SEASON_IDS.forEach(function(k){
+    var s=SEASONS[k];
+    if(!s.months[market]) return;              // hide occasions this market doesn't celebrate
+    (seasonInSeason(k)?now:rest).push(k);
+  });
+  function opt(k,star){ var s=SEASONS[k]; return '<option value="'+k+'">'+(star?'★ ':'')+s.emojis[0]+' '+s.name+'</option>'; }
+  sel.innerHTML='<option value="">— None (use theme above) —</option>'
+    +(now.length?'<optgroup label="In season now">'+now.map(function(k){return opt(k,true);}).join('')+'</optgroup>':'')
+    +'<optgroup label="Other occasions">'+rest.map(function(k){return opt(k,false);}).join('')+'</optgroup>';
+  sel.value = SEASONS[theme] ? theme : '';
+  var note=document.getElementById('seasonNote');
+  if(note){
+    if(SEASONS[theme]) note.textContent='Active: '+SEASONS[theme].name+' styling.';
+    else if(now.length) note.textContent='In season for '+market.toUpperCase()+': '+now.map(function(k){return SEASONS[k].name;}).join(', ')+'.';
+    else note.textContent='Pick an occasion to give the listing a seasonal look.';
+  }
+}
+function onSeasonChange(v){
+  if(!v){
+    var ab=document.getElementById('autoThemeBtn');
+    setTheme('auto', ab);
+    return;
+  }
+  setTheme(v, null);
+}
+
 function setTheme(t,btn){
   theme=t; localStorage.setItem('slf_th',t);
   document.querySelectorAll('#thGrid .th-opt').forEach(function(b){b.classList.remove('on');});
-  btn.classList.add('on');
+  if(btn) btn.classList.add('on');
+  if(typeof refreshSeasonUI==='function') refreshSeasonUI();
   document.getElementById('customPanel').style.display = (t==='custom') ? 'block' : 'none';
   // Free live rebuild: if a listing already exists, re-render the HTML in the new theme (no API call)
   if(platform==='ebay' && fullTxt){
@@ -828,6 +871,27 @@ var LAYOUTS = {
 };
 var LAYOUT_IDS = ['editorial','minimal','boxed','centered','classic','compact','gallery','technical','journal','showcase','utility','softcard'];
 var layout = 'editorial';
+
+// ══ SEASONAL / OCCASION THEMES ═══════════════════════════════
+// Palette + heading font + emoji decorations per occasion (eBay-safe: no JS, no external images).
+var SEASONS = {
+  halloween:{name:'Halloween',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[9,10],gb:[9,10],au:[9,10]},emojis:['🎃','👻','🦇','🕸️','🕷️','🍬'],label:'Halloween Collection',labelGB:null,font:'\'Creepster\',Impact,\'Arial Black\',sans-serif',gfont:'Creepster',pal:{bg:'#0d0a14',card:'#1a1224',bc:'rgba(255,122,24,0.32)',acc:'#ff7a18',txt:'#e6dcef',h1:'#FFFFFF,#FF9A3C',badge:'rgba(255,122,24,0.15)',badgeTxt:'#ff7a18',rb:'rgba(255,122,24,0.22)'}},
+  christmas:{name:'Christmas',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[11,12],gb:[11,12],au:[11,12]},emojis:['🎄','🎅','❄️','🎁','⭐','🔔'],label:'Christmas Gift Ideas',labelGB:null,font:'\'Berkshire Swash\',Impact,\'Arial Black\',serif',gfont:'Berkshire+Swash',pal:{bg:'#0b1f14',card:'#11291b',bc:'rgba(226,59,59,0.32)',acc:'#e23b3b',txt:'#e8f1ea',h1:'#FFFFFF,#F4D35E',badge:'rgba(226,59,59,0.15)',badgeTxt:'#e23b3b',rb:'rgba(226,59,59,0.22)'}},
+  thanksgiving:{name:'Thanksgiving',flags:'🇺🇸',months:{us:[10,11]},emojis:['🦃','🍂','🥧','🌽','🍁'],label:'Thanksgiving Favorites',labelGB:null,font:'\'Abril Fatface\',Impact,\'Arial Black\',serif',gfont:'Abril+Fatface',pal:{bg:'#1f130a',card:'#2a1a0e',bc:'rgba(217,130,43,0.32)',acc:'#d9822b',txt:'#efe2d0',h1:'#FFFFFF,#E9A55A',badge:'rgba(217,130,43,0.15)',badgeTxt:'#d9822b',rb:'rgba(217,130,43,0.22)'}},
+  blackfriday:{name:'Black Friday',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[11],gb:[11],au:[11]},emojis:['🛍️','🏷️','⚡','💥','🖤'],label:'Black Friday Picks',labelGB:null,font:'\'Anton\',Impact,\'Arial Black\',sans-serif',gfont:'Anton',pal:{bg:'#000000',card:'#0f0f0f',bc:'rgba(255,204,0,0.32)',acc:'#ffcc00',txt:'#dddddd',h1:'#FFFFFF,#FFCC00',badge:'rgba(255,204,0,0.15)',badgeTxt:'#ffcc00',rb:'rgba(255,204,0,0.22)'}},
+  boxingday:{name:'Boxing Day',flags:'🇬🇧🇦🇺',months:{gb:[12],au:[12]},emojis:['🎁','🏷️','🛍️','✨'],label:'Boxing Day Picks',labelGB:null,font:'\'Anton\',Impact,\'Arial Black\',sans-serif',gfont:'Anton',pal:{bg:'#10131f',card:'#181c2e',bc:'rgba(232,74,95,0.32)',acc:'#e84a5f',txt:'#e2e5f0',h1:'#FFFFFF,#F7C873',badge:'rgba(232,74,95,0.15)',badgeTxt:'#e84a5f',rb:'rgba(232,74,95,0.22)'}},
+  newyear:{name:'New Year',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[12,1],gb:[12,1],au:[12,1]},emojis:['🎆','🥂','✨','🎉','🕛'],label:'New Year Picks',labelGB:null,font:'\'Cinzel Decorative\',Impact,\'Arial Black\',serif',gfont:'Cinzel+Decorative:wght@900',pal:{bg:'#070b1e',card:'#0f1633',bc:'rgba(212,175,55,0.32)',acc:'#d4af37',txt:'#dfe4f5',h1:'#FFFFFF,#E8C766',badge:'rgba(212,175,55,0.15)',badgeTxt:'#d4af37',rb:'rgba(212,175,55,0.22)'}},
+  valentines:{name:'Valentine\'s Day',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[1,2],gb:[1,2],au:[1,2]},emojis:['💝','💕','🌹','💌','💘'],label:'Valentine\'s Day Gifts',labelGB:null,font:'\'Lobster\',Impact,\'Arial Black\',cursive',gfont:'Lobster',pal:{bg:'#fff0f4',card:'#ffffff',bc:'rgba(214,36,93,0.32)',acc:'#d6245d',txt:'#5a2a38',h1:'#3D0F1F,#D6245D',badge:'rgba(214,36,93,0.15)',badgeTxt:'#d6245d',rb:'rgba(214,36,93,0.22)'}},
+  stpatricks:{name:'St. Patrick\'s Day',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[2,3],gb:[2,3],au:[2,3]},emojis:['☘️','🍀','🌈','🪙'],label:'St. Patrick\'s Day',labelGB:null,font:'\'Luckiest Guy\',Impact,\'Arial Black\',sans-serif',gfont:'Luckiest+Guy',pal:{bg:'#06210f',card:'#0c2e17',bc:'rgba(47,191,91,0.32)',acc:'#2fbf5b',txt:'#dff3e5',h1:'#FFFFFF,#F2C94C',badge:'rgba(47,191,91,0.15)',badgeTxt:'#2fbf5b',rb:'rgba(47,191,91,0.22)'}},
+  easter:{name:'Easter',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[3,4],gb:[3,4],au:[3,4]},emojis:['🐣','🥚','🐰','🌷','🌸'],label:'Easter Collection',labelGB:null,font:'\'Fredoka\',Impact,\'Arial Black\',sans-serif',gfont:'Fredoka:wght@700',pal:{bg:'#fbf7ff',card:'#ffffff',bc:'rgba(155,107,214,0.32)',acc:'#9b6bd6',txt:'#4b3f5c',h1:'#3A2A52,#9B6BD6',badge:'rgba(155,107,214,0.15)',badgeTxt:'#9b6bd6',rb:'rgba(155,107,214,0.22)'}},
+  mothersday:{name:'Mother\'s Day',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[4,5],gb:[2,3],au:[4,5]},emojis:['💐','🌸','💗','🌷'],label:'Mother\'s Day Gifts for Mom',labelGB:'Mother\'s Day Gifts for Mum',font:'\'Lobster Two\',Impact,\'Arial Black\',cursive',gfont:'Lobster+Two:wght@700',pal:{bg:'#fff5f8',card:'#ffffff',bc:'rgba(224,102,143,0.32)',acc:'#e0668f',txt:'#5b3a47',h1:'#3D1F2B,#E0668F',badge:'rgba(224,102,143,0.15)',badgeTxt:'#e0668f',rb:'rgba(224,102,143,0.22)'}},
+  fathersday:{name:'Father\'s Day',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[5,6],gb:[5,6],au:[8,9]},emojis:['👔','🛠️','🏆','💙'],label:'Father\'s Day Gifts for Dad',labelGB:null,font:'\'Alfa Slab One\',Impact,\'Arial Black\',serif',gfont:'Alfa+Slab+One',pal:{bg:'#0a1628',card:'#11203a',bc:'rgba(74,144,217,0.32)',acc:'#4a90d9',txt:'#d6e2f2',h1:'#FFFFFF,#7FB3E8',badge:'rgba(74,144,217,0.15)',badgeTxt:'#4a90d9',rb:'rgba(74,144,217,0.22)'}},
+  independence:{name:'4th of July',flags:'🇺🇸',months:{us:[6,7]},emojis:['🇺🇸','🎆','⭐','🗽'],label:'4th of July Collection',labelGB:null,font:'\'Bungee\',Impact,\'Arial Black\',sans-serif',gfont:'Bungee',pal:{bg:'#0a1330',card:'#111d45',bc:'rgba(224,58,62,0.32)',acc:'#e03a3e',txt:'#e3e8f7',h1:'#FFFFFF,#9CC3FF',badge:'rgba(224,58,62,0.15)',badgeTxt:'#e03a3e',rb:'rgba(224,58,62,0.22)'}},
+  bonfire:{name:'Bonfire Night',flags:'🇬🇧',months:{gb:[10,11]},emojis:['🎆','🔥','✨','🎇'],label:'Bonfire Night',labelGB:null,font:'\'Bungee\',Impact,\'Arial Black\',sans-serif',gfont:'Bungee',pal:{bg:'#120807',card:'#1f0f0b',bc:'rgba(255,90,31,0.32)',acc:'#ff5a1f',txt:'#f1ddd4',h1:'#FFFFFF,#FFB347',badge:'rgba(255,90,31,0.15)',badgeTxt:'#ff5a1f',rb:'rgba(255,90,31,0.22)'}},
+  backtoschool:{name:'Back to School',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[7,8],gb:[7,8,9],au:[1,2]},emojis:['📚','✏️','🎒','📐','🍎'],label:'Back to School Essentials',labelGB:null,font:'\'Bangers\',Impact,\'Arial Black\',sans-serif',gfont:'Bangers',pal:{bg:'#fffdf3',card:'#ffffff',bc:'rgba(43,108,176,0.32)',acc:'#2b6cb0',txt:'#3a3a3a',h1:'#1A202C,#2B6CB0',badge:'rgba(43,108,176,0.15)',badgeTxt:'#2b6cb0',rb:'rgba(43,108,176,0.22)'}},
+  summer:{name:'Summer',flags:'🇺🇸🇬🇧🇦🇺',months:{us:[5,6,7,8],gb:[6,7,8],au:[11,12,1,2]},emojis:['☀️','🌴','🏖️','🍉','🕶️'],label:'Summer Essentials',labelGB:null,font:'\'Pacifico\',Impact,\'Arial Black\',cursive',gfont:'Pacifico',pal:{bg:'#fff8ec',card:'#ffffff',bc:'rgba(242,140,40,0.32)',acc:'#f28c28',txt:'#4a3f35',h1:'#2A1F14,#F28C28',badge:'rgba(242,140,40,0.15)',badgeTxt:'#f28c28',rb:'rgba(242,140,40,0.22)'}}
+};
+var SEASON_IDS = Object.keys(SEASONS);
 
 // ══ CATEGORY → THEME AUTO-DETECTION ═══════════════════════════
 // Reads the product text and picks the best-matching premium theme.
@@ -1916,6 +1980,7 @@ function restoreSession(){
       platform = d.platform||'ebay';
       syncPlatformUI();
       theme = d.theme||'heritage';
+      if(typeof refreshSeasonUI==='function') refreshSeasonUI();
       fullTxt = d.fullTxt||'';
       genHtml = d.genHtml||'';
       shopifyTxt = d.shopifyTxt||'';
@@ -2227,6 +2292,8 @@ function buildHtmlFromListing(listingText,storeName,themeName){
     rose:{bg:'#FDF4F7',card:'#FFFFFF',bc:'rgba(224,68,124,0.25)',acc:'#e0447c',txt:'#5B4049',h1:'#3D1F2B,#E0447C',badge:'rgba(224,68,124,0.1)',badgeTxt:'#e0447c',rb:'rgba(224,68,124,0.16)'},
   };
   var T=TH[themeName]||TH.heritage;
+  var SEA = (typeof SEASONS!=='undefined' && SEASONS[themeName]) ? SEASONS[themeName] : null;
+  if(SEA) T = SEA.pal;
   var L = LAYOUTS[layout] || LAYOUTS.editorial;
   function ST(t){
     var txt = L.caseT==='upper' ? t.toUpperCase() : toTitleCase(t.toLowerCase());
@@ -2517,7 +2584,32 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   else if(L.order==='featlast') bodyOrder = heroH+imgH+descH+specsH+varH+compatH+idealH+featH+tipsH+safetyH+polH;
   else                          bodyOrder = heroH+imgH+descH+featH+specsH+varH+compatH+tipsH+idealH+safetyH+polH;
 
-  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+bodyOrder+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">'+escHtml(L.foot)+'</div>\n</div>\n</body>\n</html>';
+  if(SEA){
+    // heading font + positioning for the corner decorations
+    css += 'h1{font-family:'+SEA.font+' !important;font-size:3rem !important;font-weight:900 !important;line-height:1.12 !important;letter-spacing:0.5px;'
+         +   'text-shadow:0 3px 0 rgba(0,0,0,0.35),0 0 24px '+T.acc+'66;}'
+         + '.sec-title{font-family:'+SEA.font+' !important;font-size:2rem !important;font-weight:900 !important;letter-spacing:1px;}'
+         + '.section{position:relative;}'
+         + '.sea-dec{position:absolute;top:10px;right:14px;font-size:1.9rem;opacity:0.4;}'
+         + '@media(max-width:600px){h1{font-size:2.1rem !important;}.sec-title{font-size:1.5rem !important;}.sea-dec{font-size:1.4rem;}}';
+    // a small emoji "sticker" in the corner of every section
+    var di=0;
+    bodyOrder = bodyOrder.replace(/<div class="section"([^>]*)>/g, function(m){
+      var e = SEA.emojis[di % SEA.emojis.length]; di++;
+      return m+'<span class="sea-dec">'+e+'</span>';
+    });
+    // match the feature bullet to the seasonal accent colour
+    bodyOrder = bodyOrder.split('🔹').join('<span style="color:'+T.acc+';">✦</span>');
+    // top banner + bottom border strip
+    var seaLabel = ((market==='gb'||market==='au') && SEA.labelGB) ? SEA.labelGB : SEA.label;
+    var strip = '<div style="text-align:center;padding:0.9rem 1rem;margin-bottom:1.4rem;border-radius:14px;background:'+T.card+';border:1px dashed '+T.bc+';">'
+      + '<div style="font-size:1.45rem;letter-spacing:0.55rem;">'+SEA.emojis.join(' ')+'</div>'
+      + '<div style="font-family:'+SEA.font+';font-size:2.2rem;font-weight:900;line-height:1.15;color:'+T.acc+';margin-top:0.45rem;text-shadow:0 2px 0 rgba(0,0,0,0.3),0 0 20px '+T.acc+'55;">'+escHtml(seaLabel)+'</div></div>';
+    bodyOrder = strip + bodyOrder
+      + '<div style="text-align:center;font-size:1.35rem;letter-spacing:0.75rem;padding:0.6rem 0;opacity:0.8;">'+SEA.emojis.join(' ')+'</div>';
+  }
+
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800'+(SEA?'&family='+SEA.gfont:'')+'&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+bodyOrder+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">'+escHtml(L.foot)+'</div>\n</div>\n</body>\n</html>';
 }
 
 function computeQualityScore(text){
