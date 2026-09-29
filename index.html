@@ -1230,6 +1230,27 @@ function scanVero(text){
   return found;
 }
 
+// eBay allows a brand name when it follows "for", "fits" or "compatible with"
+// and the item is genuinely designed for that brand. Detect that usage.
+function veroCompatUse(term, text){
+  if(!text) return false;
+  var esc = term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  var re = new RegExp('(^|[^a-z0-9])(for|fits|fit|compatible with|compatible for|suitable for|works with|designed for)\\s+(the\\s+)?'+esc+'([^a-z0-9]|$)','i');
+  return re.test(text);
+}
+// Does the brand appear anywhere in this text WITHOUT a compatibility term in front?
+function veroBareUse(term, text){
+  if(!text) return false;
+  var esc = term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  var re = new RegExp('(^|[^a-z0-9])'+esc+'([^a-z0-9]|$)','ig');
+  var m, t=String(text);
+  while((m=re.exec(t))!==null){
+    var before = t.slice(Math.max(0, m.index-28), m.index+ (m[1]?m[1].length:0));
+    if(!/(for|fits|fit|compatible with|compatible for|suitable for|works with|designed for)\s*$/i.test(before)) return true;
+  }
+  return false;
+}
+
 // Find which sections a risky term appears in
 function veroLocations(term, sections){
   var where = [];
@@ -1723,7 +1744,11 @@ async function generate(){
     +'2. NEVER imply an unauthorised brand association. Do not say a generic item is "like [Brand]", "same as [Brand]", or "[Brand] style".\n'
     +'3. Do NOT insert third-party brand names for SEO. Only mention a brand if the SOURCE DATA proves the item genuinely IS that brand.\n'
     +'4. If the item is a genuine branded product per the source data, you may name the brand factually — but never claim authorised dealer, official, licensed, or partnership status.\n'
-    +'5. For compatibility, use neutral wording: "Fits [model]" or "For use with [model]". Never suggest the item is made or endorsed by that brand.\n'
+    +'5. COMPATIBILITY WORDING (eBay rule — follow exactly): if this item is an accessory or part made to work with another brand, you MAY name that brand, but ONLY with a compatibility term directly in front of it: "for", "fits" or "compatible with". Never write a bare brand name. Correct: "Cooling Fan for PS5 Console". Wrong: "PS5 Cooling Fan".\n'
+    +'5a. ONE BRAND IN THE TITLE: eBay allows only ONE brand name in a title. Pick the single most relevant one, put a compatibility term in front of it, and never repeat the same brand in two forms (e.g. do not use both "PS5" and "PlayStation 5" in one title). Any other compatible brands or models go in the DESCRIPTION and COMPATIBLE MODELS section, also with "for" or "fits" in front.\n'
+    +'5b. NEVER START the title with a bare brand name — that makes the listing look like a branded item. Start with the product type instead.\n'
+    +'5c. UNIVERSAL ITEMS: if the item works with all brands (e.g. a plain USB-C cable), do NOT use any brand name at all for marketing.\n'
+    +'5d. Never suggest the item is made, licensed or endorsed by that brand.\n'
     +'6. Do NOT use protected characters, franchises, teams or logos (Disney, Marvel, Pokemon, sports leagues, etc.) unless the source data proves it is officially licensed stock.\n'
     +'7. Do NOT claim "authentic", "genuine", or "original" unless the source data supports it.\n'
     +'8. Write 100% original copy. Never copy a competitor\'s description text.\n'
@@ -2764,8 +2789,20 @@ function renderVeroCheck(text){
   var phraseMed=found.phrases.filter(function(p){return p.r==='med';});
   var termHigh=(found.terms||[]).filter(function(p){return p.r==='high';});
   var termMed=(found.terms||[]).filter(function(p){return p.r==='med';});
-  var riskyHigh = highN + phraseHigh.length + termHigh.length;
-  var riskyMed  = medN + phraseMed.length + termMed.length;
+  // A brand used as "for / fits / compatible with" is permitted by eBay, so it
+  // must not count as a high risk. Count only bare / unqualified brand usage.
+  var titleTxt0 = S['TITLE']||'';
+  var bareHigh = found.high.filter(function(b){
+    return (veroLocations(b,S).indexOf('TITLE')>-1 && veroBareUse(b,titleTxt0)) || !veroCompatUse(b,live);
+  });
+  var bareMed = found.med.filter(function(b){ return !veroCompatUse(b,live); });
+  // eBay allows only ONE brand name in a title; extra brands belong in the description
+  var titleBrands = found.high.concat(found.med).filter(function(b){
+    return veroLocations(b,S).indexOf('TITLE')>-1;
+  });
+  var multiBrandTitle = titleBrands.length>1;
+  var riskyHigh = bareHigh.length + phraseHigh.length + termHigh.length + (multiBrandTitle?1:0);
+  var riskyMed  = bareMed.length + phraseMed.length + termMed.length;
 
   var status, color, rgb, icon;
   if(riskyHigh>0){ status='HIGH RISK'; color='#fb7185'; rgb='251,113,133'; icon='⛔'; }
@@ -2786,9 +2823,9 @@ function renderVeroCheck(text){
     +'<div style="font-size:11px;color:var(--dim);margin-top:2px;">eBay VeRO / intellectual property scan of your live listing text</div></div></div>';
 
   function riskRow(term, level, why, where){
-    var c = level==='high' ? '#fb7185' : '#fbbf24';
-    var bg = level==='high' ? '251,113,133' : '251,191,36';
-    var lbl = level==='high' ? 'HIGH' : 'REVIEW';
+    var c = level==='high' ? '#fb7185' : (level==='ok' ? '#4ade80' : '#fbbf24');
+    var bg = level==='high' ? '251,113,133' : (level==='ok' ? '74,222,128' : '251,191,36');
+    var lbl = level==='high' ? 'HIGH' : (level==='ok' ? 'COMPATIBILITY OK' : 'REVIEW');
     return '<div class="slf-rise" style="background:var(--ink3);border:1px solid rgba('+bg+',0.3);border-left:3px solid '+c+';border-radius:9px;padding:11px 13px;margin-bottom:7px;">'
       +'<div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">'
       +'<span style="font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba('+bg+',0.15);color:'+c+';border:1px solid rgba('+bg+',0.35);">'+lbl+'</span>'
@@ -2802,8 +2839,22 @@ function renderVeroCheck(text){
     html+='<div style="padding:16px;background:var(--ink3);border:1px solid var(--wire);border-radius:10px;font-size:12px;color:var(--fog);line-height:1.7;">'
       +'No known high-risk brand names or counterfeit-signal phrases were found in your title, description, item specifics or tags.</div>';
   } else {
+    var titleTxt = S['TITLE']||'';
+    var allTxt = live;
+    if(multiBrandTitle){
+      html+=riskRow(titleBrands.join(' + '),'high','eBay allows only ONE brand name in a title. Keep the single most relevant one (with "for" in front if it is a compatibility mention) and move the other brands into the DESCRIPTION.', ['TITLE']);
+    }
     found.high.forEach(function(b){
-      html+=riskRow(b,'high','Known for aggressive VeRO enforcement. Remove it unless your source data proves the item genuinely is this brand and you can document it.', veroLocations(b,S));
+      var inTitle = veroLocations(b,S).indexOf('TITLE')>-1;
+      var bareTitle = inTitle && veroBareUse(b, titleTxt);
+      var compatAnywhere = veroCompatUse(b, allTxt);
+      if(bareTitle){
+        html+=riskRow(b,'high','Brand name used in the TITLE without a compatibility term. eBay allows a brand only if you write "for", "fits" or "compatible with" before it (and the item genuinely is designed for that brand). Fix: write "for '+b.replace(/\b\w/g,function(x){return x.toUpperCase();})+'" — or remove it if your item is universal.', veroLocations(b,S));
+      } else if(compatAnywhere){
+        html+=riskRow(b,'ok','Used as compatibility ("for / fits / compatible with"), which eBay permits when the item is genuinely designed for this brand. Keep only ONE brand name in the title; list any other compatible brands in the description.', veroLocations(b,S));
+      } else {
+        html+=riskRow(b,'high','Known for aggressive VeRO enforcement. Remove it unless your source data proves the item genuinely is this brand — or add "for" before it if this is a compatible accessory.', veroLocations(b,S));
+      }
     });
     phraseHigh.forEach(function(p){
       html+=riskRow(p.t,'high',p.why+'. Remove this wording.', veroLocations(p.t,S));
@@ -2812,7 +2863,11 @@ function renderVeroCheck(text){
       html+=riskRow(p.t,'high','Trademarked term — registered to '+p.owner+'. eBay blocks this word. Use instead: "'+p.safe+'"', veroLocations(p.t,S));
     });
     found.med.forEach(function(b){
-      html+=riskRow(b,'med','Brand name detected. Fine if the item genuinely is this brand and legitimately sourced — otherwise remove it.', veroLocations(b,S));
+      if(veroCompatUse(b, live)){
+        html+=riskRow(b,'ok','Used as compatibility ("for / fits / compatible with") — permitted when the item is genuinely designed for this brand.', veroLocations(b,S));
+      } else {
+        html+=riskRow(b,'med','Brand name detected. Fine if the item genuinely is this brand — otherwise remove it, or add "for" before it if this is a compatible accessory.', veroLocations(b,S));
+      }
     });
     phraseMed.forEach(function(p){
       html+=riskRow(p.t,'med',p.why+'.', veroLocations(p.t,S));
