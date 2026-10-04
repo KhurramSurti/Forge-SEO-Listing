@@ -706,7 +706,7 @@ function addClient(){
   // auto-assign the next unused layout so each client differs by default
   var used={}; list.forEach(function(c){used[c.layout]=1;});
   var pick=LAYOUT_IDS.find(function(id){return !used[id];}) || LAYOUT_IDS[list.length % LAYOUT_IDS.length];
-  list.push({name:name, layout:pick, theme:theme, color:(typeof customColor!=='undefined'?customColor:'#2dd4bf'), policies:(document.getElementById('policies')?document.getElementById('policies').value:'')});
+  list.push({name:name, layout:pick, theme:theme, color:(typeof customColor!=='undefined'?customColor:'#2dd4bf'), policies:(document.getElementById('policyText')?document.getElementById('policyText').value:'')});
   slfSaveClients(list);
   localStorage.setItem('slf_client_cur', name);
   inp.value='';
@@ -721,7 +721,7 @@ function applyClient(name){
   layout = cl.layout || 'editorial';
   localStorage.setItem('slf_layout', layout);
   if(cl.color){ customColor=cl.color; localStorage.setItem('slf_cc',cl.color); var ci=document.getElementById('customColor'); if(ci) ci.value=cl.color; }
-  if(cl.policies!==undefined && document.getElementById('policies')) document.getElementById('policies').value=cl.policies;
+  if(cl.policies!==undefined && document.getElementById('policyText')) document.getElementById('policyText').value=cl.policies;
   if(cl.theme){
     theme=cl.theme; localStorage.setItem('slf_th',theme);
     var btns=document.querySelectorAll('#thGrid .th-opt');
@@ -748,7 +748,7 @@ function saveClient(){
   if(!cl) return;
   cl.layout=layout; cl.theme=theme;
   cl.color=(typeof customColor!=='undefined'?customColor:cl.color);
-  if(document.getElementById('policies')) cl.policies=document.getElementById('policies').value;
+  if(document.getElementById('policyText')) cl.policies=document.getElementById('policyText').value;
   slfSaveClients(list);
   document.getElementById('clientNote').textContent='✓ Design saved for "'+name+'" ('+LAYOUTS[layout].name+' layout).';
 }
@@ -1320,6 +1320,32 @@ function slfIsSpecToken(word){
   return true;
 }
 
+// Padding words come from OTHER sellers' keywords, so a word like "radial",
+// "waterproof" or "magnetic" could claim a feature this product does not have.
+// Only allow a padding word if it (or its singular/plural) appears in the
+// user's own product text.
+function slfInSource(word){
+  try{
+    var src=(document.getElementById('productInput').value||'').toLowerCase();
+    if(!src) return false;
+    var w=String(word).toLowerCase().replace(/[^a-z0-9-]/g,'');
+    if(w.length<3) return false;
+    var forms=[w];
+    if(/ies$/.test(w)) forms.push(w.replace(/ies$/,'y'));
+    if(/es$/.test(w))  forms.push(w.replace(/es$/,''));
+    if(/s$/.test(w))   forms.push(w.replace(/s$/,''));
+    else forms.push(w+'s');
+    // tyre/tire and colour/color style variants count as the same word
+    var alt={tire:'tyre',tyre:'tire',tires:'tyres',tyres:'tires',color:'colour',colour:'color',colors:'colours',colours:'colors',gray:'grey',grey:'gray',aluminum:'aluminium',aluminium:'aluminum'};
+    if(alt[w]) forms.push(alt[w]);
+    for(var i=0;i<forms.length;i++){
+      var esc=forms[i].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      if(new RegExp('(^|[^a-z0-9])'+esc+'([^a-z0-9]|$)','i').test(src)) return true;
+    }
+  }catch(e){}
+  return false;
+}
+
 // Filler and banned words that must never be padded into an eBay title
 var SLF_STOPWORDS = ['the','and','for','with','from','that','this','your','you','are','was','has','have',
   'new','hot','sale','free','best','top','nice','great','wow','look','deal','deals','cheap','quality',
@@ -1390,6 +1416,7 @@ function slfPadTitle(title){
       if(slfIsBrandWord(word)) continue; // never pad a brand name into the title
       if(SLF_STOPWORDS.indexOf(wl) > -1) continue; // never pad filler / banned words
       if(slfIsSpecToken(word)) continue; // never pad a measurement/quantity that isn't in the source data
+      if(!slfInSource(word)) continue;   // only pad words that truly describe THIS product
       var candidate = title + ' ' + word;
       if(candidate.length <= 80){
         title = candidate;
@@ -1656,7 +1683,7 @@ async function generate(){
   setStep(1); setChip('work','Researching keywords...');
   srcReal={ebay:false,amazon:false,walmart:false,google:false};
   ['ebay','amazon','walmart','google'].forEach(function(id){kwSt(id,'go');});
-  var q=product.split('\n')[0].replace(/title:/i,'').trim().split(' ').slice(0,7).join(' ');
+  var q=slfBuildQuery(product);
   var kwr=await fetchAllKeywords(apiKey,q);
   srcKws.ebay=kwr.ebay; srcKws.amazon=kwr.amazon; srcKws.walmart=kwr.walmart; srcKws.google=kwr.google;
   kwSt('ebay',kwr.ebay.length>0?'ok':'no',kwr.ebay.length);
@@ -1739,7 +1766,7 @@ async function generate(){
       us: 'MARKET: eBay US (ebay.com). Use American English spelling. Use USD ($) for any prices.'
     };
     var marketLine = (MARKET_LINES[market] || MARKET_LINES.us)
-      + ' SPELLING CONSISTENCY: use this market\'s spelling in EVERY section — title, heading, description, features, specs and item specifics. Never mix variants (e.g. do not write "Tire" in the title and "Tyre" in the description). Pick the market spelling and use it everywhere. The only exception: you may include the other spelling ONCE in TAGS as a search synonym.'
+      + ' SPELLING CONSISTENCY: use this market\'s spelling in EVERY section — title, heading, description, features, specs and item specifics. Never mix variants (e.g. do not write "Tire" in the title and "Tyre" in the description). Pick the market spelling and use it everywhere. The only exception: you may use the other spelling ONCE in the DESCRIPTION as a search synonym (e.g. "also suitable as a tire repair kit") — eBay has no tags field, so the description is the only place a synonym can help.'
     var ebayPrompt='You are a world-class E-commerce SEO Copywriter. 2026-ready.\n'
     +marketLine+'\n'
     +'TARGET: eBay ONLY. Cassini algorithm optimized.'+kwLine+'\n\n'
@@ -1768,7 +1795,11 @@ async function generate(){
     +'4. In ITEM SPECIFICS, only output fields whose values are supported by the source data. NEVER write filler values such as "See title and photos", "See description", "Refer to images", "N/A", "Various", "Standard" or "-" — that misleads the buyer because the information is not in the photos or the description either. If you do not have a real value for a field, LEAVE THAT FIELD OUT COMPLETELY, even if eBay lists it as required; the seller will fill it in Seller Hub from the actual product.\n'
     +'5. In the TITLE, only include a size, length, capacity or quantity if that exact value is in the source data.\n'
     +'6. In DESCRIPTION, KEY FEATURES and PRO TIPS, do not describe capabilities, certifications, compatibility or performance figures that are not stated in the source data.\n'
-    +'7. If the source data is vague, write persuasive copy about what IS stated rather than filling gaps with invented detail.\n\n'
+    +'7. If the source data is vague, write persuasive copy about what IS stated rather than filling gaps with invented detail.\n'
+    +(isMultiVar ? '' :
+      '8. SINGLE ITEM LISTING: this listing sells ONE specific version of the product. Supplier pages often mention other options (e.g. "available in 10pcs and 20pcs", other colours or sizes). Do NOT advertise options this listing does not sell — no "available in two sizes", no "choose 10 or 20 pieces". Describe only the exact version being listed; if the source mentions several, use the one stated in the product title or the largest clearly stated quantity, and do not mention the others.\n')
+    +'9. COMPLIANCE FIELDS ARE NOT SELLING POINTS: supplier data often contains regulatory fields such as "High-concerned chemical: None", "CE", "Origin". Never turn them into marketing claims. Do not write "chemical-free", "non-toxic", "eco-friendly", "safe for health", "certified" or "environmentally friendly" unless the source states that exact claim AND it is plausible for the product (a rubber-cement glue is not chemical-free). If you mention such a field at all, state it neutrally in SPECIFICATIONS only.\n'
+    +'10. NO INVENTED FEATURE WORDS: do not add feature or type words that are not in the source data — e.g. "radial", "tubeless", "waterproof", "magnetic", "heavy duty", "military grade", "professional" — even if they appear in the keyword lists. Keywords from other sellers describe their products, not this one.\n\n'
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
     +'=== BRAND CHECK ===\nUse the BRAND DEMAND guidance above to decide. Output:\nBrand: [name or Unbranded] | Searched by buyers: [Yes/No] | VeRO Risk: [High/Medium/Low] | Placement: [where you will mention it: Description + Item Specifics / Item Specifics only / Unbranded]\nReason: [one short line explaining your decision]\n\n'
@@ -1793,7 +1824,7 @@ async function generate(){
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. BRAND RULE: if the source data shows a brand name, START this heading with the brand (e.g. "Mainstays Cotton Bath Towel Set...") — the brand belongs HERE, not in the eBay title. If VeRO risk is high, only use the brand if the item genuinely is that brand. Use Title Case. NO trailing comma.\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. BRAND RULE: if the source data shows a brand name, mention it naturally here at least once (popular or not) — the description is where the brand lives. If buyers actively search the brand (see BRAND DEMAND), weave it in 2-3 times for SEO. Never put the brand in the eBay title.\n\n'
     +'=== ITEM SPECIFICS ===\n'
-    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, FIRST check that the suggested category actually matches this product. If it matches, use those exact field names for the fields that genuinely apply. If it does NOT match, ignore them completely and write the correct specifics for what the product really is. Every field you output must describe THIS product and be supported by the source data. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
+    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, FIRST check that the suggested category actually matches this product. If it matches, use those exact field names for the fields that genuinely apply. If it does NOT match, ignore them completely and write the correct specifics for what the product really is. Every field you output must describe THIS product and be supported by the source data. REACH: eBay buyers filter results by item specifics, so extract EVERY filterable value the source data genuinely supports, even if it is phrased differently there — e.g. a compatibility sentence listing cars, trucks and motorcycles becomes Vehicle Type: Car, Truck, Motorcycle; a material mentioned in passing becomes Material; a stated count becomes Number of Pieces; a stated power source, size, shape, finish, pattern, theme, room or occasion becomes its own field. More real specifics = more filter searches you appear in. Never invent a value to fill a field. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value. ONLY list specs whose values appear in the RAW SOURCE DATA. Never invent or estimate a measurement, weight, capacity or material, and never take one from the keyword lists. If a spec is unknown, leave it out entirely.\n\n'
     +(isMultiVar
@@ -1824,7 +1855,7 @@ async function generate(){
   if(platform==='shopify'){
     var kwLineS=allKws.length>0?'\n\nKEYWORDS TO USE:\n'+allKws.join(', '):'';
     var shopifyPrompt='You are a Shopify SEO Copywriter for 2026.\n'
-    +'FACTUAL ACCURACY (critical): never state any measurement, dimension, weight, capacity, material, colour, pack quantity or model number unless it appears in the RAW SOURCE DATA. Do not infer typical values for this kind of product and do not take numbers from keyword lists. If a spec is unknown, omit it entirely.\n'
+    +'FACTUAL ACCURACY (critical): never state any measurement, dimension, weight, capacity, material, colour, pack quantity or model number unless it appears in the RAW SOURCE DATA. Do not infer typical values for this kind of product and do not take numbers from keyword lists. If a spec is unknown, omit it entirely. Do not add feature words that are not in the source (e.g. waterproof, magnetic, heavy duty), do not turn regulatory fields into claims like chemical-free or non-toxic, and do not advertise other sizes or options the supplier page mentions.\n'
     +'CRITICAL RULES: NO markdown (*,**,#,>,`,~,_). NO dashes as list markers. NO em/en dashes. Section headings ALL CAPS on own line.\n'
     +kwLineS+'\n\n'
     +'SHOPIFY TITLE\n\n[50-70 char title]\n\n'
@@ -1872,7 +1903,10 @@ async function generate(){
     +'1. NEVER state any measurement, dimension, weight, capacity, material, colour, pack quantity or model number unless that exact value appears in the RAW SOURCE DATA. Do not infer typical values, do not guess from the product name, do not use knowledge of similar products.\n'
     +'2. The supplied keyword lists are for SEO wording ONLY — they come from other sellers different products. Never take a number, size or pack count from a keyword.\n'
     +'3. If a spec is unknown, OMIT it. Never write placeholders like "See images", "N/A", "Various", "Standard" or "-".\n'
-    +'4. Never claim capabilities, certifications or performance figures not stated in the source data.\n\n'
+    +'4. Never claim capabilities, certifications or performance figures not stated in the source data.\n'
+    +'5. SINGLE ITEM: describe only the exact version being listed — do not advertise other sizes, colours or pack options the supplier page mentions.\n'
+    +'6. COMPLIANCE FIELDS ARE NOT SELLING POINTS: never turn regulatory fields (e.g. "High-concerned chemical: None") into claims like "chemical-free", "non-toxic", "eco-friendly" or "safe".\n'
+    +'7. NO INVENTED FEATURE WORDS: do not add feature or type words that are not in the source data (e.g. "radial", "waterproof", "magnetic", "heavy duty", "professional"), even if they appear in keyword lists.\n\n'
     +'=== RULE SET B — TIKTOK COMPLIANCE (listings get rejected for these) ===\n'
     +'1. NO medical or health-condition words anywhere: arthritis, arthritic, pain, pain relief, cure, treat, treatment, therapy, heal, anti-inflammatory, carpal tunnel, disability.\n'
     +'2. NO effect or outcome claims: effortless, guaranteed, instant results, miracle, 100% effective, painless.\n'
@@ -2642,6 +2676,54 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escHtml(ebayTitle)+'</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800'+(SEA?'&family='+SEA.gfont:'')+'&display=swap" rel="stylesheet">\n<style>'+css+'</style>\n</head>\n<body>\n<div class="wrap">\n'+bodyOrder+'<div style="text-align:center;padding:1.5rem 0;font-size:0.7rem;color:'+T.acc+';opacity:0.6;border-top:1px solid '+T.rb+';">'+escHtml(L.foot)+'</div>\n</div>\n</body>\n</html>';
 }
 
+// True if a word (or a common synonym) appears in the user's product text.
+var SLF_SYNONYMS = {
+  bike:['bicycle','bicycles','cycle','cycling'], bicycle:['bike','bikes','cycle'], cycle:['bike','bicycle'],
+  adhesive:['adhesion','glue','sticky','bond','bonding'], glue:['adhesive','adhesion'],
+  auto:['car','cars','vehicle','vehicles','automotive'], car:['auto','vehicle','automotive'], vehicle:['car','auto','automotive'],
+  automotive:['car','auto','vehicle'], phone:['mobile','smartphone','cellphone'], mobile:['phone','smartphone'],
+  kids:['children','child','kid'], children:['kids','child'], cord:['cable','wire','lead'], cable:['cord','wire','lead'],
+  wire:['cable','cord'], lead:['cable','cord'], strap:['tie','band','straps'], tie:['strap','band'],
+  mat:['pad','mats'], pad:['mat','pads'], puncture:['punctured','flat'], flat:['puncture','punctured'],
+  repair:['fix','repairs'], fix:['repair'], tool:['tools'], durable:['tough','sturdy','strong'],
+  strong:['durable','tough','sturdy'], portable:['compact','travel'], compact:['portable','small'],
+  storage:['organizer','organiser','store'], organizer:['storage','organiser','organize'], organiser:['storage','organizer']
+};
+function slfSupported(word){
+  if(typeof slfInSource!=='function') return true;
+  if(slfInSource(word)) return true;
+  var w=String(word).toLowerCase().replace(/[^a-z0-9-]/g,'');
+  var syn=SLF_SYNONYMS[w] || SLF_SYNONYMS[w.replace(/s$/,'')] || [];
+  for(var i=0;i<syn.length;i++){ if(slfInSource(syn[i])) return true; }
+  return false;
+}
+
+// Build a clean search query from the product text. The keyword APIs and eBay's
+// category guesser work best on a short core product phrase — not on supplier
+// filler ("A set of 20...") and not on the brand (which pulls in the brand's
+// other products, e.g. a candle returning bed-pillow keywords).
+function slfBuildQuery(product){
+  var line=(product||'').split('\n')[0].replace(/title\s*:/i,'').trim();
+  var head=line.split(/\s*[,|]\s*|\s+[-–—]\s+/)[0].trim();
+  if(head.split(/\s+/).length<2) head=line;
+  var brand=''; try{ brand=(document.getElementById('brandName').value||'').toLowerCase().trim(); }catch(e){}
+  var brandWords=brand?brand.split(/\s+/):[];
+  var filler=['a','an','the','set','sets','of','pack','packs','pcs','pc','piece','pieces','pair','pairs','lot','bundle','new','x','with','and','for','in','premium','high','quality','upgraded','hot','sale','2024','2025','2026'];
+  var words=head.split(/\s+/).map(function(w){return w.replace(/[^A-Za-z0-9+\-]/g,'');}).filter(function(w){
+    var wl=w.toLowerCase();
+    if(!wl) return false;
+    if(/^\d+-?[a-z]{0,6}$/i.test(wl)) return false;          // 20, 20pcs, 2-pack, 32oz
+    if(/^\d+-in-\d+$/i.test(wl)) return false;              // 5-in-1
+    if(/^\d+[x×-]\d+/i.test(wl)) return false;                // 10x20
+    if(filler.indexOf(wl)>-1) return false;
+    if(brandWords.indexOf(wl)>-1) return false;
+    return true;
+  });
+  var q=words.slice(0,6).join(' ');
+  if(q.length<3) q=line.split(' ').slice(0,7).join(' ');     // fallback: old behaviour
+  return q;
+}
+
 function computeQualityScore(text){
   var S={};
   var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
@@ -2655,50 +2737,120 @@ function computeQualityScore(text){
 
   var checks=[];
   var score=0;
+  var srcText = '';
+  try{ srcText = (document.getElementById('productInput').value||'').toLowerCase(); }catch(e){}
 
-  // 1. Title length (20 pts) — extract eBay title
+  // 1. Title length (20 pts) — eBay gives 80 characters of search space
   var titleBlock=(S['TITLE']||'');
   var titleLine='';
   titleBlock.split('\n').forEach(function(l){var c=l.replace(/`/g,'').replace(/^[-•*\s]+/,'').trim();if(!titleLine && c.length>20 && !/chars|keyword|stacking|character|\[/i.test(c))titleLine=c;});
   var tlen=titleLine.length;
-  if(tlen>=75 && tlen<=80){score+=20;checks.push({label:'Title length ('+tlen+'/80)',pass:true,note:'Perfect — uses eBay space well'});}
-  else if(tlen>=70 && tlen<75){score+=14;checks.push({label:'Title length ('+tlen+'/80)',pass:'warn',note:'A bit short — add keywords'});}
-  else if(tlen>80){score+=10;checks.push({label:'Title length ('+tlen+'/80)',pass:'warn',note:'Too long — will be cut'});}
-  else {score+=6;checks.push({label:'Title length ('+tlen+'/80)',pass:false,note:'Too short — wasting space'});}
+  if(tlen>=75 && tlen<=80){score+=20;checks.push({label:'Title length ('+tlen+'/80)',pass:true,note:'Uses the full eBay search space'});}
+  else if(tlen>=70 && tlen<75){score+=14;checks.push({label:'Title length ('+tlen+'/80)',pass:'warn',note:'A bit short — room for one more keyword'});}
+  else if(tlen>80){score+=10;checks.push({label:'Title length ('+tlen+'/80)',pass:'warn',note:'Too long — eBay will cut it'});}
+  else {score+=6;checks.push({label:'Title length ('+tlen+'/80)',pass:false,note:'Too short — wasting search space'});}
 
-  // 2. Keywords placed in description (20 pts)
+  // 2. Title accuracy (15 pts) — every title word should describe THIS product.
+  //    Words not found in your product text may be invented features from competitor keywords.
+  var unsupported=[];
+  if(srcText && titleLine){
+    var brandBox=''; try{ brandBox=(document.getElementById('brandName').value||'').toLowerCase(); }catch(e){}
+    var generic=['kit','set','pack','pcs','piece','pieces','pair','new','for','with','and','the','fits','compatible','count','lot','bundle'];
+    titleLine.split(/[^A-Za-z0-9-]+/).forEach(function(w){
+      var wl=w.toLowerCase();
+      if(wl.length<3 || /^\d/.test(wl)) return;
+      if(generic.indexOf(wl)>-1) return;
+      if(typeof SLF_STOPWORDS!=='undefined' && SLF_STOPWORDS.indexOf(wl)>-1) return;
+      if(brandBox && brandBox.indexOf(wl)>-1) return;
+      if(slfSupported(w)) return;
+      if(unsupported.indexOf(w)===-1) unsupported.push(w);
+    });
+  }
+  if(!srcText){score+=15;checks.push({label:'Title accuracy',pass:true,note:'Not checked (no product text)'});}
+  else if(unsupported.length===0){score+=15;checks.push({label:'Title accuracy',pass:true,note:'Every title word is backed by your product data'});}
+  else if(unsupported.length<=2){score+=9;checks.push({label:'Title accuracy — review: '+unsupported.join(', '),pass:'warn',note:'Not in your product text. Fine if it is a true synonym (e.g. bike/bicycle); remove it if it claims a feature the item lacks.'});}
+  else {score+=3;checks.push({label:'Title accuracy — '+unsupported.length+' unverified words',pass:false,note:'Check: '+unsupported.join(', ')+' — words not in your product text can mislead buyers and cause returns.'});}
+
+  // 3. Item specifics (20 pts) — only REAL values count; placeholders are penalised
+  var spec=(S['ITEM SPECIFICS']||'');
+  var specLines=spec.split('\n').filter(function(l){return l.indexOf(':')>-1 && l.trim().length>3;});
+  var placeholderRe=/:\s*(n\/a|na|none specified|see (title|description|photos|images)|refer to|various|standard|-|unknown|tbc)\s*$/i;
+  var placeholders=specLines.filter(function(l){return placeholderRe.test(l.trim());});
+  var realSpecs=specLines.length-placeholders.length;
+  // values whose words never appear in the product text are likely invented or from the wrong category
+  var unverifiedSpecs=[];
+  if(srcText){
+    specLines.forEach(function(l){
+      var ix=l.indexOf(':'); if(ix<0) return;
+      var field=l.slice(0,ix).trim(), val=l.slice(ix+1).trim();
+      if(!val || /^(brand)$/i.test(field)) return;
+      if(/^(unbranded|does not apply|new|n\/a)$/i.test(val)) return;
+      if(/^\d/.test(val)) return;                              // numbers are covered by the spec-token rules
+      var words=val.split(/[^A-Za-z0-9-]+/).filter(function(w){return w.length>=3;});
+      if(words.length===0) return;
+      var backed=words.some(function(w){ return slfSupported(w); });
+      if(!backed) unverifiedSpecs.push(field+': '+val);
+    });
+  }
+  if(unverifiedSpecs.length>0){
+    score+=4;
+    checks.push({label:unverifiedSpecs.length+' item specific(s) not found in your product data',pass:false,note:'Check: '+unverifiedSpecs.slice(0,5).join(' | ')+(unverifiedSpecs.length>5?' …':'')+' — these may be invented or from the wrong eBay category. Delete them before listing.'});
+  }
+  else if(placeholders.length>0){score+=5;checks.push({label:placeholders.length+' placeholder item specific(s)',pass:false,note:'Values like "N/A" or "See title" mislead buyers — delete those fields instead.'});}
+  else if(realSpecs>=5){score+=20;checks.push({label:realSpecs+' item specifics (all real values)',pass:true,note:'Feeds eBay search filters'});}
+  else if(realSpecs>=3){score+=13;checks.push({label:realSpecs+' item specifics',pass:'warn',note:'Add more real details (material, size, colour, compatibility) to your product text to unlock more filters.'});}
+  else {score+=6;checks.push({label:realSpecs+' item specifics',pass:false,note:'Few filters matched — add product details to your source text; the tool will not invent them.'});}
+
+  // 4. Keywords used in description (15 pts)
   var desc=(S['DESCRIPTION']||'').toLowerCase();
   var kwInDesc=0;
   if(typeof allKws!=='undefined' && allKws.length>0){
     allKws.forEach(function(k){if(desc.indexOf(k.toLowerCase())>-1)kwInDesc++;});
   }
-  if(kwInDesc>=8){score+=20;checks.push({label:kwInDesc+' keywords in description',pass:true,note:'Strong keyword coverage'});}
-  else if(kwInDesc>=4){score+=14;checks.push({label:kwInDesc+' keywords in description',pass:'warn',note:'Decent — could add a few more'});}
-  else {score+=6;checks.push({label:kwInDesc+' keywords in description',pass:false,note:'Low — add more keywords naturally'});}
+  if(kwInDesc>=6){score+=5;checks.push({label:kwInDesc+' buyer keywords in description',pass:true,note:'Good long-tail coverage'});}
+  else if(kwInDesc>=3){score+=3;checks.push({label:kwInDesc+' buyer keywords in description',pass:'warn',note:'Decent — a few more would help'});}
+  else {score+=1;checks.push({label:kwInDesc+' buyer keywords in description',pass:false,note:'Low — weave in more real buyer phrases'});}
 
-  // 3. Item Specifics present (20 pts) — big SEO weight
-  var spec=(S['ITEM SPECIFICS']||'');
-  var specCount=spec.split('\n').filter(function(l){return l.indexOf(':')>-1 && l.trim().length>3;}).length;
-  if(specCount>=6){score+=20;checks.push({label:specCount+' eBay item specifics',pass:true,note:'Great — boosts Cassini ranking & filters'});}
-  else if(specCount>=3){score+=13;checks.push({label:specCount+' eBay item specifics',pass:'warn',note:'Add more for better filter coverage'});}
-  else {score+=4;checks.push({label:specCount+' eBay item specifics',pass:false,note:'Few — you may miss filter searches'});}
+  // Title keyword coverage (10 pts) — the title is what eBay search matches first.
+  // How many of the top eBay-searched phrases are fully present in the title?
+  var topKws = (window.slfEbayKws && window.slfEbayKws.length ? window.slfEbayKws : (typeof allKws!=='undefined'?allKws:[])).slice(0,8);
+  if(topKws.length && titleLine){
+    var tl0=titleLine.toLowerCase(), covered=[], missed=[];
+    topKws.forEach(function(k){
+      var ws=String(k).toLowerCase().split(/\s+/).filter(function(w){return w.length>=3 && !(typeof SLF_STOPWORDS!=='undefined' && SLF_STOPWORDS.indexOf(w)>-1);});
+      if(!ws.length) return;
+      var all=ws.every(function(w){ return new RegExp('(^|[^a-z0-9])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'s?([^a-z0-9]|$)').test(tl0); });
+      (all?covered:missed).push(k);
+    });
+    if(covered.length>=3){score+=10;checks.push({label:covered.length+' top eBay search phrases in title',pass:true,note:'Title matches what buyers type'});}
+    else if(covered.length>=1){score+=6;checks.push({label:covered.length+' top eBay search phrase(s) in title',pass:'warn',note:'Could also match: '+missed.slice(0,3).join(', ')+' — only if they truly describe this item.'});}
+    else {score+=2;checks.push({label:'No top eBay search phrases in title',pass:false,note:'Buyers search: '+missed.slice(0,3).join(', ')+' — work the relevant ones in.'});}
+  } else {
+    score+=10;checks.push({label:'Title keyword coverage',pass:true,note:'Not checked (no live eBay keywords)'});
+  }
 
-  // 4. Description length (15 pts)
+  // 5. Description length (10 pts)
   var descLen=(S['DESCRIPTION']||'').length;
-  if(descLen>=400){score+=15;checks.push({label:'Description length',pass:true,note:'Detailed & informative'});}
-  else if(descLen>=200){score+=10;checks.push({label:'Description length',pass:'warn',note:'OK — could be richer'});}
-  else {score+=4;checks.push({label:'Description length',pass:false,note:'Too thin'});}
+  if(descLen>=400){score+=10;checks.push({label:'Description length',pass:true,note:'Detailed & informative'});}
+  else if(descLen>=200){score+=7;checks.push({label:'Description length',pass:'warn',note:'OK — could be richer'});}
+  else {score+=3;checks.push({label:'Description length',pass:false,note:'Too thin'});}
 
-  // 5. Key features count (15 pts)
+  // 6. Key features (10 pts)
   var feats=(S['KEY FEATURES']||'').split('\n').filter(function(l){return l.trim().length>5;}).length;
-  if(feats>=6){score+=15;checks.push({label:feats+' key features',pass:true,note:'Good coverage'});}
-  else if(feats>=3){score+=10;checks.push({label:feats+' key features',pass:'warn',note:'Add a few more'});}
-  else {score+=4;checks.push({label:feats+' key features',pass:false,note:'Too few'});}
+  if(feats>=6){score+=10;checks.push({label:feats+' key features',pass:true,note:'Good coverage'});}
+  else if(feats>=3){score+=7;checks.push({label:feats+' key features',pass:'warn',note:'Add a few more'});}
+  else {score+=3;checks.push({label:feats+' key features',pass:false,note:'Too few'});}
 
-  // 6. Tags/keywords section (10 pts)
-  var hasTags=(S['TAGS']||'').length>20;
-  if(hasTags){score+=10;checks.push({label:'Backend tags present',pass:true,note:'Extra discoverability'});}
-  else {score+=3;checks.push({label:'Backend tags',pass:false,note:'Missing'});}
+  // 7. Spelling consistency (10 pts) — mixing US/UK spellings looks careless
+  var body=[S['TITLE'],S['HTML HEADING'],S['KEY FEATURES'],S['SPECIFICATIONS'],S['ITEM SPECIFICS']].join(' ').toLowerCase(); // description may carry one synonym
+  var pairs=[['tire','tyre'],['color','colour'],['gray','grey'],['aluminum','aluminium'],['organizer','organiser'],['center','centre'],['meter','metre']];
+  var mixed=[];
+  pairs.forEach(function(p){
+    var a=new RegExp('\\b'+p[0]+'s?\\b').test(body), b=new RegExp('\\b'+p[1]+'s?\\b').test(body);
+    if(a&&b) mixed.push(p[0]+'/'+p[1]);
+  });
+  if(mixed.length===0){score+=10;checks.push({label:'Spelling consistent',pass:true,note:'One market spelling throughout'});}
+  else {score+=3;checks.push({label:'Mixed spelling: '+mixed.join(', '),pass:'warn',note:'Use one spelling in the listing; keep the other only as a tag/synonym.'});}
 
   return {score:Math.min(score,100), checks:checks};
 }
