@@ -1713,9 +1713,13 @@ async function generate(){
     if(A && ((A.required && A.required.length) || (A.recommended && A.recommended.length))){
       kwLine += '\n\n=== eBay OFFICIAL ITEM SPECIFICS (live from eBay Taxonomy API for this exact category) ===\n';
       if(A.category) kwLine += 'eBay category: '+A.category+'\n';
-      if(A.required && A.required.length) kwLine += 'REQUIRED fields (eBay demands these — output EVERY one with an accurate value from the source data; never omit one):\n'+A.required.join('\n')+'\n';
-      if(A.recommended && A.recommended.length) kwLine += 'RECOMMENDED fields (these boost search ranking — include every one that applies):\n'+A.recommended.join('\n')+'\n';
-      kwLine += 'Use these EXACT field names in ITEM SPECIFICS. Where sample values are shown in brackets, prefer one of those exact values so eBay search filters match. Then add any other relevant fields.\n';
+      if(A.required && A.required.length) kwLine += 'Fields eBay marks REQUIRED for that category:\n'+A.required.join('\n')+'\n';
+      if(A.recommended && A.recommended.length) kwLine += 'Fields eBay marks RECOMMENDED for that category:\n'+A.recommended.join('\n')+'\n';
+      kwLine += 'HOW TO USE THIS LIST — READ CAREFULLY:\n'
+        +'1. FIRST SANITY-CHECK THE CATEGORY against the RAW SOURCE DATA. It was guessed from a short search phrase and can be WRONG (for example "patch strips" can be mistaken for facial pore strips when the product is actually a tyre repair kit).\n'
+        +'2. If the category does NOT match the product, IGNORE this entire list and write the correct eBay Item Specifics for what the product actually is.\n'
+        +'3. If the category DOES match, use these exact field names, but ONLY for fields that genuinely apply to this product and whose values are supported by the source data. Where sample values are shown in brackets, prefer one of those exact values so eBay filters match.\n'
+        +'4. NEVER output a field belonging to a different kind of product (e.g. Body Area, Main Purpose, Skin Type on a car part), and NEVER invent a value just because eBay marks a field required. An omitted field is always better than a wrong one — the seller completes those in Seller Hub.\n';
     }
     kwLine += brandLine;
     if(isMultiVar){
@@ -1734,7 +1738,8 @@ async function generate(){
       au: 'MARKET: eBay Australia (ebay.com.au). Use Australian English spelling (colour, organise, tyre, aluminium). Use AUD ($) for any prices. Use metric units and Australian terms where relevant.',
       us: 'MARKET: eBay US (ebay.com). Use American English spelling. Use USD ($) for any prices.'
     };
-    var marketLine = MARKET_LINES[market] || MARKET_LINES.us;
+    var marketLine = (MARKET_LINES[market] || MARKET_LINES.us)
+      + ' SPELLING CONSISTENCY: use this market\'s spelling in EVERY section — title, heading, description, features, specs and item specifics. Never mix variants (e.g. do not write "Tire" in the title and "Tyre" in the description). Pick the market spelling and use it everywhere. The only exception: you may include the other spelling ONCE in TAGS as a search synonym.'
     var ebayPrompt='You are a world-class E-commerce SEO Copywriter. 2026-ready.\n'
     +marketLine+'\n'
     +'TARGET: eBay ONLY. Cassini algorithm optimized.'+kwLine+'\n\n'
@@ -1788,7 +1793,7 @@ async function generate(){
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. BRAND RULE: if the source data shows a brand name, START this heading with the brand (e.g. "Mainstays Cotton Bath Towel Set...") — the brand belongs HERE, not in the eBay title. If VeRO risk is high, only use the brand if the item genuinely is that brand. Use Title Case. NO trailing comma.\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. BRAND RULE: if the source data shows a brand name, mention it naturally here at least once (popular or not) — the description is where the brand lives. If buyers actively search the brand (see BRAND DEMAND), weave it in 2-3 times for SEO. Never put the brand in the eBay title.\n\n'
     +'=== ITEM SPECIFICS ===\n'
-    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, they OVERRIDE your own guesses — output EVERY required field and every applicable recommended field using those exact field names and preferred values. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
+    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, FIRST check that the suggested category actually matches this product. If it matches, use those exact field names for the fields that genuinely apply. If it does NOT match, ignore them completely and write the correct specifics for what the product really is. Every field you output must describe THIS product and be supported by the source data. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value. ONLY list specs whose values appear in the RAW SOURCE DATA. Never invent or estimate a measurement, weight, capacity or material, and never take one from the keyword lists. If a spec is unknown, leave it out entirely.\n\n'
     +(isMultiVar
@@ -2761,7 +2766,8 @@ function slfAspectBadge(){
   return '<div style="margin-bottom:10px;padding:10px 13px;background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.28);border-radius:9px;">'
     +'<div style="font-size:10.5px;color:var(--teal);font-weight:700;margin-bottom:3px;">✓ eBay OFFICIAL CATEGORY DATA</div>'
     +'<div style="font-size:11px;color:var(--fog);line-height:1.6;">'+escHtml(A.category)+'</div>'
-    +'<div style="font-size:9.5px;color:var(--dim);margin-top:4px;">'+reqN+' required + '+recN+' recommended fields fetched live from eBay — confirm in Seller Hub when listing.</div></div>';
+    +'<div style="font-size:9.5px;color:var(--dim);margin-top:4px;">'+reqN+' required + '+recN+' recommended fields fetched live from eBay — confirm in Seller Hub when listing.</div>'
+    +'<div style="font-size:9.5px;color:#fbbf24;margin-top:5px;line-height:1.5;">⚠ Check this category matches your product. eBay guesses it from your product wording, so an odd phrase can land in the wrong category — if it looks wrong, the fields above may not apply.</div></div>';
 }
 
 function renderVeroCheck(text){
