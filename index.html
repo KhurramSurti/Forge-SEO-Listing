@@ -396,6 +396,18 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <button class="th-opt" onclick="setTheme('rose',this)"><div class="th-sw" style="background:linear-gradient(135deg,#fdf2f5,#e0447c)">🌸</div>Rosé</button>
       <button class="th-opt" id="customThemeBtn" onclick="setTheme('custom',this)" style="grid-column:1/-1;"><div class="th-sw" id="customSwatch" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)">🎨</div>Custom Color</button>
       <button class="th-opt" id="imgColorBtn" onclick="matchImageColor()" style="grid-column:1/-1;"><div class="th-sw" style="background:linear-gradient(135deg,#333,#0aa)">🖼</div>Match Product Image Color</button>
+      <button class="th-opt" id="fileColorBtn" onclick="document.getElementById('colorFile').click()" style="grid-column:1/-1;"><div class="th-sw" style="background:conic-gradient(#f43f5e,#f59e0b,#22c55e,#06b6d4,#8b5cf6,#f43f5e)">🎨</div>Theme Color From Image File</button>
+    </div>
+    <input type="file" id="colorFile" accept="image/*" style="display:none" onchange="pickColorFromFile(this.files)"/>
+    <div id="filePalette" style="display:none;margin-top:8px;padding:10px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);">
+      <div style="display:flex;gap:10px;align-items:center;">
+        <img id="filePaletteThumb" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:7px;border:1px solid var(--wire);flex-shrink:0;"/>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:9.5px;color:var(--dim);margin-bottom:5px;">Colours found — tap one to use it</div>
+          <div id="filePaletteSwatches" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+      </div>
+      <div id="filePaletteNote" style="font-size:9.5px;color:var(--fog);margin-top:7px;line-height:1.5;"></div>
     </div>
     <div class="sb-lbl" style="margin-top:12px;">🎉 Seasonal / Occasion <span style="font-size:8px;color:var(--dim);margin-left:4px;">(overrides theme)</span></div>
     <select id="seasonSelect" class="client-sel" onchange="onSeasonChange(this.value)"></select>
@@ -975,6 +987,102 @@ function uploadImagesToHost(files){
 // ══ IMAGE → THEME COLOR MATCHING ══════════════════════════════
 // Reads the first product image's pixels and builds the whole HTML theme
 // from its dominant vibrant color (uses the existing Custom Color engine).
+// Read the main colours of an image already loaded into an <img>.
+// Returns up to 4 distinct vibrant colours (most prominent first) plus the
+// average brightness of the non-background pixels, for products that are
+// mostly black, white or grey.
+function slfExtractPalette(img){
+  var cv=document.createElement('canvas'), S=80;
+  cv.width=S; cv.height=S;
+  var cx=cv.getContext('2d');
+  cx.drawImage(img,0,0,S,S);
+  var d=cx.getImageData(0,0,S,S).data;
+  var buckets={}, objLumSum=0, objN=0;
+  for(var i=0;i<d.length;i+=4){
+    var r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
+    if(a<200) continue;
+    var mx=Math.max(r,g,b), mn=Math.min(r,g,b), sat=mx-mn, lum=(mx+mn)/2;
+    if(lum<240){ objLumSum+=lum; objN++; }            // ignore a white studio background
+    if(sat<30 || lum<35 || lum>225) continue;          // keep only real colour
+    var key=(Math.round(r/32)*32)+','+(Math.round(g/32)*32)+','+(Math.round(b/32)*32);
+    if(!buckets[key]) buckets[key]={n:0,r:0,g:0,b:0};
+    buckets[key].n++; buckets[key].r+=r; buckets[key].g+=g; buckets[key].b+=b;
+  }
+  var list=Object.keys(buckets).map(function(k){
+    var bk=buckets[k], R=bk.r/bk.n, G=bk.g/bk.n, B=bk.b/bk.n;
+    var vib=Math.max(R,G,B)-Math.min(R,G,B);
+    return {r:R,g:G,b:B,n:bk.n,score:bk.n*(1+vib/128)};
+  }).sort(function(a,b){return b.score-a.score;});
+  // drop near-duplicates so the swatches are genuinely different colours
+  var picked=[], totalN=list.reduce(function(s,c){return s+c.n;},0);
+  list.forEach(function(c){
+    if(picked.length>=4) return;
+    if(c.n < Math.max(6, totalN*0.05)) return;         // ignore specks and blended edge pixels
+    var close=picked.some(function(p){ return Math.abs(p.r-c.r)+Math.abs(p.g-c.g)+Math.abs(p.b-c.b) < 90; });
+    if(!close) picked.push(c);
+  });
+  function _hx(v){v=Math.round(v).toString(16);return v.length<2?'0'+v:v;}
+  return {
+    colors: picked.map(function(c){return '#'+_hx(c.r)+_hx(c.g)+_hx(c.b);}),
+    objLum: objN ? objLumSum/objN : 255,
+    objShare: objN/(S*S)
+  };
+}
+
+function slfApplyCustomColor(hex){
+  customColor=hex;
+  localStorage.setItem('slf_cc',hex);
+  var ci=document.getElementById('customColor'); if(ci) ci.value=hex;
+  var sw=document.getElementById('customSwatch'); if(sw) sw.style.background='linear-gradient(135deg,'+hex+','+hex+')';
+  setTheme('custom', document.getElementById('customThemeBtn'));
+}
+
+// Pick the theme colour from an image on the user's computer.
+// The image is read locally only — it is NOT uploaded and NOT added to the listing.
+function pickColorFromFile(files){
+  var note=document.getElementById('filePaletteNote');
+  var panel=document.getElementById('filePalette');
+  var f=files && files[0];
+  if(!f) return;
+  panel.style.display='block';
+  if(!/^image\//.test(f.type)){ note.textContent='⚠ Yeh image file nahi hai — JPG, PNG ya WEBP chunein.'; note.style.color='#fbbf24'; return; }
+  note.textContent='⏳ Reading colours...'; note.style.color='var(--fog)';
+  var rd=new FileReader();
+  rd.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      var thumb=document.getElementById('filePaletteThumb'); thumb.src=rd.result;
+      var P; try{ P=slfExtractPalette(img); }catch(e){ note.textContent='⚠ Image read nahi hui — doosri file try karein.'; note.style.color='#fbbf24'; return; }
+      var box=document.getElementById('filePaletteSwatches');
+      if(P.colors.length===0){
+        // black / white / grey product: choose the matching neutral theme instead
+        box.innerHTML='';
+        var dark = P.objLum < 110;
+        var btn = Array.prototype.find.call(document.querySelectorAll('#thGrid .th-opt'), function(b){ return (b.getAttribute('onclick')||'').indexOf(dark?"'noir'":"'clean'")>-1; });
+        setTheme(dark?'noir':'clean', btn||null);
+        note.innerHTML = 'Is product mein koi tez rang nahi mila (zyada tar '+(dark?'kala/gehra':'safed/halka')+'), isliye <b>'+(dark?'Noir':'Clean')+'</b> theme lagaya. Chahein to Custom Color se khud rang chunein.';
+        note.style.color='var(--fog)';
+        return;
+      }
+      box.innerHTML=P.colors.map(function(hx,ix){
+        return '<button onclick="slfApplyCustomColor(\''+hx+'\');slfMarkSwatch(this)" title="'+hx+'" class="fp-sw'+(ix===0?' on':'')+'" style="width:28px;height:28px;border-radius:7px;cursor:pointer;background:'+hx+';border:2px solid '+(ix===0?'var(--snow)':'transparent')+';"></button>';
+      }).join('');
+      slfApplyCustomColor(P.colors[0]);
+      note.innerHTML='✓ Theme ab image ke rang mein hai. Image upload nahi hui aur listing mein nahi lagegi. Rang sahi na lage to doosra swatch dabayein'+(P.colors.length>1?'':'')+'.';
+      note.style.color='var(--teal)';
+    };
+    img.onerror=function(){ note.textContent='⚠ Image khul nahi saki — doosri file try karein.'; note.style.color='#fbbf24'; };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+  // allow choosing the same file again later
+  document.getElementById('colorFile').value='';
+}
+function slfMarkSwatch(el){
+  document.querySelectorAll('#filePaletteSwatches .fp-sw').forEach(function(b){ b.style.borderColor='transparent'; });
+  el.style.borderColor='var(--snow)';
+}
+
 function matchImageColor(){
   var note=document.getElementById('imgUrlsNote');
   var imgs=getProductImages();
@@ -2305,6 +2413,14 @@ function buildCustomTheme(hex, mode){
   hex = hex.replace('#','');
   if(hex.length===3) hex = hex.split('').map(function(c){return c+c;}).join('');
   var r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+  // Contrast guard: a colour picked from a photo can be too pale for a light page
+  // or too dark for a dark page. Nudge it until headings stay readable.
+  function relLum(R,G,B){ function ch(v){v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);} return 0.2126*ch(R)+0.7152*ch(G)+0.0722*ch(B); }
+  var guard=0;
+  if(mode==='light'){ while(relLum(r,g,b)>0.30 && guard<12){ r=Math.round(r*0.85); g=Math.round(g*0.85); b=Math.round(b*0.85); guard++; } }
+  else { while(relLum(r,g,b)<0.10 && guard<12){ r=Math.round(r+(255-r)*0.15); g=Math.round(g+(255-g)*0.15); b=Math.round(b+(255-b)*0.15); guard++; } }
+  function _h(n){n=Math.max(0,Math.min(255,n));var s=n.toString(16);return s.length<2?'0'+s:s;}
+  hex = '#'+_h(r)+_h(g)+_h(b);   // keep the # — CSS needs it (was missing before)
   var rgb = r+','+g+','+b;
 
   if(mode==='light'){
@@ -2647,6 +2763,9 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   if(L.order==='specsfirst')    bodyOrder = heroH+imgH+descH+specsH+varH+featH+compatH+tipsH+idealH+safetyH+polH;
   else if(L.order==='featlast') bodyOrder = heroH+imgH+descH+specsH+varH+compatH+idealH+featH+tipsH+safetyH+polH;
   else                          bodyOrder = heroH+imgH+descH+featH+specsH+varH+compatH+tipsH+idealH+safetyH+polH;
+
+  // custom / image-picked colour: tint the feature bullet to match instead of the fixed blue emoji
+  if(themeName==='custom'){ bodyOrder = bodyOrder.split('🔹').join('<span style="color:'+T.acc+';">✦</span>'); }
 
   if(SEA){
     // heading font + positioning for the corner decorations
