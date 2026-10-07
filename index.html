@@ -1965,7 +1965,7 @@ async function generate(){
   }
 
   renderKeywords();
-  if(platform==='ebay'){ renderQualityScore(fullTxt); renderCompetitors(); renderVeroCheck(fullTxt); }
+  if(platform==='ebay'){ renderQualityScore(fullTxt); renderCompetitors(); renderVeroCheck(fullTxt); renderPlainText(fullTxt); }
   setLoading(false);
   document.getElementById('prog').classList.remove('show');
   document.getElementById('output').classList.add('show');
@@ -2057,7 +2057,7 @@ function restoreSession(){
         renderKeywords();
         renderQualityScore(fullTxt);
         renderCompetitors();
-        renderVeroCheck(fullTxt);
+        renderVeroCheck(fullTxt); renderPlainText(fullTxt);
       } else if(platform==='tiktok' && tiktokTxt){
         renderTikTokOnly(tiktokTxt);
         renderKeywords();
@@ -2920,6 +2920,98 @@ function slfAspectBadge(){
     +'<div style="font-size:11px;color:var(--fog);line-height:1.6;">'+escHtml(A.category)+'</div>'
     +'<div style="font-size:9.5px;color:var(--dim);margin-top:4px;">'+reqN+' required + '+recN+' recommended fields fetched live from eBay — confirm in Seller Hub when listing.</div>'
     +'<div style="font-size:9.5px;color:#fbbf24;margin-top:5px;line-height:1.5;">⚠ Check this category matches your product. eBay guesses it from your product wording, so an odd phrase can land in the wrong category — if it looks wrong, the fields above may not apply.</div></div>';
+}
+
+// ══ PLAIN TEXT (second account) ══════════════════════════════
+// Same listing, no HTML — for pasting into another eBay account's
+// description box without paying for a second generation.
+function slfBuildPlainText(text){
+  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var S={},cur=null,buf=[];
+  (text||'').split('\n').forEach(function(line){
+    var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
+    if(KEYS.indexOf(cl)>-1){if(cur)S[cur]=buf.join('\n').trim();cur=cl;buf=[];}
+    else if(cur)buf.push(line);
+  });
+  if(cur)S[cur]=buf.join('\n').trim();
+
+  function clean(s){ return String(s||'').replace(/\*\*/g,'').replace(/`/g,'').trim(); }
+  function lines(k){ return clean(S[k]).split('\n').map(function(l){return l.trim();}).filter(Boolean); }
+  function strip(l){ return l.replace(/^[-–—•◆▸✅✔*]+\s*/,'').replace(/^\d+[.)]\s*/,'').trim(); }
+  var DIV='━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+  var out=[];
+  function head(t){ out.push(''); out.push(DIV); out.push(t); out.push(DIV); }
+
+  var title = lines('TITLE')[0] || '';
+  var heading = lines('HTML HEADING')[0] || title;
+  if(heading){ out.push(heading.toUpperCase()); }
+
+  var desc = clean(S['DESCRIPTION']).split(/\n\s*\n/).map(function(p){return p.replace(/\s*\n\s*/g,' ').trim();}).filter(Boolean);
+  if(desc.length){ out.push(''); out.push(desc.join('\n\n')); }
+
+  var feats = lines('KEY FEATURES').map(strip).filter(Boolean);
+  if(feats.length){ head('KEY FEATURES'); feats.forEach(function(f){ out.push('✔ '+f); }); }
+
+  var specs = lines('SPECIFICATIONS').map(strip).filter(function(l){return l.indexOf(':')>-1;});
+  if(specs.length){ head('SPECIFICATIONS'); specs.forEach(function(s){ out.push('• '+s); }); }
+
+  var vars = lines('VARIATIONS');
+  if(vars.length){
+    head('AVAILABLE OPTIONS');
+    vars.forEach(function(l){
+      if(/^#{1,3}\s*/.test(l)){ out.push(''); out.push('▸ '+l.replace(/^#{1,3}\s*/,'').toUpperCase()); }
+      else if(/^attributes\s*:/i.test(l)){ out.push('  '+l.replace(/^attributes\s*:\s*/i,'')); }
+      else { out.push('  • '+strip(l)); }
+    });
+  }
+
+  var compat = lines('COMPATIBLE MODELS').map(strip).filter(Boolean);
+  if(compat.length){ head('COMPATIBLE MODELS'); compat.forEach(function(m){ out.push('• '+m); }); }
+
+  var isp = lines('ITEM SPECIFICS').map(strip).filter(function(l){return l.indexOf(':')>-1;});
+  var ispDesc = isp.filter(function(s){ return !/^brand\s*:\s*unbranded\s*$/i.test(s); });
+  if(ispDesc.length){ head('PRODUCT DETAILS'); ispDesc.forEach(function(s){ out.push('• '+s); }); }
+
+  var ideal = lines('IDEAL FOR').map(strip).filter(Boolean);
+  if(ideal.length){ head('IDEAL FOR'); ideal.forEach(function(i){ out.push('• '+i); }); }
+
+  var safety = lines('SAFETY INFORMATION').map(strip).filter(Boolean);
+  if(safety.length){ head('SAFETY INFORMATION'); safety.forEach(function(s){ out.push('⚠ '+s); }); }
+
+  var pol = lines('POLICIES').map(strip).filter(Boolean);
+  if(pol.length){ head('SHIPPING & RETURNS'); pol.forEach(function(p){ out.push('• '+p); }); }
+
+  return { title:title, body: out.join('\n').replace(/\n{3,}/g,'\n\n').trim(), specifics: isp.join('\n') };
+}
+
+function renderPlainText(text){
+  var tabsEl=document.getElementById('stabs'), cntEl=document.getElementById('secCnt');
+  if(!tabsEl||!cntEl) return;
+  var ot=document.getElementById('pt-tab-btn'),os=document.getElementById('pt-tab-sec');
+  if(ot)ot.remove(); if(os)os.remove();
+
+  var P=slfBuildPlainText(text);
+  window.slfPlainTitle=P.title; window.slfPlainBody=P.body; window.slfPlainSpecs=P.specifics;
+
+  var tb=document.createElement('button');
+  tb.className='stab'; tb.id='pt-tab-btn'; tb.innerHTML='📝 Plain Text';
+  tb.style.borderColor='#a78bfa'; tb.style.color='#a78bfa';
+  tb.onclick=function(){document.querySelectorAll('.stab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.ssec').forEach(function(s){s.classList.remove('on');});tb.classList.add('on');document.getElementById('pt-tab-sec').classList.add('on');};
+  tabsEl.appendChild(tb);
+
+  function box(label, body, varName){
+    return '<div class="ob" style="margin-bottom:10px;"><div class="ob-hdr"><span class="ob-lbl c5">'+label+'</span>'
+      +'<button class="ib" onclick="cpTxt(window.'+varName+',this)">Copy</button></div>'
+      +'<div class="ob-body"><div class="shopify-copy-area" style="white-space:pre-wrap;">'+escHtml(body)+'</div></div></div>';
+  }
+  var html='<div class="ssec" id="pt-tab-sec">'
+    +'<div style="padding:10px 13px;margin-bottom:10px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.3);border-radius:9px;font-size:10.5px;color:var(--fog);line-height:1.6;">'
+    +'<b style="color:#a78bfa;">Second account copy — no HTML.</b> Paste the description into eBay\'s description box (Standard view). Same content as this listing, so no extra generation cost.</div>'
+    +box('Title', P.title, 'slfPlainTitle')
+    +box('Description — ready to paste', P.body, 'slfPlainBody')
+    +(P.specifics ? box('Item Specifics — for eBay\'s fields', P.specifics, 'slfPlainSpecs') : '')
+    +'</div>';
+  cntEl.insertAdjacentHTML('beforeend', html);
 }
 
 function renderVeroCheck(text){
