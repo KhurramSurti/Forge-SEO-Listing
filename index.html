@@ -1552,6 +1552,7 @@ async function fetchAllKeywords(apiKey,productTitle){
     lastCompetitors = d.competitors || [];
     window.slfTikTokKws = (d.tiktok||[]).slice(0,10);
     window.slfAspects = d.aspects || null;
+    window.slfCats = (d.aspects && d.aspects.categories) ? d.aspects.categories : [];
     // Mark which sources gave REAL data
     srcReal.google = realData.google.length>0;
     srcReal.amazon = realData.amazon.length>0;
@@ -1785,7 +1786,7 @@ async function generate(){
   document.getElementById('kwFound').classList.remove('show');
   document.getElementById('emptyState').style.display='none';
   document.getElementById('output').classList.remove('show');
-  fullTxt=''; genHtml=''; allKws=[]; shopifyTxt=''; tiktokTxt='';
+  fullTxt=''; genHtml=''; allKws=[]; shopifyTxt=''; tiktokTxt=''; window.slfCats=[]; window.slfAspects=null;
 
   // STEP 1
   setStep(1); setChip('work','Researching keywords...');
@@ -1910,6 +1911,35 @@ async function generate(){
     +'10. NO INVENTED FEATURE WORDS: do not add feature or type words that are not in the source data — e.g. "radial", "tubeless", "waterproof", "magnetic", "heavy duty", "military grade", "professional" — even if they appear in the keyword lists. Keywords from other sellers describe their products, not this one.\n\n'
     +'CRITICAL: NO backticks, NO markdown (##, **, *), NO --- separators. Plain text only.\n\n'
     +'Use EXACTLY these === markers:\n\n'
+    +'=== CATEGORIES ===\n'
+    +(function(){
+      var C=(window.slfCats||[]).filter(function(x){return x&&x.id;});
+      var head='eBay lets a seller list one item in TWO categories (a Primary and an optional Secondary). Pick them for THIS product.\n';
+      var rules='RULES:\n'
+        +'1. The item must be FULLY relevant to BOTH categories — a buyer browsing either one must expect to find exactly this item. Never pick a category just because it has more traffic.\n'
+        +'2. Primary = the single most accurate category (it decides which Item Specifics eBay asks for).\n'
+        +'3. Secondary = a DIFFERENT branch where real buyers of this exact item also browse (e.g. a clipboard: Office Supplies as primary, School Supplies as secondary). Never a near-duplicate of the primary, never a sibling that means the same thing.\n'
+        +'4. Never use a second category for motor vehicles, real estate, DVDs and Blu-ray, GPS units, iPods/MP3 players or heavy equipment — eBay does not allow it.\n'
+        +(isMultiVar?'5. This is a VARIATION listing: the secondary category must also support variations, otherwise eBay blocks the variation listing. If unsure, write "Secondary: none recommended".\n':'')
+        +'If no second category is genuinely relevant, write "Secondary: none recommended" and say why. A wrong secondary category gets the listing moved by eBay and wastes the extra insertion fee.\n';
+      if(C.length){
+        return head
+          +'LIVE eBay CATEGORY CANDIDATES (from eBay\'s own Taxonomy API; "active listings" = live listings matching this product in that category; "top competitors" = how many of the top-ranking real listings use it):\n'
+          +C.map(function(x){
+              return 'ID '+x.id+' | '+x.path
+                +' | active listings: '+(x.listings==null?'unknown':x.listings)
+                +(x.competitorsSampled?' | top competitors here: '+(x.competitorsHere||0)+'/'+x.competitorsSampled:'')
+                +(x.noSecond?' | (eBay allows NO second category here)':'');
+            }).join('\n')+'\n'
+          +'These candidates are eBay\'s automatic guesses and some may be WRONG for this product (e.g. a beauty category for a car part). Reject any that do not fit. Choose ONLY from this list and copy the ID exactly — never invent an ID. Among the relevant ones, prefer categories with more active listings and more top competitors (proof buyers shop there).\n'
+          +rules
+          +'Output exactly:\nPrimary: [full path] | ID: [id]\nWhy: [one short line]\nSecondary: [full path] | ID: [id]   (or "Secondary: none recommended")\nWhy: [one short line]\n\n';
+      }
+      return head
+        +'No live eBay category data was available. Suggest the categories from your knowledge of the eBay '+(market==='gb'?'UK':market==='au'?'Australia':'US')+' category tree, but do NOT write any category ID numbers (you cannot verify them) — the seller will confirm in Seller Hub.\n'
+        +rules
+        +'Output exactly:\nPrimary: [full path] (confirm in Seller Hub)\nWhy: [one short line]\nSecondary: [full path] (confirm in Seller Hub)   (or "Secondary: none recommended")\nWhy: [one short line]\n\n';
+    })()
     +'=== BRAND CHECK ===\nUse the BRAND DEMAND guidance above to decide. Output:\nBrand: [name or Unbranded] | Searched by buyers: [Yes/No] | VeRO Risk: [High/Medium/Low] | Placement: [where you will mention it: Description + Item Specifics / Item Specifics only / Unbranded]\nReason: [one short line explaining your decision]\n\n'
     +'=== TITLE ===\n'
     +'eBay Title — RULE 1 (LENGTH): the title MUST be between 76 and 80 characters including spaces. This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count carefully. NO punctuation. Every word must be complete.\n'
@@ -2100,6 +2130,7 @@ function saveSession(){
       genHtml: genHtml,
       shopifyTxt: shopifyTxt,
       tiktokTxt: tiktokTxt,
+      cats: window.slfCats||[],
       allKws: allKws,
       competitors: lastCompetitors,
       savedAt: Date.now()
@@ -2158,6 +2189,7 @@ function restoreSession(){
       shopifyTxt = d.shopifyTxt||'';
       if(d.layout && LAYOUTS[d.layout]){ layout=d.layout; var _ls=document.getElementById('layoutSelect'); if(_ls)_ls.value=layout; }
       tiktokTxt = d.tiktokTxt||'';
+      window.slfCats = d.cats||[];
       allKws = d.allKws||[];
       lastCompetitors = d.competitors||[];
       if(platform==='ebay' && fullTxt){
@@ -2380,7 +2412,7 @@ function buildShopifyPlainText(S){
 }
 
 function parseListingSections(text){
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var out={},cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -2845,7 +2877,7 @@ function slfBuildQuery(product){
 
 function computeQualityScore(text){
   var S={};
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -3030,6 +3062,39 @@ function renderQualityScore(text){
   })();
 }
 
+// Live eBay data behind the Primary / Secondary category choice
+function slfCategoryBadge(sectionText){
+  var C=(window.slfCats||[]).filter(function(x){return x&&x.id;});
+  var chosen={};
+  (sectionText||'').split('\n').forEach(function(l){
+    var m=l.match(/^(primary|secondary)\s*:.*?ID\s*:?\s*(\d+)/i);
+    if(m) chosen[m[2]]=m[1].toLowerCase();
+  });
+  var html='';
+  if(C.length){
+    html+='<div style="margin-bottom:10px;padding:10px 12px;background:var(--ink3);border:1px solid var(--wire);border-radius:9px;">'
+      +'<div style="font-size:9.5px;color:var(--teal);font-weight:700;letter-spacing:0.4px;margin-bottom:6px;">LIVE eBay CATEGORY DATA</div>'
+      +C.map(function(x){
+        var tag=chosen[x.id]==='primary'?'<span style="color:#4ade80;font-weight:700;">PRIMARY</span> ':chosen[x.id]==='secondary'?'<span style="color:#a78bfa;font-weight:700;">SECONDARY</span> ':'';
+        var dim=chosen[x.id]?'':'opacity:0.6;';
+        return '<div style="padding:5px 0;border-top:1px solid var(--wire);font-size:10.5px;line-height:1.5;color:var(--fog);'+dim+'">'
+          +tag+escHtml(x.path)
+          +'<div style="font-size:9.5px;color:var(--dim);">ID '+escHtml(String(x.id))
+          +' · '+(x.listings==null?'listings unknown':Number(x.listings).toLocaleString()+' active listings')
+          +(x.competitorsSampled?' · top competitors here: '+(x.competitorsHere||0)+'/'+x.competitorsSampled:'')
+          +(x.noSecond?' · <span style="color:#fbbf24;">no second category allowed</span>':'')
+          +'</div></div>';
+      }).join('')
+      +'</div>';
+  } else {
+    html+='<div style="margin-bottom:10px;padding:10px 12px;background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.3);border-radius:9px;font-size:10px;color:var(--fog);line-height:1.6;">'
+      +'Live eBay category data was not available for this listing, so these are suggestions without IDs. Confirm both in Seller Hub before listing.</div>';
+  }
+  html+='<div style="margin-bottom:10px;font-size:9.5px;color:var(--dim);line-height:1.6;">'
+    +'eBay charges an extra insertion fee for the second category (even on free listings), and the item must be fully relevant to both — eBay can move a misplaced listing. Add the secondary in the listing form under <b>Category → Add a second category</b>.</div>';
+  return html;
+}
+
 function slfAspectBadge(){
   var A=window.slfAspects;
   if(!A || !A.category) return '';
@@ -3045,7 +3110,7 @@ function slfAspectBadge(){
 // Same listing, no HTML — for pasting into another eBay account's
 // description box without paying for a second generation.
 function slfBuildPlainText(text){
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var S={},cur=null,buf=[];
   (text||'').split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -3140,7 +3205,7 @@ function renderVeroCheck(text){
   if(ot)ot.remove(); if(os)os.remove();
 
   // parse sections so we can say WHERE a term appears
-  var S={}, KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var S={}, KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -3355,8 +3420,8 @@ function highlightKeywords(text,keywords){
 }
 
 function renderListing(text){
-  var KEYS=['BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
-  var META={'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'VARIATIONS':{l:'📦 Variations',c:'c4'},'COMPATIBLE MODELS':{l:'🔧 Compatible',c:'c3'},'SAFETY INFORMATION':{l:'⚠ Safety',c:'c5'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
+  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var META={'CATEGORIES':{l:'🗂 Categories',c:'c4'},'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'VARIATIONS':{l:'📦 Variations',c:'c4'},'COMPATIBLE MODELS':{l:'🔧 Compatible',c:'c3'},'SAFETY INFORMATION':{l:'⚠ Safety',c:'c5'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
   var parsed=[],cur=null,buf=[];
   text.split('\n').forEach(function(line){var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();if(KEYS.indexOf(cl)>-1){if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});cur=cl;buf=[];}else if(cur)buf.push(line);});
   if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});
@@ -3409,7 +3474,8 @@ function renderListing(text){
       }
     }
 
-    var badge = (sec.key==='ITEM SPECIFICS' && typeof slfAspectBadge==='function') ? slfAspectBadge() : '';
+    var badge = (sec.key==='ITEM SPECIFICS' && typeof slfAspectBadge==='function') ? slfAspectBadge()
+              : (sec.key==='CATEGORIES' && typeof slfCategoryBadge==='function') ? slfCategoryBadge(sec.content) : '';
     div.innerHTML='<div class="ob"><div class="ob-hdr"><span class="ob-lbl '+m.c+'">'+m.l+'</span><button class="ib" onclick="cpTxt(`'+safe+'`,this)">Copy</button></div><div class="ob-body">'+badge+counterHtml+fmt+'</div></div>';
     cntEl.appendChild(div);
   });
