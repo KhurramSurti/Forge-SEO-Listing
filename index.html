@@ -1962,7 +1962,7 @@ async function generate(){
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. BRAND RULE: if the source data shows a brand name, START this heading with the brand (e.g. "Mainstays Cotton Bath Towel Set...") — the brand belongs HERE, not in the eBay title. If VeRO risk is high, only use the brand if the item genuinely is that brand. Use Title Case. NO trailing comma.\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. BRAND RULE: if the source data shows a brand name, mention it naturally here at least once (popular or not) — the description is where the brand lives. If buyers actively search the brand (see BRAND DEMAND), weave it in 2-3 times for SEO. Never put the brand in the eBay title.\n\n'
     +'=== ITEM SPECIFICS ===\n'
-    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, FIRST check that the suggested category actually matches this product. If it matches, use those exact field names for the fields that genuinely apply. If it does NOT match, ignore them completely and write the correct specifics for what the product really is. Every field you output must describe THIS product and be supported by the source data. REACH: eBay buyers filter results by item specifics, so extract EVERY filterable value the source data genuinely supports, even if it is phrased differently there — e.g. a compatibility sentence listing cars, trucks and motorcycles becomes Vehicle Type: Car, Truck, Motorcycle; a material mentioned in passing becomes Material; a stated count becomes Number of Pieces; a stated power source, size, shape, finish, pattern, theme, room or occasion becomes its own field. More real specifics = more filter searches you appear in. Never invent a value to fill a field. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
+    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, FIRST check that the suggested category actually matches this product. If it matches, use those exact field names for the fields that genuinely apply. If it does NOT match, ignore them completely and write the correct specifics for what the product really is. Every field you output must describe THIS product and be supported by the source data. REACH: eBay buyers filter results by item specifics, so extract EVERY filterable value the source data genuinely supports, even if it is phrased differently there — e.g. a compatibility sentence listing cars, trucks and motorcycles becomes Vehicle Type: Car, Truck, Motorcycle; a material mentioned in passing becomes Material; a stated count becomes Number of Pieces; a stated power source, size, shape, finish, pattern, theme, room or occasion becomes its own field. More real specifics = more filter searches you appear in. Never invent a value to fill a field. Put a value only in a field that MEANS the same thing — e.g. 450 gsm is fabric weight, not Item Thickness; a towel size is not the length of the whole set. If no field matches a fact, leave the fact in the description instead. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value. ONLY list specs whose values appear in the RAW SOURCE DATA. Never invent or estimate a measurement, weight, capacity or material, and never take one from the keyword lists. If a spec is unknown, leave it out entirely.\n\n'
     +(isMultiVar
@@ -1978,15 +1978,15 @@ async function generate(){
         +'c) NEVER INVENT: if the source data says little about a particular variation, keep that block short and factual. Do NOT pad it with generic benefits, invented ingredients, or details borrowed from a different variation just to make the blocks look even. A short honest block is correct; a padded one is not.\n'
         +'d) Do not summarise, do not write "and more", do not merge two variations into one block, do not skip any.\n\n'
       : '')
-    +'=== COMPATIBLE MODELS ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA lists compatible models, vehicles, devices, machines, part numbers or years. If it does, you MUST list EVERY SINGLE compatible model from the source data COMPLETELY — never summarize, compress, shorten, or write "and more". Copy the full compatibility list, organised one model (or model-group) per line, grouped by brand/series where natural. This list is valuable SEO content and buyers search by exact model. If the source data has no compatibility list, OMIT this entire section (do not even print the header).\n\n'
-    +'=== SAFETY INFORMATION ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA contains safety information — warnings, hazard notes, choking/age warnings, battery/chemical warnings, California Prop 65 notices, usage cautions, care/safety instructions. Reproduce them ACCURATELY and COMPLETELY (do not soften, shorten or drop any warning — these can be legally required). One point per line. If the source data has no safety information, OMIT this entire section (do not print the header).\n\n'
+    +'=== COMPATIBLE MODELS ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA lists compatible models, vehicles, devices, machines, part numbers or years. If it does, you MUST list EVERY SINGLE compatible model from the source data COMPLETELY — never summarize, compress, shorten, or write "and more". Copy the full compatibility list, organised one model (or model-group) per line, grouped by brand/series where natural. This list is valuable SEO content and buyers search by exact model. If the source data has no compatibility list, OMIT this entire section — do not print the header and do NOT write any note such as "No compatible models are listed"; simply skip straight to the next section.\n\n'
+    +'=== SAFETY INFORMATION ===\nCONDITIONAL SECTION: ONLY output this section if the RAW SOURCE DATA contains safety information — warnings, hazard notes, choking/age warnings, battery/chemical warnings, California Prop 65 notices, usage cautions, care/safety instructions. Reproduce them ACCURATELY and COMPLETELY (do not soften, shorten or drop any warning — these can be legally required). One point per line. If the source data has no safety information, OMIT this entire section — no header and no note saying it was omitted.\n\n'
     +'=== PRO TIPS ===\n5 practical tips numbered: 1. tip\n\n'
     +'=== IDEAL FOR ===\n12 tags, one per line with — prefix\n\n'
     +'=== POLICIES ===\n'+policy+'\n\n'
     +'=== SEO METADATA ===\nMeta Title: (under 60 chars)\nMeta Description: (50-160 chars)\nURL Handle: (dashes only)\n\n'
     +'=== TAGS ===\neBay Keywords: (10 terms)\nSocial Hashtags: (10 hashtags)\n\n'
     +'=== RAW SOURCE DATA ===\n'+product;
-    try{var r=await claudeCall(apiKey,ebayPrompt,isMultiVar?9000:4500);fullTxt=r;}
+    try{var r=await claudeCall(apiKey,ebayPrompt,isMultiVar?9000:4500);fullTxt=slfCleanListing(r);}
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
@@ -2184,7 +2184,7 @@ function restoreSession(){
       syncPlatformUI();
       theme = d.theme||'heritage';
       if(typeof refreshSeasonUI==='function') refreshSeasonUI();
-      fullTxt = d.fullTxt||'';
+      fullTxt = slfCleanListing(d.fullTxt||'');
       genHtml = d.genHtml||'';
       shopifyTxt = d.shopifyTxt||'';
       if(d.layout && LAYOUTS[d.layout]){ layout=d.layout; var _ls=document.getElementById('layoutSelect'); if(_ls)_ls.value=layout; }
@@ -3109,6 +3109,66 @@ function slfAspectBadge(){
 // ══ PLAIN TEXT (second account) ══════════════════════════════
 // Same listing, no HTML — for pasting into another eBay account's
 // description box without paying for a second generation.
+// ══ LISTING CLEANER ══════════════════════════════════════════
+// The AI sometimes ignores "omit this section" and writes a note instead
+// ("No compatible models are listed..."), or fills a field with a placeholder
+// ("See product packaging"). Clean that out in code before anything is shown,
+// so it never reaches the HTML, the plain text or the item specifics.
+var SLF_ALL_KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+var SLF_OPTIONAL=['COMPATIBLE MODELS','SAFETY INFORMATION','VARIATIONS'];
+function slfIsOmitNote(body){
+  var t=String(body||'').replace(/[()\[\]*_`]/g,' ').replace(/\s+/g,' ').trim();
+  if(!t) return true;
+  if(t.length>260) return false;
+  return /\b(omitted|not applicable|n\/a)\b/i.test(t)
+      || /\b(no|none)\b[^.]{0,80}\b(listed|provided|found|available|stated|mentioned|given|included|specified)\b/i.test(t)
+      || /^(none|no compatible|no safety|no variations?)\b/i.test(t);
+}
+function slfIsFillerValue(field, val){
+  var v=String(val||'').trim();
+  if(!v) return true;
+  if(/^(mpn|upc|ean|isbn|gtin|manufacturer part number)$/i.test(field.trim()) && /^does not apply$/i.test(v)) return false; // eBay accepts this
+  return /^(see|refer|check|as per|per the|per product|consult)\b/i.test(v)
+      || /^(n\/?a|na|none specified|not specified|not stated|not provided|not listed|unknown|unspecified|various|varies|tbc|tba|to be confirmed|-+|—|does not apply)\.?$/i.test(v);
+}
+// a value in the wrong kind of field (e.g. "Item Thickness: 450 gsm")
+function slfUnitMismatch(field, val){
+  var f=field.toLowerCase(), v=String(val).toLowerCase();
+  var isDim=/(length|width|height|depth|thickness|diameter|size of item|item size)/.test(f) && !/(weight|gsm)/.test(f);
+  var isWt=/weight/.test(f) && !/(fabric weight|gsm)/.test(f);
+  var hasLenUnit=/\d\s*(in|inch|inches|cm|mm|m|ft|feet|"|”)\b|\d\s*["”]/.test(v);
+  var hasWtUnit=/\d\s*(gsm|g\/m|g|kg|lb|lbs|oz|ounce|ounces|pounds?|grams?)\b/.test(v);
+  if(isDim && hasWtUnit && !hasLenUnit) return true;
+  if(isWt && hasLenUnit && !hasWtUnit) return true;
+  return false;
+}
+function slfCleanListing(text){
+  if(!text) return text;
+  var pre=[], blocks=[], cur=null;
+  String(text).split('\n').forEach(function(line){
+    var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
+    if(SLF_ALL_KEYS.indexOf(cl)>-1){ cur={key:cl, head:line, body:[]}; blocks.push(cur); }
+    else if(cur) cur.body.push(line); else pre.push(line);
+  });
+  var removed=[];
+  blocks = blocks.filter(function(b){
+    if(SLF_OPTIONAL.indexOf(b.key)>-1 && slfIsOmitNote(b.body.join(' '))){ removed.push(b.key); return false; }
+    return true;
+  });
+  blocks.forEach(function(b){
+    if(b.key!=='ITEM SPECIFICS' && b.key!=='SPECIFICATIONS') return;
+    b.body = b.body.filter(function(line){
+      var t=line.replace(/^[-•*\s]+/,''), ix=t.indexOf(':');
+      if(ix<1) return true;
+      var field=t.slice(0,ix), val=t.slice(ix+1);
+      if(slfIsFillerValue(field,val) || slfUnitMismatch(field,val)){ removed.push(b.key+' → '+t.trim()); return false; }
+      return true;
+    });
+  });
+  window.slfCleaned = removed;
+  return pre.join('\n') + (pre.length?'\n':'') + blocks.map(function(b){ return b.head+'\n'+b.body.join('\n'); }).join('\n');
+}
+
 function slfBuildPlainText(text){
   var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var S={},cur=null,buf=[];
