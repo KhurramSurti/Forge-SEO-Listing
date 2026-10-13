@@ -92,8 +92,15 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .iz-sub{font-size:11px;color:var(--dim);}
 .product-ta{width:100%;background:var(--ink3);background-image:var(--card-gradient);border:1px solid var(--wire);border-radius:var(--r2);padding:15px 17px;color:var(--snow);font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.75;resize:none;height:120px;outline:none;transition:border-color 0.2s;box-shadow:var(--card-shadow);}
 .comp-title-wrap{margin-top:12px;}
-.vp-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:7px;font-size:10.5px;color:var(--dim);}
+.vp-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px;color:var(--dim);line-height:1.5;}
 .vp-bar b{color:var(--fog);font-weight:600;}
+.vp-led{width:9px;height:9px;border-radius:50%;background:var(--wire2);flex-shrink:0;transition:all 0.3s;}
+.vp-led.ok{background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,0.6);}
+.vp-led.warn{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,0.6);}
+.vp-led.bad{background:#fb7185;box-shadow:0 0 8px rgba(251,113,133,0.7);animation:vpPulse 0.7s ease infinite alternate;}
+@keyframes vpPulse{from{opacity:1;}to{opacity:0.35;}}
+.vp-bar .vp-st-ok{color:#4ade80;} .vp-bar .vp-st-warn{color:#fbbf24;} .vp-bar .vp-st-bad{color:#fb7185;}
+.vp-dim{color:var(--dim);}
 .vp-bar button{background:none;border:none;color:var(--gold);font-family:'Geist',sans-serif;font-size:10.5px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;}
 #vpAlert{margin-top:9px;}
 .vp-alert{border-radius:10px;padding:12px 14px;margin-bottom:8px;animation:slfRise 0.25s ease;}
@@ -505,7 +512,7 @@ Free Shipping: No hidden fees.
       <div class="iz-sub">Paste the full title, description and specs from Amazon / Walmart / any sourcing platform</div>
     </div>
     <textarea class="product-ta" id="productInput" placeholder="TITLE: [Product title]&#10;&#10;DESCRIPTION:&#10;[Paste description...]&#10;&#10;SPECS:&#10;- Brand:&#10;- Weight:"></textarea>
-    <div class="vp-bar">🛡 <span>Auto-checking against eBay's VeRO list — <b id="vpBarCount">0</b> brands, A–Z</span> · <button type="button" onclick="openVPList()">View / search the list</button></div>
+    <div class="vp-bar"><span class="vp-led" id="vpLed"></span><span id="vpStatus">VeRO check — paste product details to start</span><span class="vp-dim">· checks <b id="vpBarCount">0</b> eBay VeRO-list brands + big brands</span><span class="vp-dim">·</span><button type="button" onclick="openVPList()">View / search the list</button></div>
     <div id="vpAlert" style="display:none;"></div>
     <div class="comp-title-wrap">
       <label class="brand-title-opt" style="margin-top:0;"><input type="checkbox" id="multiVar" onchange="saveDraftDebounced()"/> <span>📦 Multi-Variation Listing <span style="color:var(--dim);font-weight:400;">(check karein jab aapne ek hi listing ke liye kai variations ki descriptions paste ki hon — sizes / colors / pack qty)</span></span></label>
@@ -1401,7 +1408,14 @@ function slfVeroProfileScan(text){
     while((m=W.re.exec(rawN))!==null){
       var w=m[2], letters=w.replace(/[^A-Za-z]/g,'');
       var ok= W.acr ? (letters && letters===letters.toUpperCase()) : /^[A-Z0-9]/.test(w);
-      if(ok){ add('check',W.e,W.k,'word',w,-1); break; }
+      if(ok){
+        var after=rawN.slice(m.index+m[0].length, m.index+m[0].length+14);
+        if(/^[\s-]*(style|inspired|dupe|type|look ?alike)\b/i.test(after)){
+          add('strong',W.e,W.k,'word',w,-1);
+          out.strong[out.strong.length-1].note='"'+w+' style / dupe" wording is a classic VeRO report — never describe an item as another brand\'s style.';
+        } else add('check',W.e,W.k,'word',w,-1);
+        break;
+      }
     }
   });
   return out;
@@ -1422,42 +1436,143 @@ function slfVPRowsHtml(rows, level){
   return rows.map(function(r){
     var tag = r.compat ? '<span class="vp-tag">used as "for / fits"</span>' : '';
     var extra = slfVPHowText(r);
-    if(level==='strong' && r.compat) extra = (extra?extra+' ':'')+'Compatibility wording does not protect you from this owner\'s reports — check their profile before listing.';
-    return '<div class="vp-item"><div class="vp-line"><b>'+escHtml(r.how==='word'||r.how==='similar'?r.found:r.k)+'</b> <span class="vp-arrow">→</span> '
+    if(level==='strong' && r.compat && r.how!=='known') extra = (extra?extra+' ':'')+'Compatibility wording does not protect you from this owner\'s reports — check their profile before listing.';
+    return '<div class="vp-item"><div class="vp-line"><b>'+escHtml(r.how==='word'||r.how==='similar'||r.how==='known'?r.found:r.k)+'</b> <span class="vp-arrow">→</span> '
       +escHtml(r.e.n)+' '+slfVPProfileLink(r.e)+tag+'</div>'
       +(extra?'<div class="vp-why">'+escHtml(extra)+'</div>':'')+'</div>';
   }).join('');
 }
-// Live alert under the product box
+// Big brands known for VeRO reports that have NO public eBay profile (Apple, Samsung, Disney, Lego…).
+// Uses the tool's VERO_HIGH / VERO_MED lists, so the green light never hides them.
+var SLF_KNOWN_WORDS={'apple':1,'switch':1,'galaxy':1,'omega':1,'supreme':1,'puma':1,'vans':1,'jordan':1,'coach':1,'target':1,
+  'amazon':1,'google':1,'pixel':1,'ninja':1,'stanley':1,'sharp':1,'converse':1,'yeti':1,'celine':1,'salomon':1,'weber':1,
+  'braun':1,'philips':1,'oster':1,'marvel':1,'tesla':1,'olympics':1,'intel':1,'kingston':1,'milwaukee':1,'patagonia':1,
+  'hermes':1,'valentino':1,'crock pot':1,'acer':1,'dove':1,'mercedes':1,'jeep':1,'ford':1,'honda':1,'kia':1,'hp':1,'lg':1};
+var SLF_KNOWN_COMPAT={'iphone':1,'ipad':1,'macbook':1,'airpods':1,'airtag':1,'imac':1,'apple watch':1,'galaxy':1,'samsung':1,
+  'ps5':1,'ps4':1,'playstation':1,'xbox':1,'switch':1,'nintendo':1,'sony':1,'microsoft':1,'pixel':1,'google':1,'gopro':1,
+  'fitbit':1,'logitech':1,'anker':1,'jbl':1,'sennheiser':1,'razer':1,'dji':1,'beats by dre':1,'instant pot':1,'keurig':1,
+  'nespresso':1,'kitchenaid':1,'ninja':1,'dewalt':1,'milwaukee':1,'makita':1,'bosch':1,'black decker':1,'weber':1,
+  'ferrari':1,'lamborghini':1,'porsche':1,'bmw':1,'mercedes':1,'mercedes benz':1,'audi':1,'tesla':1,'jeep':1,
+  'hydro flask':1,'stanley':1,'yeti':1,'crocs':1,'lego':1};
+var slfKnown=null;
+function slfKnownLoad(){
+  if(slfKnown) return slfKnown;
+  slfKnown=[];
+  var seen={};
+  function add(b, level){
+    var k=slfVPNorm(b); if(!k || seen[k]) return; seen[k]=1;
+    var short=k.replace(/ /g,'').length<=3;
+    var pat=k.split(' ').map(function(w){return w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join('[^A-Za-z0-9]{0,3}');
+    var name=b.replace(/(^|[\s-])([a-z])/g,function(m,p,c){return p+c.toUpperCase();});
+    slfKnown.push({k:k, level:level, word:!!SLF_KNOWN_WORDS[k], short:short, compatTarget:!!SLF_KNOWN_COMPAT[k],
+      e:{n:name, pdf:'', i:'K:'+k, known:true}, re:new RegExp('(^|[^A-Za-z0-9])('+pat+')(?=[^A-Za-z0-9]|$)','gi')});
+  }
+  try{ (VERO_HIGH||[]).forEach(function(b){add(b,'high');}); }catch(e){}
+  try{ (VERO_MED||[]).forEach(function(b){add(b,'med');}); }catch(e){}
+  return slfKnown;
+}
+function slfKnownScan(text, skip){
+  var out={strong:[], check:[]}, raw=String(text||'').normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[‘’']/g,'');
+  var COMPAT=/(^|[^a-z])(for|fits|fit|compatible with|compatible for|replacement for|works with|designed for|suitable for)[^a-z0-9]{1,3}(the[^a-z0-9]{1,3})?$/i;
+  slfKnownLoad().forEach(function(K){
+    if(skip[K.k]) return;
+    K.re.lastIndex=0; var m, found=null, compat=false, dupe=false;
+    while((m=K.re.exec(raw))!==null){
+      var w=m[2], letters=w.replace(/[^A-Za-z]/g,'');
+      if(K.short && letters && letters!==letters.toUpperCase()) continue;     // NFL, BMW, JBL in capitals only
+      if(K.word && !/^[A-Z0-9]/.test(w)) continue;                            // "apple", "switch" as ordinary words
+      var after=raw.slice(m.index+m[0].length, m.index+m[0].length+14);
+      if(K.k==='omega' && /^[\s-]*(3|6|9)\b/.test(after)) continue;          // Omega-3 fatty acids
+      if(/^[\s-]*(style|inspired|dupe|type|look ?alike)\b/i.test(after)){ found=w; compat=false; dupe=true; break; }
+      found=w; compat = compat || COMPAT.test(raw.slice(Math.max(0,m.index-30), m.index+m[1].length));
+      if(!compat) break;
+    }
+    if(!found) return;
+    var red = (K.level==='high' && !compat && !K.word && !K.compatTarget) || dupe;
+    var note = dupe ? '"'+found+' style / dupe" wording is a classic VeRO report — never describe an item as another brand\'s style.'
+             : compat ? 'Written as compatibility ("for / fits") — allowed only if it truly fits. The tool keeps "for" in the listing; never claim the item IS this brand.'
+             : K.compatTarget ? 'Big brand known for VeRO reports. An accessory FOR this brand is OK as "for '+K.e.n+'"; if the item claims to BE this brand, do not list it.'
+             : K.word ? 'Big brand known for VeRO reports — but also an ordinary word. If your product is or mentions this brand, do not list it.'
+             : 'Big brand known for VeRO reports (no public eBay profile, but it reports listings). Recommendation: do not list this product.';
+    (red?out.strong:out.check).push({e:K.e, k:K.k, how:'known', found:found, compat:compat, note:note});
+  });
+  return out;
+}
+// Profile list + big-brand list together
+function slfVeroLiveScan(text, brandText){
+  var r=slfVeroProfileScan(text), skip={};
+  r.strong.concat(r.check).forEach(function(x){ skip[x.k]=1; (x.e.keys||[]).forEach(function(k){skip[k]=1;}); });
+  var k=slfKnownScan(text, skip);
+  var out={strong:r.strong.concat(k.strong), check:r.check.concat(k.check)};
+  // If the text says "Brand: X" (or the brand box has X) and X is a VeRO brand, the item claims to BE that brand → red
+  if(brandText && brandText.trim()){
+    var b1=slfVeroProfileScan(brandText), b2=slfKnownScan(brandText, {}), ids={};
+    b1.strong.concat(b1.check, b2.strong, b2.check).forEach(function(x){ ids[x.e.i]=1; });
+    var bnote='Your text says the item IS this brand ("Brand: '+brandText.trim().split('\n')[0].slice(0,30)+'"). Do not list it unless it is genuine stock you are allowed to sell.';
+    out.strong.forEach(function(x){ if(ids[x.e.i] && !x.note){ x.note=bnote; } });
+    out.check=out.check.filter(function(x){
+      if(!ids[x.e.i]) return true;
+      x.note=bnote;
+      x.compat=false; out.strong.push(x); return false;
+    });
+  }
+  return out;
+}
+// "Brand: X" line in the pasted text — shown in the status so you can see the tool read it
+function slfVPBrandLine(text){
+  var lines=String(text||'').split('\n');
+  for(var i=0;i<lines.length;i++){
+    var m=lines[i].match(/^\s*[-•*▸]?\s*(?:brand(?:\s*name)?|manufacturer|made by)\s*[:\-–]\s*(.+)$/i) || lines[i].match(/visit the (.+?) store/i);
+    if(m && m[1]){ var b=m[1].replace(/[|,;].*$/,'').trim().slice(0,40); if(b) return b; }
+  }
+  return '';
+}
+// Live alert under the product box + status light
 function slfVPLive(){
   var box=document.getElementById('vpAlert'); if(!box) return;
-  var txt=(document.getElementById('productInput').value||'')+'\n'+((document.getElementById('brandName')||{}).value||'');
-  var r=slfVeroProfileScan(txt), h='';
+  var prod=(document.getElementById('productInput').value||''), brandBox=((document.getElementById('brandName')||{}).value||'');
+  var txt=prod+'\n'+brandBox;
+  var r=slfVeroLiveScan(txt, slfVPBrandLine(prod)+'\n'+brandBox), h='';
   if(r.strong.length){
     h+='<div class="vp-alert vp-red"><div class="vp-head">🚫 VeRO brand found — do not list this product</div>'
-      +'<div class="vp-sub">'+(r.strong.length===1?'This name is':'These names are')+' on eBay\'s VeRO list. These owners report listings; one report can remove a listing and repeated reports can suspend the account.</div>'
+      +'<div class="vp-sub">'+(r.strong.length===1?'This brand reports':'These brands report')+' listings on eBay (VeRO). One report can remove a listing; repeated reports can suspend the account.</div>'
       +slfVPRowsHtml(r.strong,'strong')+'</div>';
   }
   if(r.check.length){
-    h+='<div class="vp-alert vp-amber"><div class="vp-head">⚠ Check '+(r.check.length===1?'this name':'these names')+' — VeRO list match</div>'
-      +'<div class="vp-sub">Matches a VeRO-listed name, but it may just be an ordinary word or a near spelling. If your product is or mentions this brand, do not list it.</div>'
+    h+='<div class="vp-alert vp-amber"><div class="vp-head">⚠ Check '+(r.check.length===1?'this name':'these names')+'</div>'
+      +'<div class="vp-sub">A VeRO brand name appears, but it may be an ordinary word, a near spelling or a "for / fits" compatibility mention. Read the note and decide.</div>'
       +slfVPRowsHtml(r.check,'check')+'</div>';
   }
   box.innerHTML=h; box.style.display=h?'block':'none';
+  // status light
+  var led=document.getElementById('vpLed'), st=document.getElementById('vpStatus'); if(!led||!st) return;
+  var bl=slfVPBrandLine(prod), bname=brandBox.trim()||bl;
+  led.className='vp-led';
+  if(!prod.trim() && !brandBox.trim()){
+    st.innerHTML='VeRO check — paste product details to start';
+  } else if(r.strong.length){
+    led.className='vp-led bad'; st.innerHTML='<b class="vp-st-bad">VeRO brand found</b> — see below';
+  } else if(r.check.length){
+    led.className='vp-led warn'; st.innerHTML='<b class="vp-st-warn">Check '+r.check.length+' name'+(r.check.length===1?'':'s')+' below</b>';
+  } else {
+    led.className='vp-led ok';
+    st.innerHTML='<b class="vp-st-ok">VeRO check OK</b> — no VeRO brand found in your title, description, specs or brand box'
+      +(bname?' · Brand in your text: <b>'+escHtml(bname)+'</b> (not on the list)':'');
+  }
 }
 var _slfVPT=null;
 function slfVPLiveDebounced(){ clearTimeout(_slfVPT); _slfVPT=setTimeout(slfVPLive,350); }
 
-// Before generating: stop and warn when the product has a VeRO-listed brand
+// Before generating: stop and warn when the product has a VeRO brand
 function slfVPGate(product){
   var brand=((document.getElementById('brandName')||{}).value||'');
-  var r=slfVeroProfileScan(product+'\n'+brand);
+  var r=slfVeroLiveScan(product+'\n'+brand, slfVPBrandLine(product)+'\n'+brand);
   if(!r.strong.length) return false;
-  var names=r.strong.map(function(x){return '"'+x.k+'" ('+x.e.n+')';});
+  var names=r.strong.map(function(x){return '"'+(x.how==='known'?x.found:x.k)+'" ('+x.e.n+')';});
   document.getElementById('confirmIcon').textContent='🚫';
   document.getElementById('confirmTitle').textContent='VeRO Brand Detected';
   document.getElementById('confirmMsg').textContent='Your product mentions '+names.slice(0,4).join(', ')+(names.length>4?' and '+(names.length-4)+' more':'')
-    +'. '+(names.length===1?'This brand is':'These brands are')+' on eBay\'s VeRO list. Recommendation: do NOT list this product. Generate anyway?';
+    +'. '+(names.length===1?'This brand reports':'These brands report')+' listings on eBay (VeRO). Recommendation: do NOT list this product. Generate anyway?';
   document.getElementById('confirmYesBtn').textContent='Generate Anyway';
   pendingAction='vpgen'; pendingBtn=null;
   openConfirm();
@@ -3616,10 +3731,12 @@ function renderVeroCheck(text){
   var found = scanVero(live);
   // eBay VeRO profile list: names in the live listing, plus names that are only in the source product data
   var vpOut = slfVeroProfileScan(live);
-  var vpSrc = slfVeroProfileScan((document.getElementById('productInput').value||'')+'\n'+((document.getElementById('brandName')||{}).value||''));
+  var _vpP=(document.getElementById('productInput').value||''), _vpB=((document.getElementById('brandName')||{}).value||'');
+  var vpSrc = slfVeroLiveScan(_vpP+'\n'+_vpB, slfVPBrandLine(_vpP)+'\n'+_vpB);
   var vpOutIds={}; vpOut.strong.concat(vpOut.check).forEach(function(r){vpOutIds[r.e.i]=1;});
-  vpSrc.strong=vpSrc.strong.filter(function(r){return !vpOutIds[r.e.i];});
-  vpSrc.check=vpSrc.check.filter(function(r){return !vpOutIds[r.e.i];});
+  function vpSrcKeep(r){ return !vpOutIds[r.e.i] && !(r.e.known && (found.high.indexOf(r.k)>-1 || found.med.indexOf(r.k)>-1)); }
+  vpSrc.strong=vpSrc.strong.filter(vpSrcKeep);
+  vpSrc.check=vpSrc.check.filter(vpSrcKeep);
   var vpHighN=0, vpMedN=0;
   var vpKeyOut={}; vpOut.strong.forEach(function(r){ vpKeyOut[r.k]=1; });   // counted after the brand scan below, so a brand is never counted twice
 
@@ -3736,7 +3853,7 @@ function renderVeroCheck(text){
       var how = slfVPHowText(r);
       if(how) why = (why?why+' ':'')+escHtml(how);
       if(level==='high' && r.compat) why += ' Written as "for / fits" — compatibility wording does not stop this owner\'s reports; check their profile first.';
-      return riskRow(escHtml(r.how==='word'||r.how==='similar'?r.found:r.k)+' → '+escHtml(r.e.n), level, why+' '+slfVPProfileLink(r.e), src?['PRODUCT DATA']:veroLocations(r.k,S));
+      return riskRow(escHtml(r.how==='word'||r.how==='similar'||r.how==='known'?r.found:r.k)+' → '+escHtml(r.e.n), level, why+' '+slfVPProfileLink(r.e), src?['PRODUCT DATA']:veroLocations(r.k,S));
     };
     vpOut.strong.forEach(function(r){ html+=vpRow(r,'high',false); });
     vpSrc.strong.forEach(function(r){ html+=vpRow(r,'high',true); });
