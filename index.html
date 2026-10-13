@@ -201,9 +201,9 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .pane-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--wire);flex-shrink:0;background:rgba(7,7,10,0.7);}
 .pane-ttl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--fog);}
 .pane-acts{display:flex;gap:6px;}
-.stabs{display:flex;gap:2px;padding:9px 14px;border-bottom:1px solid var(--wire);flex-shrink:0;overflow-x:auto;scrollbar-width:none;background:rgba(7,7,10,0.4);}
+.stabs{display:flex;flex-wrap:wrap;gap:4px;padding:9px 12px;border-bottom:1px solid var(--wire);flex-shrink:0;background:rgba(7,7,10,0.4);}
 .stabs::-webkit-scrollbar{display:none;}
-.stab{padding:5px 11px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dim);font-family:'Geist',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.14s;white-space:nowrap;letter-spacing:0.02em;}
+.stab{padding:5px 10px;border-radius:6px;border:1px solid var(--wire);background:transparent;color:var(--dim);font-family:'Geist',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.14s;white-space:nowrap;letter-spacing:0.02em;}
 .stab:hover{color:var(--fog);}
 .stab.on{background:var(--ink4);border-color:var(--wire2);color:var(--snow);}
 .stab.shopify-tab{border-color:rgba(150,191,72,0.3);color:var(--shopify);}
