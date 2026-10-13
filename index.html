@@ -499,9 +499,9 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   </div>
   <div class="sb-sec">
     <div class="sb-lbl">Policies</div>
-    <textarea class="sb-ta" id="policyText" rows="5">Fast Shipping: 2-3 business days.
-Free Shipping: No hidden fees.
-30-Day Returns: Full refund guaranteed.</textarea>
+    <textarea class="sb-ta" id="policyText" rows="8">Shipping: Most orders ship within 2-3 business days. Handling time can vary by item, so please check the estimated delivery date shown on this page before placing your order.
+Shipping Cost: Most of our items ship free with no hidden fees. Some heavy or oversized items may have a shipping charge, so please check the shipping cost shown on this listing before placing your order.
+Returns: Most of our items come with free 30-day returns. Some items are not eligible for return, so please check the return policy shown on this listing before placing your order.</textarea>
   </div>
 </aside>
 
@@ -635,6 +635,7 @@ window.onload=function(){
   })();
   var cc=localStorage.getItem('slf_cc'); if(cc){customColor=cc;document.getElementById('customColor').value=cc;document.getElementById('customSwatch').style.background='linear-gradient(135deg,'+cc+','+cc+')';}
   var cm=localStorage.getItem('slf_cm'); if(cm){setCustomMode(cm);}
+  slfMigratePolicy();
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
   document.getElementById('productInput').addEventListener('input',function(){updateCharCount();saveDraftDebounced();slfVPLiveDebounced();});
   document.getElementById('brandName').addEventListener('input',slfVPLiveDebounced);
@@ -787,6 +788,38 @@ function refreshClientUI(){
   if(note) note.textContent = list.length ? list.length+' client profile'+(list.length>1?'s':'')+' saved on this browser.' : 'Add a client to lock in a unique design for their store.';
 }
 
+// Shipping & returns wording. The old default promised "Fast Shipping: 2-3 business days" and
+// "Full refund guaranteed", which buyers used against delayed / no-return / paid-shipping items.
+var SLF_POLICY_OLD='Fast Shipping: 2-3 business days.\nFree Shipping: No hidden fees.\n30-Day Returns: Full refund guaranteed.';
+var SLF_POLICY_DEFAULT="Shipping: Most orders ship within 2-3 business days. Handling time can vary by item, so please check the estimated delivery date shown on this page before placing your order.\nShipping Cost: Most of our items ship free with no hidden fees. Some heavy or oversized items may have a shipping charge, so please check the shipping cost shown on this listing before placing your order.\nReturns: Most of our items come with free 30-day returns. Some items are not eligible for return, so please check the return policy shown on this listing before placing your order.";
+function slfPolicyIsOld(t){ return String(t||'').replace(/\r/g,'').trim()===SLF_POLICY_OLD; }
+// The listing must show the seller's policy text word for word — never a reworded "fast shipping" promise.
+function slfForcePolicies(text, policy){
+  policy=String(policy||'').replace(/\r/g,'').trim();
+  if(!policy) return text;
+  function key(l){ return l.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase(); }
+  var lines=String(text||'').split('\n'), out=[], inPol=false, done=false;
+  lines.forEach(function(l){
+    var k=key(l), isMark=(typeof SLF_ALL_KEYS!=='undefined') && SLF_ALL_KEYS.indexOf(k)>-1;
+    if(isMark && k==='POLICIES'){ out.push(l); out.push(policy); out.push(''); inPol=true; done=true; return; }
+    if(isMark){ inPol=false; out.push(l); return; }
+    if(!inPol) out.push(l);
+  });
+  if(!done){
+    var at=-1; out.forEach(function(l,i){ if(at<0 && key(l)==='SEO METADATA') at=i; });
+    var block=['=== POLICIES ===', policy, ''];
+    if(at<0) out=out.concat([''].concat(block)); else out.splice.apply(out,[at,0].concat(block));
+  }
+  return out.join('\n');
+}
+function slfMigratePolicy(){
+  try{
+    if(slfPolicyIsOld(localStorage.getItem('slf_po'))) localStorage.setItem('slf_po', SLF_POLICY_DEFAULT);
+    var list=slfClients(), changed=false;
+    list.forEach(function(c){ if(slfPolicyIsOld(c.policies)){ c.policies=SLF_POLICY_DEFAULT; changed=true; } });
+    if(changed) slfSaveClients(list);
+  }catch(e){}
+}
 function addClient(){
   var inp=document.getElementById('clientNew');
   var name=(inp.value||'').trim().slice(0,40);
@@ -949,18 +982,18 @@ function kwSt(id,st,ct){var r=document.getElementById('ks-'+id),c=document.getEl
 // Colors alone are not enough — each client needs a different STRUCTURE so
 // their listings don't look like they came from the same operator.
 var LAYOUTS = {
-  editorial: { name:'Editorial',   mark:'⟡ ', align:'left',   caseT:'upper', feat:'grid',    spec:'rows',   order:'default',    radius:14, hFont:"'Inter',sans-serif",              foot:'Premium Quality Products | Fast and Free Shipping | Trusted Seller', divider:false, card:'raised',  hero:'gradient' },
-  minimal:   { name:'Minimal',     mark:'',   align:'left',   caseT:'title', feat:'list',    spec:'rows',   order:'default',    radius:4,  hFont:"'Inter',sans-serif",              foot:'Quality Guaranteed · Fast Dispatch · Easy Returns',                  divider:true,  card:'flat',    hero:'plain' },
-  boxed:     { name:'Boxed',       mark:'▪ ', align:'left',   caseT:'upper', feat:'cards',   spec:'table',  order:'specsfirst', radius:10, hFont:"'Inter',sans-serif",              foot:'Fast Shipping | Secure Packaging | Buy With Confidence',             divider:false, card:'outline', hero:'bordered' },
-  centered:  { name:'Centered',    mark:'',   align:'center', caseT:'upper', feat:'grid',    spec:'table',  order:'default',    radius:18, hFont:"'Inter',sans-serif",              foot:'Trusted Seller · Quick Delivery · Satisfaction First',               divider:true,  card:'raised',  hero:'band' },
-  classic:   { name:'Classic',     mark:'',   align:'left',   caseT:'title', feat:'numbered',spec:'rows',   order:'featlast',   radius:6,  hFont:"Georgia,'Times New Roman',serif", foot:'Established Quality — Dispatched Same Working Day',                  divider:true,  card:'outline', hero:'plain' },
-  compact:   { name:'Compact',     mark:'● ', align:'left',   caseT:'title', feat:'list',    spec:'inline', order:'specsfirst', radius:8,  hFont:"'Inter',sans-serif",              foot:'Ships Fast · 30-Day Returns · Rated Seller',                         divider:false, card:'flat',    hero:'plain' },
-  gallery:   { name:'Gallery',     mark:'',   align:'center', caseT:'title', feat:'cards',   spec:'cards',  order:'default',    radius:20, hFont:"'Inter',sans-serif",              foot:'Curated Selection · Carefully Packed · Fast Worldwide Dispatch',     divider:false, card:'none',    hero:'band' },
-  technical: { name:'Technical',   mark:'▸ ', align:'left',   caseT:'upper', feat:'table',   spec:'table',  order:'specsfirst', radius:2,  hFont:"'Inter',sans-serif",              foot:'Accurate Specifications | Tested Quality | Rapid Dispatch',          divider:true,  card:'outline', hero:'bordered' },
+  editorial: { name:'Editorial',   mark:'⟡ ', align:'left',   caseT:'upper', feat:'grid',    spec:'rows',   order:'default',    radius:14, hFont:"'Inter',sans-serif",              foot:'Premium Quality Products | Carefully Packed | Trusted Seller', divider:false, card:'raised',  hero:'gradient' },
+  minimal:   { name:'Minimal',     mark:'',   align:'left',   caseT:'title', feat:'list',    spec:'rows',   order:'default',    radius:4,  hFont:"'Inter',sans-serif",              foot:'Quality Guaranteed · Carefully Packed · Friendly Support',                  divider:true,  card:'flat',    hero:'plain' },
+  boxed:     { name:'Boxed',       mark:'▪ ', align:'left',   caseT:'upper', feat:'cards',   spec:'table',  order:'specsfirst', radius:10, hFont:"'Inter',sans-serif",              foot:'Secure Packaging | Friendly Support | Buy With Confidence',             divider:false, card:'outline', hero:'bordered' },
+  centered:  { name:'Centered',    mark:'',   align:'center', caseT:'upper', feat:'grid',    spec:'table',  order:'default',    radius:18, hFont:"'Inter',sans-serif",              foot:'Trusted Seller · Carefully Packed · Satisfaction First',               divider:true,  card:'raised',  hero:'band' },
+  classic:   { name:'Classic',     mark:'',   align:'left',   caseT:'title', feat:'numbered',spec:'rows',   order:'featlast',   radius:6,  hFont:"Georgia,'Times New Roman',serif", foot:'Established Quality — Packed and Shipped With Care',                  divider:true,  card:'outline', hero:'plain' },
+  compact:   { name:'Compact',     mark:'● ', align:'left',   caseT:'title', feat:'list',    spec:'inline', order:'specsfirst', radius:8,  hFont:"'Inter',sans-serif",              foot:'Carefully Packed · Friendly Support · Rated Seller',                         divider:false, card:'flat',    hero:'plain' },
+  gallery:   { name:'Gallery',     mark:'',   align:'center', caseT:'title', feat:'cards',   spec:'cards',  order:'default',    radius:20, hFont:"'Inter',sans-serif",              foot:'Curated Selection · Carefully Packed · Shipped With Care',     divider:false, card:'none',    hero:'band' },
+  technical: { name:'Technical',   mark:'▸ ', align:'left',   caseT:'upper', feat:'table',   spec:'table',  order:'specsfirst', radius:2,  hFont:"'Inter',sans-serif",              foot:'Accurate Specifications | Tested Quality | Careful Packing',          divider:true,  card:'outline', hero:'bordered' },
   journal:   { name:'Journal',     mark:'— ', align:'left',   caseT:'title', feat:'list',    spec:'twocol', order:'featlast',   radius:0,  hFont:"Georgia,'Times New Roman',serif", foot:'Thoughtfully Sourced — Shipped With Care',                           divider:true,  card:'none',    hero:'plain' },
-  showcase:  { name:'Showcase',    mark:'✦ ', align:'center', caseT:'upper', feat:'numbered',spec:'rows',   order:'default',    radius:16, hFont:"'Inter',sans-serif",              foot:'Handpicked Quality · Secure Checkout · Fast Delivery',               divider:false, card:'raised',  hero:'gradient' },
-  utility:   { name:'Utility',     mark:'» ', align:'left',   caseT:'upper', feat:'twocheck',spec:'twocol', order:'specsfirst', radius:6,  hFont:"'Inter',sans-serif",              foot:'Built To Last | Same-Day Handling | Hassle-Free Returns',            divider:true,  card:'flat',    hero:'bordered' },
-  softcard:  { name:'Soft Card',   mark:'',   align:'left',   caseT:'title', feat:'twocheck',spec:'cards',  order:'default',    radius:22, hFont:"'Inter',sans-serif",              foot:'Friendly Service · Quick Shipping · Easy Returns',                   divider:false, card:'raised',  hero:'band' }
+  showcase:  { name:'Showcase',    mark:'✦ ', align:'center', caseT:'upper', feat:'numbered',spec:'rows',   order:'default',    radius:16, hFont:"'Inter',sans-serif",              foot:'Handpicked Quality · Secure Checkout · Careful Packing',               divider:false, card:'raised',  hero:'gradient' },
+  utility:   { name:'Utility',     mark:'» ', align:'left',   caseT:'upper', feat:'twocheck',spec:'twocol', order:'specsfirst', radius:6,  hFont:"'Inter',sans-serif",              foot:'Built To Last | Carefully Packed | Friendly Support',            divider:true,  card:'flat',    hero:'bordered' },
+  softcard:  { name:'Soft Card',   mark:'',   align:'left',   caseT:'title', feat:'twocheck',spec:'cards',  order:'default',    radius:22, hFont:"'Inter',sans-serif",              foot:'Friendly Service · Careful Packing · Quick Replies',                   divider:false, card:'raised',  hero:'band' }
 };
 var LAYOUT_IDS = ['editorial','minimal','boxed','centered','classic','compact','gallery','technical','journal','showcase','utility','softcard'];
 var layout = 'editorial';
@@ -2386,7 +2419,7 @@ async function generate(){
     +'=== SEO METADATA ===\nMeta Title: (under 60 chars)\nMeta Description: (50-160 chars)\nURL Handle: (dashes only)\n\n'
     +'=== TAGS ===\neBay Keywords: (10 terms)\nSocial Hashtags: (10 hashtags)\n\n'
     +'=== RAW SOURCE DATA ===\n'+product;
-    try{var r=await claudeCall(apiKey,ebayPrompt,isMultiVar?9000:4500);fullTxt=slfCleanListing(r);}
+    try{var r=await claudeCall(apiKey,ebayPrompt,isMultiVar?9000:4500);fullTxt=slfForcePolicies(slfCleanListing(r), policy);}
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
@@ -3189,7 +3222,16 @@ function buildHtmlFromListing(listingText,storeName,themeName){
   }
 
   var polH='';
-  if(polLines.length>0){polH='<div class="section">'+ST('SHIPPING &amp; RETURNS')+'<div class="policy-row">'+polLines.map(function(p){return '<span class="policy-item">'+escHtml(p)+'</span>';}).join('')+'</div></div>';}
+  if(polLines.length>0){
+    var polLong=polLines.some(function(p){return p.length>60;});
+    polH='<div class="section">'+ST('SHIPPING &amp; RETURNS')
+      +'<div class="policy-row"'+(polLong?' style="flex-direction:column;gap:0.7rem;border-radius:14px;padding:1.1rem 1.5rem;"':'')+'>'
+      +polLines.map(function(p){
+        p=p.replace(/^[\s\-\u2013\u2014\u2022*]+/,'').trim();
+        var i=p.indexOf(':'), lbl=(i>0&&i<28)?p.slice(0,i):'', txt=lbl?p.slice(i+1).trim():p;
+        return '<span class="policy-item"'+(polLong?' style="display:block;line-height:1.6;"':'')+'>'+(lbl?'<strong>'+escHtml(lbl)+':</strong> ':'')+escHtml(txt)+'</span>';
+      }).join('')+'</div></div>';
+  }
 
   // Section order varies by layout so two clients never share the same flow
   var bodyOrder;
