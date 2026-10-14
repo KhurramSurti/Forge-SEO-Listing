@@ -1531,49 +1531,63 @@ function slfKnownScan(text, skip){
   });
   return out;
 }
-// Profile list + big-brand list together
+// Profile list + big-brand list together.
+// RED only when the VeRO name is the product's own brand ("Brand:" / "Manufacturer:" line,
+// "Visit the X Store", or the Brand Name box). Anywhere else it is a VeRO keyword → amber:
+// the product can be listed, the word must stay out of the listing.
 function slfVeroLiveScan(text, brandText){
   var r=slfVeroProfileScan(text), skip={};
   r.strong.concat(r.check).forEach(function(x){ skip[x.k]=1; (x.e.keys||[]).forEach(function(k){skip[k]=1;}); });
   var k=slfKnownScan(text, skip);
-  var out={strong:r.strong.concat(k.strong), check:r.check.concat(k.check)};
-  // If the text says "Brand: X" (or the brand box has X) and X is a VeRO brand, the item claims to BE that brand → red
-  if(brandText && brandText.trim()){
-    var b1=slfVeroProfileScan(brandText), b2=slfKnownScan(brandText, {}), ids={};
+  var all=r.strong.concat(k.strong, r.check, k.check), ids={};
+  var bt=String(brandText||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  if(bt.length){
+    var b1=slfVeroProfileScan(bt.join('\n')), b2=slfKnownScan(bt.join('\n'), {});
     b1.strong.concat(b1.check, b2.strong, b2.check).forEach(function(x){ ids[x.e.i]=1; });
-    var bnote='Your text says the item IS this brand ("Brand: '+brandText.trim().split('\n')[0].slice(0,30)+'"). Do not list it unless it is genuine stock you are allowed to sell.';
-    out.strong.forEach(function(x){ if(ids[x.e.i] && !x.note){ x.note=bnote; } });
-    out.check=out.check.filter(function(x){
-      if(!ids[x.e.i]) return true;
-      x.note=bnote;
-      x.compat=false; out.strong.push(x); return false;
-    });
   }
+  var out={strong:[], check:[]};
+  all.forEach(function(x){
+    if(ids[x.e.i]){
+      x.note='This is your product\'s brand ("'+bt[0].slice(0,30)+'") and it is a VeRO brand. Do not list it unless it is genuine stock you are allowed to sell.';
+      x.compat=false; x.isBrand=true; out.strong.push(x);
+      return;
+    }
+    if(x.compat){
+      if(!x.e.known) x.note='Written as compatibility ("for / fits"). This brand is on eBay\'s VeRO list and reports listings — keep only an honest "for" mention and check their profile before listing.';
+    } else if(!x.note || /do not list this product/i.test(x.note)){
+      x.note='"'+(x.found||x.k)+'" belongs to a VeRO brand, but it is not your product\'s brand. You can list the product — keep this word out of your title and description. The tool leaves it out of the generated listing and the VeRO tab double-checks.';
+    }
+    out.check.push(x);
+  });
   return out;
 }
-// "Brand: X" line in the pasted text — shown in the status so you can see the tool read it
+// Every brand-position value in the pasted text: Brand / Brand Name / Manufacturer / Made by lines and "Visit the X Store"
+function slfVPBrandText(text){
+  var out=[];
+  String(text||'').split('\n').forEach(function(l){
+    var m=l.match(/^\s*[-•*▸]?\s*(?:brand(?:\s*name)?|manufacturer|made by)(?:\s*[:\-–]\s*|\t+|\s{2,})(.+)$/i) || l.match(/visit the (.+?) store/i);
+    if(m && m[1]){ var b=m[1].replace(/[|,;].*$/,'').trim().slice(0,40); if(b && !/^(unbranded|generic|no brand|none|n\/?a|does not apply)$/i.test(b)) out.push(b); }
+  });
+  return out.join('\n');
+}
+// First brand-position value — shown in the status line so you can see the tool read it
 function slfVPBrandLine(text){
-  var lines=String(text||'').split('\n');
-  for(var i=0;i<lines.length;i++){
-    var m=lines[i].match(/^\s*[-•*▸]?\s*(?:brand(?:\s*name)?|manufacturer|made by)\s*[:\-–]\s*(.+)$/i) || lines[i].match(/visit the (.+?) store/i);
-    if(m && m[1]){ var b=m[1].replace(/[|,;].*$/,'').trim().slice(0,40); if(b) return b; }
-  }
-  return '';
+  return slfVPBrandText(text).split('\n')[0]||'';
 }
 // Live alert under the product box + status light
 function slfVPLive(){
   var box=document.getElementById('vpAlert'); if(!box) return;
   var prod=(document.getElementById('productInput').value||''), brandBox=((document.getElementById('brandName')||{}).value||'');
   var txt=prod+'\n'+brandBox;
-  var r=slfVeroLiveScan(txt, slfVPBrandLine(prod)+'\n'+brandBox), h='';
+  var r=slfVeroLiveScan(txt, slfVPBrandText(prod)+'\n'+brandBox), h='';
   if(r.strong.length){
     h+='<div class="vp-alert vp-red"><div class="vp-head">🚫 VeRO brand found — do not list this product</div>'
       +'<div class="vp-sub">'+(r.strong.length===1?'This brand reports':'These brands report')+' listings on eBay (VeRO). One report can remove a listing; repeated reports can suspend the account.</div>'
       +slfVPRowsHtml(r.strong,'strong')+'</div>';
   }
   if(r.check.length){
-    h+='<div class="vp-alert vp-amber"><div class="vp-head">⚠ Check '+(r.check.length===1?'this name':'these names')+'</div>'
-      +'<div class="vp-sub">A VeRO brand name appears, but it may be an ordinary word, a near spelling or a "for / fits" compatibility mention. Read the note and decide.</div>'
+    h+='<div class="vp-alert vp-amber"><div class="vp-head">⚠ VeRO '+(r.check.length===1?'word':'words')+' in your text — keep '+(r.check.length===1?'it':'them')+' out of the listing</div>'
+      +'<div class="vp-sub">'+(r.check.length===1?'This word belongs to a VeRO brand':'These words belong to VeRO brands')+', but '+(r.check.length===1?'it is':'they are')+' not your product\'s brand, so the product can be listed. Just keep '+(r.check.length===1?'it':'them')+' out of your title and description (an honest "for / fits" compatibility mention is the exception).</div>'
       +slfVPRowsHtml(r.check,'check')+'</div>';
   }
   box.innerHTML=h; box.style.display=h?'block':'none';
@@ -1599,7 +1613,7 @@ function slfVPLiveDebounced(){ clearTimeout(_slfVPT); _slfVPT=setTimeout(slfVPLi
 // Before generating: stop and warn when the product has a VeRO brand
 function slfVPGate(product){
   var brand=((document.getElementById('brandName')||{}).value||'');
-  var r=slfVeroLiveScan(product+'\n'+brand, slfVPBrandLine(product)+'\n'+brand);
+  var r=slfVeroLiveScan(product+'\n'+brand, slfVPBrandText(product)+'\n'+brand);
   if(!r.strong.length) return false;
   var names=r.strong.map(function(x){return '"'+(x.how==='known'?x.found:x.k)+'" ('+x.e.n+')';});
   document.getElementById('confirmIcon').textContent='🚫';
@@ -3774,7 +3788,7 @@ function renderVeroCheck(text){
   // eBay VeRO profile list: names in the live listing, plus names that are only in the source product data
   var vpOut = slfVeroProfileScan(live);
   var _vpP=(document.getElementById('productInput').value||''), _vpB=((document.getElementById('brandName')||{}).value||'');
-  var vpSrc = slfVeroLiveScan(_vpP+'\n'+_vpB, slfVPBrandLine(_vpP)+'\n'+_vpB);
+  var vpSrc = slfVeroLiveScan(_vpP+'\n'+_vpB, slfVPBrandText(_vpP)+'\n'+_vpB);
   var vpOutIds={}; vpOut.strong.concat(vpOut.check).forEach(function(r){vpOutIds[r.e.i]=1;});
   function vpSrcKeep(r){ return !vpOutIds[r.e.i] && !(r.e.known && (found.high.indexOf(r.k)>-1 || found.med.indexOf(r.k)>-1)); }
   vpSrc.strong=vpSrc.strong.filter(vpSrcKeep);
@@ -3890,8 +3904,8 @@ function renderVeroCheck(text){
     html+='<div style="padding:11px 13px;background:var(--ink3);border:1px solid rgba(74,222,128,0.3);border-left:3px solid #4ade80;border-radius:9px;font-size:11px;color:var(--fog);line-height:1.6;">No brand from eBay\'s VeRO profile list was found in your product data or in this listing.</div>';
   } else {
     var vpRow=function(r, level, src){
-      var why = src ? 'Named in your product data (not in this listing). The item itself may be this brand\'s product — do not list it unless it is genuine stock you are allowed to sell.'
-                    : (level==='high' ? 'On eBay\'s VeRO list — this owner reports listings. Recommendation: do not list this product.' : '');
+      var why = src ? (level==='high' ? '' : 'Only in your product data — not in this listing, which is what you want.')
+                    : (level==='high' ? 'On eBay\'s VeRO list and written in your listing — remove it before you list (or keep only an honest "for" mention). If the item actually IS this brand, do not list it.' : '');
       var how = slfVPHowText(r);
       if(how) why = (why?why+' ':'')+escHtml(how);
       if(level==='high' && r.compat) why += ' Written as "for / fits" — compatibility wording does not stop this owner\'s reports; check their profile first.';
