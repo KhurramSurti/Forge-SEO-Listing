@@ -527,7 +527,7 @@ Returns: Most of our items come with free 30-day returns. Some items are not eli
     </div>
     <div class="comp-title-wrap">
       <div class="comp-title-lbl">🏷 Brand Name <span style="color:var(--dim);font-weight:400;">(optional — fill it and the brand WILL appear in HTML heading, description &amp; specs; leave empty for no brand anywhere. Never in eBay title.)</span></div>
-      <input type="text" class="comp-title-inp" id="brandName" placeholder="e.g. Mainstays (leave empty = no brand / Unbranded)" oninput="saveDraftDebounced()"/>
+      <input type="text" class="comp-title-inp" id="brandName" placeholder="e.g. Mainstays (leave empty = no brand / Does Not Apply)" oninput="saveDraftDebounced()"/>
       <label class="brand-title-opt"><input type="checkbox" id="brandInTitle" onchange="saveDraftDebounced()"/> <span>Also put brand in the MAIN TITLE <span style="color:var(--dim);font-weight:400;">(sirf jab brand naam se search hota ho — e.g. Meguiars, Stanley)</span></span></label>
     </div>
     <div class="comp-title-wrap">
@@ -1822,7 +1822,7 @@ function veroLocations(term, sections){
 function detectBrandDemand(brandGuess, keywordList){
   if(!brandGuess) return {searched:false, hits:0, note:'no brand detected'};
   var b = brandGuess.toLowerCase().trim();
-  if(b.length < 2 || b==='unbranded' || b==='generic' || b==='n/a' || b==='none') {
+  if(b.length < 2 || b==='unbranded' || b==='does not apply' || b==='generic' || b==='n/a' || b==='none') {
     return {searched:false, hits:0, note:'unbranded/generic'};
   }
   var esc = b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -2353,7 +2353,7 @@ async function generate(){
 
     // Brand comes ONLY from the Brand Name box — the user is in full control.
     // Box filled  => brand MUST appear in HTML HEADING + DESCRIPTION + ITEM SPECIFICS (never eBay title).
-    // Box empty   => no brand anywhere; ITEM SPECIFICS Brand: Unbranded.
+    // Box empty   => no brand anywhere; ITEM SPECIFICS Brand: Does Not Apply.
     var brandGuess = (document.getElementById('brandName').value||'').trim().slice(0,40);
     var brandInTitle = brandGuess && document.getElementById('brandInTitle').checked;
     var isMultiVar = document.getElementById('multiVar').checked;
@@ -2361,7 +2361,7 @@ async function generate(){
     var isVeroBrand = brandGuess && (typeof slfIsBrandWord==='function') && brandGuess.split(/\s+/).some(function(w){return slfIsBrandWord(w);});
     var brandLine;
     if(!brandGuess){
-      brandLine = '\n\nBRAND (USER SETTING): The user left the Brand box EMPTY. Do NOT mention any brand name anywhere — not in the title, not in the HTML heading, not in the description. In ITEM SPECIFICS set Brand to "Unbranded". Never invent or infer a brand, even if one appears in the source text.';
+      brandLine = '\n\nBRAND (USER SETTING): The user left the Brand box EMPTY. Do NOT mention any brand name anywhere — not in the title, not in the HTML heading, not in the description. In ITEM SPECIFICS set Brand to exactly "Does Not Apply" (never "Unbranded"). Never invent or infer a brand, even if one appears in the source text.';
     } else if(isVeroBrand){
       brandLine = '\n\nBRAND (USER SETTING): The user set the brand to "'+brandGuess+'" — note this is a well-known brand with high VeRO enforcement risk, so word it factually only. You MUST include it: start the HTML HEADING with it, mention it naturally in the DESCRIPTION, and set "Brand: '+brandGuess+'" in ITEM SPECIFICS. Never in the eBay title. Never claim official/authorised/licensed status.';
     } else if(brandDemand.searched){
@@ -2467,7 +2467,7 @@ async function generate(){
         +rules
         +'Output exactly:\nPrimary: [full path] (confirm in Seller Hub)\nWhy: [one short line]\nSecondary: [full path] (confirm in Seller Hub)   (or "Secondary: none recommended")\nWhy: [one short line]\n\n';
     })()
-    +'=== BRAND CHECK ===\nUse the BRAND DEMAND guidance above to decide. Output:\nBrand: [name or Unbranded] | Searched by buyers: [Yes/No] | VeRO Risk: [High/Medium/Low] | Placement: [where you will mention it: Description + Item Specifics / Item Specifics only / Unbranded]\nReason: [one short line explaining your decision]\n\n'
+    +'=== BRAND CHECK ===\nUse the BRAND DEMAND guidance above to decide. Output:\nBrand: [name or Does Not Apply] | Searched by buyers: [Yes/No] | VeRO Risk: [High/Medium/Low] | Placement: [where you will mention it: Description + Item Specifics / Item Specifics only / Unbranded]\nReason: [one short line explaining your decision]\n\n'
     +'=== TITLE ===\n'
     +'eBay Title — RULE 1 (LENGTH): the title MUST be between 76 and 80 characters including spaces. This is mandatory. A title under 75 characters wastes valuable eBay search space and is REJECTED. Count carefully. NO punctuation. Every word must be complete.\n'
     +(brandInTitle
@@ -2489,7 +2489,7 @@ async function generate(){
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. BRAND RULE: if the source data shows a brand name, START this heading with the brand (e.g. "Mainstays Cotton Bath Towel Set...") — the brand belongs HERE, not in the eBay title. If VeRO risk is high, only use the brand if the item genuinely is that brand. Use Title Case. NO trailing comma.\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. BRAND RULE: if the source data shows a brand name, mention it naturally here at least once (popular or not) — the description is where the brand lives. If buyers actively search the brand (see BRAND DEMAND), weave it in 2-3 times for SEO. Never put the brand in the eBay title.\n\n'
     +'=== ITEM SPECIFICS ===\n'
-    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, FIRST check that the suggested category actually matches this product. If it matches, use those exact field names for the fields that genuinely apply. If it does NOT match, ignore them completely and write the correct specifics for what the product really is. Every field you output must describe THIS product and be supported by the source data. REACH: eBay buyers filter results by item specifics, so extract EVERY filterable value the source data genuinely supports, even if it is phrased differently there — e.g. a compatibility sentence listing cars, trucks and motorcycles becomes Vehicle Type: Car, Truck, Motorcycle; a material mentioned in passing becomes Material; a stated count becomes Number of Pieces; a stated power source, size, shape, finish, pattern, theme, room or occasion becomes its own field. More real specifics = more filter searches you appear in. Never invent a value to fill a field. Put a value only in a field that MEANS the same thing — e.g. 450 gsm is fabric weight, not Item Thickness; a towel size is not the length of the whole set. If no field matches a fact, leave the fact in the description instead. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Unbranded". Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
+    +'eBay Item Specifics in EXACT "Field: Value" format, one per line. These map to eBay\'s structured search filters, so use eBay\'s real field names. If eBay OFFICIAL ITEM SPECIFICS were supplied above, FIRST check that the suggested category actually matches this product. If it matches, use those exact field names for the fields that genuinely apply. If it does NOT match, ignore them completely and write the correct specifics for what the product really is. Every field you output must describe THIS product and be supported by the source data. REACH: eBay buyers filter results by item specifics, so extract EVERY filterable value the source data genuinely supports, even if it is phrased differently there — e.g. a compatibility sentence listing cars, trucks and motorcycles becomes Vehicle Type: Car, Truck, Motorcycle; a material mentioned in passing becomes Material; a stated count becomes Number of Pieces; a stated power source, size, shape, finish, pattern, theme, room or occasion becomes its own field. More real specifics = more filter searches you appear in. Never invent a value to fill a field. Put a value only in a field that MEANS the same thing — e.g. 450 gsm is fabric weight, not Item Thickness; a towel size is not the length of the whole set. If no field matches a fact, leave the fact in the description instead. MANDATORY: the FIRST line must ALWAYS be the Brand field — include it every single time whether the brand is popular or not. If the source data shows a brand name, use that exact brand here (even if it is a no-name or unknown brand). Only if there is truly no brand at all in the source data, use "Brand: Does Not Apply" (never "Unbranded"). Never omit the Brand line. Then include ALL other fields that apply: Type, Material, Color, MPN, Model, Quantity, Size, Compatible Brand, Compatible Model, Placement on Vehicle, Features, Country/Region of Manufacture, Department, Style, Custom Bundle, Manufacturer Part Number. Only include fields relevant to THIS product. For compatibility use "For [Brand]" format. Example:\nBrand: Mainstays\nType: Oil Drain Plug O-Ring\nMaterial: Rubber\nQuantity: 50 Pieces\nCompatible Brand: For Harley Davidson\nMPN: 11105\n\n'
     +'=== KEY FEATURES ===\n8 bullets: ✅ [Benefit] — [Detail]\n\n'
     +'=== SPECIFICATIONS ===\nEach spec on own line: Label: Value. ONLY list specs whose values appear in the RAW SOURCE DATA. Never invent or estimate a measurement, weight, capacity or material, and never take one from the keyword lists. If a spec is unknown, leave it out entirely.\n\n'
     +(isMultiVar
@@ -2530,6 +2530,8 @@ async function generate(){
       }
       if(window.slfLastStop==='max_tokens') console.warn('Listing reply hit the length limit — the last section may be short.');
       fullTxt=slfForcePolicies(slfCleanListing(r), policy);
+      // no brand set → eBay value "Does Not Apply" (the AI sometimes still writes "Unbranded")
+      if(!((document.getElementById('brandName')||{}).value||'').trim()) fullTxt=fullTxt.replace(/^(\s*[-•*]?\s*Brand\s*:\s*)Unbranded\b/gmi,'$1Does Not Apply');
     }
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
