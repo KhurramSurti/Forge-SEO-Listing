@@ -2033,12 +2033,92 @@ async function fetchAllKeywords(apiKey,productTitle){
   return realData;
 }
 
-async function claudeCall(apiKey,prompt,maxTok){
-  var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTok,messages:[{role:'user',content:prompt}]})});
-  var d=await r.json();
-  if(d.error) throw new Error(d.error.message);
-  return d.content[0].text;
+// ─── Claude call — STREAMED ───────────────────────────────
+// The reply arrives piece by piece, so the connection never sits silent for a minute
+// (silent long requests are what home internet / routers / browsers cut off — that left
+// half-built listings). If the line still breaks, or the reply hits the length limit,
+// the tool asks Claude to CONTINUE from where it stopped instead of starting again.
+async function slfStreamOnce(apiKey, messages, maxTok, onText){
+  var ctrl=new AbortController(), last=Date.now(), idleCut=false;
+  var watch=setInterval(function(){ if(Date.now()-last>60000){ idleCut=true; ctrl.abort(); } },3000);
+  var text='', stop='', broken=false;
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:ctrl.signal,
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTok,stream:true,messages:messages})});
+    if(!r.ok || !r.body || !r.body.getReader){
+      var d=await r.json().catch(function(){return {};});
+      if(d.error) { var er=new Error(d.error.message||('HTTP '+r.status)); er.status=r.status; er.type=d.error.type; throw er; }
+      text=(d.content||[]).filter(function(x){return x&&x.type==='text';}).map(function(x){return x.text;}).join('\n');
+      return {text:text, stop:d.stop_reason||'', broken:false};
+    }
+    var reader=r.body.getReader(), dec=new TextDecoder(), buf='';
+    while(true){
+      var chunk=await reader.read();
+      if(chunk.done) break;
+      last=Date.now();
+      buf+=dec.decode(chunk.value,{stream:true});
+      var lines=buf.split('\n'); buf=lines.pop();
+      for(var i=0;i<lines.length;i++){
+        var L=lines[i]; if(L.indexOf('data:')!==0) continue;
+        var ev; try{ ev=JSON.parse(L.slice(5).trim()); }catch(e){ continue; }
+        if(ev.type==='content_block_delta' && ev.delta && ev.delta.type==='text_delta'){ text+=ev.delta.text; if(onText) onText(text); }
+        else if(ev.type==='message_delta' && ev.delta && ev.delta.stop_reason){ stop=ev.delta.stop_reason; }
+        else if(ev.type==='error'){ var e2=new Error((ev.error&&ev.error.message)||'Stream error'); e2.type=ev.error&&ev.error.type; e2.partial=text; throw e2; }
+      }
+    }
+    if(!stop) broken=true;                       // stream ended without a proper finish
+  }catch(e){
+    if(e.status) throw e;                    // API refused the request (bad key, no credits…) — show that error
+    if(e.type && !text) throw e;             // server error before any text — the caller waits and retries
+    broken=true;                             // connection dropped / went silent mid-reply — continue from here
+  }finally{ clearInterval(watch); }
+  return {text:text, stop:stop, broken:broken};
 }
+async function claudeCall(apiKey,prompt,maxTok){
+  var msgs=[{role:'user',content:prompt}], full='', tries=0, lastErr=null;
+  function progress(t){ try{ var w=(full+t).split(/\s+/).length; setChip('work','Writing… '+w+' words'); }catch(e){} }
+  while(tries<4){
+    tries++;
+    var res;
+    try{ res=await slfStreamOnce(apiKey, msgs, maxTok, progress); }
+    catch(e){
+      lastErr=e;
+      // busy / rate-limited servers: wait a moment and try again
+      if(e.status===529 || e.status===429 || e.status>=500 || e.type==='overloaded_error' || e.type==='api_error'){ await new Promise(function(r){setTimeout(r,2500*tries);}); continue; }
+      throw e;
+    }
+    full+=res.text;
+    window.slfLastStop=res.stop||(res.broken?'connection_lost':'');
+    if(!res.broken && res.stop!=='max_tokens') break;               // finished properly
+    if(!full.trim()){ continue; }                                   // nothing yet — just retry
+    // continue from where it stopped (assistant prefill must not end in whitespace)
+    full=full.replace(/\s+$/,'');
+    msgs=[{role:'user',content:prompt},{role:'assistant',content:full}];
+    try{ setChip('work','Connection dropped — continuing…'); }catch(e){}
+  }
+  if(!full.trim()){
+    if(lastErr) throw lastErr;
+    throw new Error('The AI reply did not arrive (connection problem). Please check your internet and try again.');
+  }
+  return full;
+}
+
+// The AI sometimes writes section headings its own way ("**TITLE**", "## Title", "TITLE:", "1. TITLE", "═══ TITLE ═══")
+// or wraps the reply in ``` fences. Turn every such heading back into "=== TITLE ===" so no section is lost.
+var SLF_MARKER_ALIAS={'EBAY TITLE':'TITLE','LISTING TITLE':'TITLE','HEADING':'HTML HEADING','PRODUCT DESCRIPTION':'DESCRIPTION','FEATURES':'KEY FEATURES',
+  'SPECIFICATION':'SPECIFICATIONS','CATEGORY':'CATEGORIES','EBAY CATEGORIES':'CATEGORIES','ITEM SPECIFICS (EBAY)':'ITEM SPECIFICS','EBAY ITEM SPECIFICS':'ITEM SPECIFICS',
+  'SEO META DATA':'SEO METADATA','SEO META':'SEO METADATA','SHIPPING & RETURNS':'POLICIES','SHIPPING AND RETURNS':'POLICIES','SAFETY':'SAFETY INFORMATION','COMPATIBILITY':'COMPATIBLE MODELS'};
+function slfNormalizeMarkers(text){
+  return String(text||'').replace(/\r/g,'').split('\n').filter(function(l){ return !/^\s*```/.test(l); }).map(function(line){
+    if(line.trim().length>60) return line;
+    var cl=line.replace(/[`*_#=═─━\-–—\[\]【】:：|>]+/g,' ').replace(/^\s*\d+[.)]\s*/,'').replace(/\s+/g,' ').trim().toUpperCase();
+    if(!cl) return line;
+    if(SLF_MARKER_ALIAS[cl]) cl=SLF_MARKER_ALIAS[cl];
+    return SLF_ALL_KEYS.indexOf(cl)>-1 ? '=== '+cl+' ===' : line;
+  }).join('\n');
+}
+function slfHasCore(text){ return /^=== TITLE ===$/m.test(text) && (/^=== DESCRIPTION ===$/m.test(text) || /^=== KEY FEATURES ===$/m.test(text)); }
 
 // ─── OFF PAGE SEO GENERATOR ───────────────────────────────
 async function generateOffPageSEO(){
@@ -2433,7 +2513,24 @@ async function generate(){
     +'=== SEO METADATA ===\nMeta Title: (under 60 chars)\nMeta Description: (50-160 chars)\nURL Handle: (dashes only)\n\n'
     +'=== TAGS ===\neBay Keywords: (10 terms)\nSocial Hashtags: (10 hashtags)\n\n'
     +'=== RAW SOURCE DATA ===\n'+product;
-    try{var r=await claudeCall(apiKey,ebayPrompt,isMultiVar?9000:4500);fullTxt=slfForcePolicies(slfCleanListing(r), policy);}
+    try{
+      // room for the full listing — you only pay for what is actually written, so a higher cap costs nothing extra
+      var maxT=isMultiVar?16000:8000;
+      var r=slfNormalizeMarkers(await claudeCall(apiKey,ebayPrompt,maxT));
+      if(!slfHasCore(r)){
+        // the reply came back in the wrong shape — ask once more, strictly, instead of showing an empty listing
+        setChip('work','Fixing reply format...');
+        var r2=slfNormalizeMarkers(await claudeCall(apiKey,ebayPrompt+'\n\nIMPORTANT: Reply ONLY with the sections listed above. Start every section with its exact marker line, for example === TITLE ===. No introduction, no questions, no code blocks.',maxT));
+        if(slfHasCore(r2)) r=r2;
+        else {
+          window.slfLastRaw=r2||r;
+          showErr('⚠ The AI reply did not come back in listing format, so nothing was built from it. Please press Generate again. (Reply saved — type slfLastRaw in the browser console to see it.)');
+          setLoading(false); return;
+        }
+      }
+      if(window.slfLastStop==='max_tokens') console.warn('Listing reply hit the length limit — the last section may be short.');
+      fullTxt=slfForcePolicies(slfCleanListing(r), policy);
+    }
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
