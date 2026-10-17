@@ -2084,6 +2084,7 @@ async function claudeCall(apiKey,prompt,maxTok){
     try{ res=await slfStreamOnce(apiKey, msgs, maxTok, progress); }
     catch(e){
       lastErr=e;
+      if(msgs.length>1 && full.trim()){ console.warn('Continue step failed:', e.message); break; }   // keep what we already have
       // busy / rate-limited servers: wait a moment and try again
       if(e.status===529 || e.status===429 || e.status>=500 || e.type==='overloaded_error' || e.type==='api_error'){ await new Promise(function(r){setTimeout(r,2500*tries);}); continue; }
       throw e;
@@ -2092,9 +2093,12 @@ async function claudeCall(apiKey,prompt,maxTok){
     window.slfLastStop=res.stop||(res.broken?'connection_lost':'');
     if(!res.broken && res.stop!=='max_tokens') break;               // finished properly
     if(!full.trim()){ continue; }                                   // nothing yet — just retry
-    // continue from where it stopped (assistant prefill must not end in whitespace)
-    full=full.replace(/\s+$/,'');
-    msgs=[{role:'user',content:prompt},{role:'assistant',content:full}];
+    // Continue from where it stopped. This model does not accept a half-written reply as the
+    // last message, so we show it what it already wrote and ask, in a new user turn, for the rest.
+    // Cut back to the last complete line so no half line is glued twice.
+    var cutAt=full.lastIndexOf('\n'); if(cutAt>0) full=full.slice(0,cutAt+1);
+    msgs=[{role:'user',content:prompt},{role:'assistant',content:full.replace(/\s+$/,'')},
+          {role:'user',content:'Your reply was cut off. Continue EXACTLY from the line after the last complete line above. Do not repeat anything already written, do not add any introduction — output only the remaining part of the listing, keeping the same === MARKER === format.'}];
     try{ setChip('work','Connection dropped — continuing…'); }catch(e){}
   }
   if(!full.trim()){
