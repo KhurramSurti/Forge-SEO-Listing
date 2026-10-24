@@ -2737,6 +2737,11 @@ function slfSections(text){
   if(cur) S[cur]=buf.join('\n').trim();
   return S;
 }
+// just the title line — without the AI's "Character count: 78 ✅" note
+function slfHTitle(t){
+  var l=String(t||'').split('\n').map(function(x){return x.trim();}).filter(Boolean)[0]||'';
+  return l.replace(/\s*[-–—|(]*\s*char(acter)?s?\s*count\s*:?\s*\d+.*$/i,'').replace(/\*\*/g,'').trim();
+}
 function slfHPayload(){
   var c=slfHCfg(), S, rec={
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
@@ -2751,7 +2756,7 @@ function slfHPayload(){
     rec.description=tiktokTxt||''; rec.html=''; rec.categories=S['CATEGORY']||''; rec.vero=''; rec.quality='';
   } else {
     S=slfSections(fullTxt);
-    rec.title=S['TITLE']||''; rec.specifics=S['ITEM SPECIFICS']||'';
+    rec.title=slfHTitle(S['TITLE']); rec.specifics=S['ITEM SPECIFICS']||'';
     var L=null; try{ L=slfListingBlocks(fullTxt); }catch(e){}
     rec.description=L?slfBlocksToPlain(L.blocks):(S['DESCRIPTION']||'');
     rec.html=genHtml||''; rec.categories=S['CATEGORIES']||'';
@@ -2819,7 +2824,7 @@ async function slfHFetchList(limit){
   return await r.json();
 }
 async function openHistory(){
-  if(!slfHOn()){ alert('History is not connected on this computer yet. Open the sidebar → 📜 Team History, paste the link and team code, then press Test.'); return; }
+  if(!slfHOn()){ slfHGoSettings(); return; }
   document.getElementById('histOv').classList.add('show');
   document.getElementById('histList').innerHTML='<div class="hist-empty">Loading…</div>';
   document.getElementById('histDetail').innerHTML='';
@@ -2833,6 +2838,16 @@ async function openHistory(){
     sel.value=cur;
     renderHistList();
   }catch(e){ document.getElementById('histList').innerHTML='<div class="hist-empty">Could not load history: '+escHtml(e.message)+'</div>'; }
+}
+// take the user straight to the Team History boxes in the left panel
+function slfHGoSettings(){
+  closeHistory();
+  var sec=document.getElementById('histSection'); if(!sec) return;
+  try{ if(window.innerWidth<=900 && !document.getElementById('sidebar').classList.contains('open')) toggleSidebar(); }catch(e){}
+  sec.scrollIntoView({behavior:'smooth',block:'start'});
+  sec.style.transition='box-shadow .3s'; sec.style.boxShadow='0 0 0 2px #d4a847'; sec.style.borderRadius='10px';
+  setTimeout(function(){ sec.style.boxShadow='none'; },2600);
+  var f=document.getElementById(!slfHCfg().name?'histName':(!slfHCfg().url?'histUrl':'histCode')); if(f) setTimeout(function(){ f.focus(); },400);
 }
 function closeHistory(){ document.getElementById('histOv').classList.remove('show'); }
 function slfHDay(d){ var x=new Date(d); return x.getFullYear()+'-'+(x.getMonth()+1)+'-'+x.getDate(); }
@@ -2863,6 +2878,8 @@ async function openHistItem(id, el){
     var r=await fetch(c.url+(c.url.indexOf('?')>-1?'&':'?')+'action=get&id='+encodeURIComponent(id)+'&secret='+encodeURIComponent(c.code));
     var d=await r.json(); if(!d.ok) throw new Error(d.error||'not found');
     slfHCur=d.row; var R=d.row, t=new Date(R.time);
+    Object.keys(R).forEach(function(k){ if(R[k]!=null && typeof R[k]!=='string') R[k]=String(R[k]); });   // Sheets sends numbers / dates as non-text
+    R.title=slfHTitle(R.title);
     function blk(label, key, pre){ if(!R[key]) return ''; return '<div class="hist-blk"><div class="hist-blk-h"><span>'+label+'</span><button class="ib" onclick="cpTxt(slfHCur[\''+key+'\'],this)">Copy</button></div><div class="hist-blk-b'+(pre?' pre':'')+'">'+escHtml(R[key])+'</div></div>'; }
     box.innerHTML='<div class="hist-meta">'+t.toLocaleString()+' · <b>'+escHtml(R.assistant)+'</b> · '+escHtml(R.client)+' · '+escHtml((R.platform||'').toUpperCase())+' '+escHtml(R.market||'')
       +(R.vero?' · VeRO: '+escHtml(R.vero):'')+(R.quality?' · Quality '+escHtml(R.quality):'')+'</div>'
@@ -3204,7 +3221,7 @@ function parseSpecs(raw){
   return result;
 }
 
-function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function buildCustomTheme(hex, mode){
   // Parse hex to RGB
