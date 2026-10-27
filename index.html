@@ -1860,7 +1860,7 @@ function veroBareUse(term, text){
 // Find which sections a risky term appears in
 function veroLocations(term, sections){
   var where = [];
-  ['TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','ITEM SPECIFICS','TAGS'].forEach(function(k){
+  ['TITLE','TITLE 2','HTML HEADING','DESCRIPTION','KEY FEATURES','ITEM SPECIFICS','TAGS'].forEach(function(k){
     var body = (sections[k]||'').toLowerCase();
     var esc = term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     if(new RegExp('(^|[^a-z0-9])'+esc+'([^a-z0-9]|$)','i').test(body)) where.push(k);
@@ -2164,7 +2164,7 @@ async function claudeCall(apiKey,prompt,maxTok){
 
 // The AI sometimes writes section headings its own way ("**TITLE**", "## Title", "TITLE:", "1. TITLE", "═══ TITLE ═══")
 // or wraps the reply in ``` fences. Turn every such heading back into "=== TITLE ===" so no section is lost.
-var SLF_MARKER_ALIAS={'EBAY TITLE':'TITLE','LISTING TITLE':'TITLE','HEADING':'HTML HEADING','PRODUCT DESCRIPTION':'DESCRIPTION','FEATURES':'KEY FEATURES',
+var SLF_MARKER_ALIAS={'SECOND TITLE':'TITLE 2','ALTERNATE TITLE':'TITLE 2','TITLE TWO':'TITLE 2','EBAY TITLE 2':'TITLE 2','EBAY TITLE':'TITLE','LISTING TITLE':'TITLE','HEADING':'HTML HEADING','PRODUCT DESCRIPTION':'DESCRIPTION','FEATURES':'KEY FEATURES',
   'SPECIFICATION':'SPECIFICATIONS','CATEGORY':'CATEGORIES','EBAY CATEGORIES':'CATEGORIES','ITEM SPECIFICS (EBAY)':'ITEM SPECIFICS','EBAY ITEM SPECIFICS':'ITEM SPECIFICS',
   'SEO META DATA':'SEO METADATA','SEO META':'SEO METADATA','SHIPPING & RETURNS':'POLICIES','SHIPPING AND RETURNS':'POLICIES','SAFETY':'SAFETY INFORMATION','COMPATIBILITY':'COMPATIBLE MODELS'};
 function slfNormalizeMarkers(text){
@@ -2544,6 +2544,8 @@ async function generate(){
     +'  3i. FILL the space: if under 76 characters, ADD another distinct high-value keyword from the lists until you reach 76-80. Never submit a short title.\n'
     +(compTitle ? 'BEAT THIS COMPETITOR: A top-selling competitor uses this eBay title: "'+compTitle.replace(/"/g,'')+'". Analyze it. Your title MUST be more SEO-optimized: include every strong keyword they use that fits this product, PLUS additional high-value buyer keywords they missed, in a better order. Do not copy it word-for-word — make it genuinely stronger and still 76-80 characters.\n' : '')
     +'[title here — must be 76 to 80 characters]\n\n'
+    +'=== TITLE 2 ===\n'
+    +'A SECOND eBay title for the same product, for listing it on a different eBay account. Follow EVERY title rule above (76-80 characters, same brand rule, no banned words, no punctuation, no repeated words, VeRO-safe, only specs from the source data) and make it just as strong for search — but clearly DIFFERENT from the first title: start with a different strong keyword phrase or product-type synonym that buyers really search, use a different word order, and swap in other high-value keywords from the lists that the first title did not use. The two titles must not share the same first 4 words and should share no more than about half of their words. Output only the title line.\n\n'
     +'=== HTML HEADING ===\n'
     +'A natural, readable product heading for the listing page (100-130 characters). Unlike the eBay title, this has more room — weave in 2-3 EXTRA buyer keywords naturally so it reads like a real product name, NOT a comma-separated keyword list. BRAND RULE: if the source data shows a brand name, START this heading with the brand (e.g. "Mainstays Cotton Bath Towel Set...") — the brand belongs HERE, not in the eBay title. If VeRO risk is high, only use the brand if the item genuinely is that brand. Use Title Case. NO trailing comma.\n[heading here]\n\n'
     +'=== DESCRIPTION ===\nTwo paragraphs. Hook + value. **bold** key phrases. BRAND RULE: if the source data shows a brand name, mention it naturally here at least once (popular or not) — the description is where the brand lives. If buyers actively search the brand (see BRAND DEMAND), weave it in 2-3 times for SEO. Never put the brand in the eBay title.\n\n'
@@ -2756,7 +2758,7 @@ function slfHPayload(){
     rec.description=tiktokTxt||''; rec.html=''; rec.categories=S['CATEGORY']||''; rec.vero=''; rec.quality='';
   } else {
     S=slfSections(fullTxt);
-    rec.title=slfHTitle(S['TITLE']); rec.specifics=S['ITEM SPECIFICS']||'';
+    rec.title=slfHTitle(S['TITLE'])+(S['TITLE 2']?'\n'+slfHTitle(S['TITLE 2']):''); rec.specifics=S['ITEM SPECIFICS']||'';
     var L=null; try{ L=slfListingBlocks(fullTxt); }catch(e){}
     rec.description=L?slfBlocksToPlain(L.blocks):(S['DESCRIPTION']||'');
     rec.html=genHtml||''; rec.categories=S['CATEGORIES']||'';
@@ -2879,11 +2881,11 @@ async function openHistItem(id, el){
     var d=await r.json(); if(!d.ok) throw new Error(d.error||'not found');
     slfHCur=d.row; var R=d.row, t=new Date(R.time);
     Object.keys(R).forEach(function(k){ if(R[k]!=null && typeof R[k]!=='string') R[k]=String(R[k]); });   // Sheets sends numbers / dates as non-text
-    R.title=slfHTitle(R.title);
+    R.title=String(R.title||'').split('\n').map(slfHTitle).filter(Boolean).join('\n');
     function blk(label, key, pre){ if(!R[key]) return ''; return '<div class="hist-blk"><div class="hist-blk-h"><span>'+label+'</span><button class="ib" onclick="cpTxt(slfHCur[\''+key+'\'],this)">Copy</button></div><div class="hist-blk-b'+(pre?' pre':'')+'">'+escHtml(R[key])+'</div></div>'; }
     box.innerHTML='<div class="hist-meta">'+t.toLocaleString()+' · <b>'+escHtml(R.assistant)+'</b> · '+escHtml(R.client)+' · '+escHtml((R.platform||'').toUpperCase())+' '+escHtml(R.market||'')
       +(R.vero?' · VeRO: '+escHtml(R.vero):'')+(R.quality?' · Quality '+escHtml(R.quality):'')+'</div>'
-      +blk('Title','title')+blk('Item Specifics','specifics',true)+blk('Categories','categories',true)+blk('Description','description',true)
+      +blk('Title(s)','title',true)+blk('Item Specifics','specifics',true)+blk('Categories','categories',true)+blk('Description','description',true)
       +(R.html?'<div class="hist-blk"><div class="hist-blk-h"><span>HTML</span><span style="display:flex;gap:6px;"><button class="ib" onclick="slfHPreview()">Preview</button><button class="ib gold" onclick="cpTxt(slfHCur.html,this)">Copy HTML</button></span></div><iframe id="histFrame" class="hist-frame" style="display:none;"></iframe></div>':'')
       +'<details class="hist-src"><summary>Supplier text the assistant pasted</summary><div class="hist-blk-b pre">'+escHtml(R.source||'')+'</div></details>';
   }catch(e){ box.innerHTML='<div class="hist-empty">Could not open this listing: '+escHtml(e.message)+'</div>'; }
@@ -3195,7 +3197,7 @@ function buildShopifyPlainText(S){
 }
 
 function parseListingSections(text){
-  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','TITLE 2','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var out={},cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -3669,7 +3671,7 @@ function slfBuildQuery(product){
 
 function computeQualityScore(text){
   var S={};
-  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','TITLE 2','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -3906,7 +3908,7 @@ function slfAspectBadge(){
 // ("No compatible models are listed..."), or fills a field with a placeholder
 // ("See product packaging"). Clean that out in code before anything is shown,
 // so it never reaches the HTML, the plain text or the item specifics.
-var SLF_ALL_KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+var SLF_ALL_KEYS=['CATEGORIES','BRAND CHECK','TITLE','TITLE 2','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
 var SLF_OPTIONAL=['COMPATIBLE MODELS','SAFETY INFORMATION','VARIATIONS'];
 function slfIsOmitNote(body){
   var t=String(body||'').replace(/[()\[\]*_`]/g,' ').replace(/\s+/g,' ').trim();
@@ -4108,7 +4110,7 @@ function renderVeroCheck(text){
   if(ot)ot.remove(); if(os)os.remove();
 
   // parse sections so we can say WHERE a term appears
-  var S={}, KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var S={}, KEYS=['CATEGORIES','BRAND CHECK','TITLE','TITLE 2','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
   var cur=null,buf=[];
   text.split('\n').forEach(function(line){
     var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();
@@ -4118,7 +4120,7 @@ function renderVeroCheck(text){
   if(cur)S[cur]=buf.join('\n').trim();
 
   // Only scan the parts that actually go live on eBay
-  var live = [S['TITLE']||'', S['HTML HEADING']||'', S['DESCRIPTION']||'', S['KEY FEATURES']||'', S['ITEM SPECIFICS']||'', S['TAGS']||''].join('\n');
+  var live = [S['TITLE']||'', S['TITLE 2']||'', S['HTML HEADING']||'', S['DESCRIPTION']||'', S['KEY FEATURES']||'', S['ITEM SPECIFICS']||'', S['TAGS']||''].join('\n');
   var found = scanVero(live);
   // eBay VeRO profile list: names in the live listing, plus names that are only in the source product data
   var vpOut = slfVeroProfileScan(live);
@@ -4361,8 +4363,8 @@ function highlightKeywords(text,keywords){
 }
 
 function renderListing(text){
-  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
-  var META={'CATEGORIES':{l:'🗂 Categories',c:'c4'},'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'VARIATIONS':{l:'📦 Variations',c:'c4'},'COMPATIBLE MODELS':{l:'🔧 Compatible',c:'c3'},'SAFETY INFORMATION':{l:'⚠ Safety',c:'c5'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
+  var KEYS=['CATEGORIES','BRAND CHECK','TITLE','TITLE 2','HTML HEADING','DESCRIPTION','KEY FEATURES','SPECIFICATIONS','VARIATIONS','COMPATIBLE MODELS','SAFETY INFORMATION','ITEM SPECIFICS','PRO TIPS','IDEAL FOR','POLICIES','SEO METADATA','TAGS'];
+  var META={'CATEGORIES':{l:'🗂 Categories',c:'c4'},'BRAND CHECK':{l:'Brand',c:'c4'},'TITLE':{l:'Title',c:'c1'},'TITLE 2':{l:'Title 2',c:'c1'},'HTML HEADING':{l:'HTML Heading',c:'c1'},'DESCRIPTION':{l:'Desc',c:'c2'},'KEY FEATURES':{l:'Features',c:'c3'},'SPECIFICATIONS':{l:'Specs',c:'c4'},'VARIATIONS':{l:'📦 Variations',c:'c4'},'COMPATIBLE MODELS':{l:'🔧 Compatible',c:'c3'},'SAFETY INFORMATION':{l:'⚠ Safety',c:'c5'},'ITEM SPECIFICS':{l:'⭐ Item Specifics',c:'c2'},'PRO TIPS':{l:'Tips',c:'c5'},'IDEAL FOR':{l:'Ideal For',c:'c2'},'POLICIES':{l:'Policies',c:'c3'},'SEO METADATA':{l:'SEO',c:'c5'},'TAGS':{l:'Tags',c:'c1'}};
   var parsed=[],cur=null,buf=[];
   text.split('\n').forEach(function(line){var cl=line.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/===\s*/g,'').replace(/\s*===/g,'').trim().toUpperCase();if(KEYS.indexOf(cl)>-1){if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});cur=cl;buf=[];}else if(cur)buf.push(line);});
   if(cur)parsed.push({key:cur,content:buf.join('\n').trim()});
@@ -4391,7 +4393,7 @@ function renderListing(text){
 
     // For TITLE: extract the eBay title line, pad it to 75-80 chars, show counter + padded title
     var counterHtml='';
-    if(sec.key==='TITLE'){
+    if(sec.key==='TITLE'||sec.key==='TITLE 2'){
       var titleLine='';
       var tl=sec.content.split('\n');
       for(var ti=0;ti<tl.length;ti++){var cand=tl[ti].replace(/`/g,'').replace(/^[-•*\s]+/,'').trim();if(cand.length>20&&!/chars|keyword|stacking|character|\[/i.test(cand)){titleLine=cand;break;}}
