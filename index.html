@@ -299,7 +299,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .h-txt-copy{flex-shrink:0;padding:8px 16px;border-radius:7px;border:none;background:#1f6feb;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
 .h-txt-copy:hover{background:#1858c4;}
 .h-txt-copy.cp{background:#16a34a;}
-.h-txt-page{max-width:780px;margin:16px auto 28px;background:#ffffff;padding:28px 32px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#222;}
+.h-txt-page{max-width:none;margin:16px 16px 28px;background:#ffffff;padding:28px 32px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#222;}
 .h-txt-empty{color:#888;font-size:14px;text-align:center;padding:30px 0;}
 .h-src{padding:15px;font-family:'Geist Mono',monospace;font-size:10.5px;line-height:1.7;color:#7a9ab8;white-space:pre;background:var(--ink);min-height:100%;}
 .ib{display:flex;align-items:center;gap:5px;padding:5px 11px;background:var(--ink4);border:1px solid var(--wire);border-radius:7px;color:var(--fog);font-family:'Geist',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.14s;white-space:nowrap;}
@@ -4064,7 +4064,7 @@ function slfBlocksToRich(B){
     else if(b.t==='foot') h.push('<p style="'+F+'font-size:13.5px;color:#555555;margin:22px 0 0 0;">'+escHtml(b.x)+'</p>');
   });
   close();
-  return '<div style="'+F+'max-width:800px;">'+h.join('')+'</div>';
+  return '<div style="'+F+'width:100%;max-width:1000px;">'+h.join('')+'</div>';   // fills laptop screens, lines stay readable on big monitors
 }
 
 // kept for the left-hand Plain Text tab
