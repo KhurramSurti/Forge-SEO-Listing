@@ -111,6 +111,10 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .hist-row:hover{background:var(--ink3);} .hist-row.on{background:var(--ink4);border-left:3px solid var(--gold);}
 .hist-row-t{font-size:12px;color:var(--snow);font-weight:600;line-height:1.45;}
 .hist-row-m{font-size:10.5px;color:var(--dim);margin-top:3px;}
+.hist-row-ref{font-size:11px;color:#60a5fa;margin-top:4px;line-height:1.4;}
+.hist-ref{border-color:rgba(96,165,250,0.55);background:rgba(96,165,250,0.07);}
+.hist-ref .hist-blk-h{color:#60a5fa;}
+.hist-ref .hist-blk-b{font-size:13px;font-weight:600;}
 .hist-row-m b{color:var(--fog);}
 .hist-detail{overflow-y:auto;padding:16px 20px;}
 .hist-meta{font-size:11px;color:var(--fog);margin-bottom:12px;}
@@ -441,7 +445,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <h3>📜 Team History <span id="histCount" style="font-size:11px;color:var(--dim);font-weight:400;margin-left:6px;"></span></h3>
       <select id="histWhen" onchange="renderHistList()"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week">Last 7 days</option><option value="all">All</option></select>
       <select id="histWho" onchange="renderHistList()"><option value="">All assistants</option></select>
-      <input type="text" id="histQ" placeholder="Search title / client…" oninput="renderHistList()"/>
+      <input type="text" id="histQ" placeholder="Search title / source title / client…" oninput="renderHistList()"/>
       <button class="ib" onclick="openHistory()">↻ Refresh</button>
       <button class="ib" onclick="closeHistory()">✕ Close</button>
     </div>
@@ -2744,6 +2748,12 @@ function slfHTitle(t){
   var l=String(t||'').split('\n').map(function(x){return x.trim();}).filter(Boolean)[0]||'';
   return l.replace(/\s*[-–—|(]*\s*char(acter)?s?\s*count\s*:?\s*\d+.*$/i,'').replace(/\*\*/g,'').trim();
 }
+// the supplier's own title = first real line of the pasted text ("TITLE: …" prefix removed)
+function slfHRef(src){
+  var l=String(src||'').split('\n').map(function(x){return x.trim();}).filter(function(x){ return x && !/^(title|product title|description)\s*:?\s*$/i.test(x); })[0]||'';
+  l=l.replace(/^(product\s+)?title\s*[:\-–]\s*/i,'');
+  return l.length>250?l.slice(0,250)+'…':l;
+}
 function slfHPayload(){
   var c=slfHCfg(), S, rec={
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
@@ -2861,13 +2871,14 @@ function renderHistList(){
     if(when==='today' && slfHDay(r.time)!==today) return false;
     if(when==='yesterday' && slfHDay(r.time)!==yest) return false;
     if(when==='week' && new Date(r.time)<week) return false;
-    if(q && (r.title+' '+r.client+' '+r.assistant).toLowerCase().indexOf(q)<0) return false;
+    if(q && (r.title+' '+(r.ref||'')+' '+r.client+' '+r.assistant).toLowerCase().indexOf(q)<0) return false;
     return true;
   });
   document.getElementById('histCount').textContent=rows.length+' listing'+(rows.length===1?'':'s');
   document.getElementById('histList').innerHTML = rows.length ? rows.map(function(r){
     var t=new Date(r.time);
     return '<div class="hist-row" onclick="openHistItem(\''+escHtml(r.id)+'\',this)"><div class="hist-row-t">'+escHtml(r.title||'(no title)')+'</div>'
+      +(r.ref?'<div class="hist-row-ref">📌 '+escHtml(r.ref)+'</div>':'')
       +'<div class="hist-row-m">'+t.toLocaleDateString()+' '+t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' · <b>'+escHtml(r.assistant)+'</b> · '+escHtml(r.client)+' · '+escHtml((r.platform||'').toUpperCase())+(r.market?' '+escHtml(r.market):'')+'</div></div>';
   }).join('') : '<div class="hist-empty">No listings for this filter.</div>';
 }
@@ -2883,9 +2894,11 @@ async function openHistItem(id, el){
     Object.keys(R).forEach(function(k){ if(R[k]!=null && typeof R[k]!=='string') R[k]=String(R[k]); });   // Sheets sends numbers / dates as non-text
     R.title=String(R.title||'').split('\n').map(slfHTitle).filter(Boolean).join('\n');
     function blk(label, key, pre){ if(!R[key]) return ''; return '<div class="hist-blk"><div class="hist-blk-h"><span>'+label+'</span><button class="ib" onclick="cpTxt(slfHCur[\''+key+'\'],this)">Copy</button></div><div class="hist-blk-b'+(pre?' pre':'')+'">'+escHtml(R[key])+'</div></div>'; }
+    var ref=slfHRef(R.source); slfHCur.ref=ref;
+    var refBlk=ref?'<div class="hist-blk hist-ref"><div class="hist-blk-h"><span>📌 Source title (reference)</span><button class="ib" onclick="cpTxt(slfHCur.ref,this)">Copy</button></div><div class="hist-blk-b">'+escHtml(ref)+'</div></div>':'';
     box.innerHTML='<div class="hist-meta">'+t.toLocaleString()+' · <b>'+escHtml(R.assistant)+'</b> · '+escHtml(R.client)+' · '+escHtml((R.platform||'').toUpperCase())+' '+escHtml(R.market||'')
       +(R.vero?' · VeRO: '+escHtml(R.vero):'')+(R.quality?' · Quality '+escHtml(R.quality):'')+'</div>'
-      +blk('Title(s)','title',true)+blk('Item Specifics','specifics',true)+blk('Categories','categories',true)+blk('Description','description',true)
+      +refBlk+blk('Title 1 / Title 2 (made by the tool)','title',true)+blk('Item Specifics','specifics',true)+blk('Categories','categories',true)+blk('Description','description',true)
       +(R.html?'<div class="hist-blk"><div class="hist-blk-h"><span>HTML</span><span style="display:flex;gap:6px;"><button class="ib" onclick="slfHPreview()">Preview</button><button class="ib gold" onclick="cpTxt(slfHCur.html,this)">Copy HTML</button></span></div><iframe id="histFrame" class="hist-frame" style="display:none;"></iframe></div>':'')
       +'<details class="hist-src"><summary>Supplier text the assistant pasted</summary><div class="hist-blk-b pre">'+escHtml(R.source||'')+'</div></details>';
   }catch(e){ box.innerHTML='<div class="hist-empty">Could not open this listing: '+escHtml(e.message)+'</div>'; }
