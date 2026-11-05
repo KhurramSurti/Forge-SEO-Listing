@@ -111,6 +111,11 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
 .hist-row:hover{background:var(--ink3);} .hist-row.on{background:var(--ink4);border-left:3px solid var(--gold);}
 .hist-row-t{font-size:12px;color:var(--snow);font-weight:600;line-height:1.45;}
 .hist-row-m{font-size:10.5px;color:var(--dim);margin-top:3px;}
+.hist-dup{margin-top:9px;border:1.5px solid rgba(96,165,250,0.6);background:rgba(96,165,250,0.08);border-radius:10px;padding:11px 13px;}
+.hist-dup-h{font-size:12.5px;font-weight:700;color:#60a5fa;margin-bottom:6px;}
+.hist-dup-row{display:flex;flex-direction:column;gap:2px;padding:7px 10px;margin-top:5px;background:rgba(0,0,0,0.25);border-radius:7px;cursor:pointer;font-size:12px;color:var(--snow);}
+.hist-dup-row span{font-size:10.5px;color:var(--fog);}
+.hist-dup-row:hover{background:rgba(96,165,250,0.15);}
 .hist-row-ref{font-size:11px;color:#60a5fa;margin-top:4px;line-height:1.4;}
 .hist-ref{border-color:rgba(96,165,250,0.55);background:rgba(96,165,250,0.07);}
 .hist-ref .hist-blk-h{color:#60a5fa;}
@@ -445,7 +450,7 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
       <h3>📜 Team History <span id="histCount" style="font-size:11px;color:var(--dim);font-weight:400;margin-left:6px;"></span></h3>
       <select id="histWhen" onchange="renderHistList()"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week">Last 7 days</option><option value="all">All</option></select>
       <select id="histWho" onchange="renderHistList()"><option value="">All assistants</option></select>
-      <input type="text" id="histQ" placeholder="Search title / source title / client…" oninput="renderHistList()"/>
+      <input type="text" id="histQ" style="min-width:320px;flex:1;" placeholder="🔍 Paste the source title to find a listing…" oninput="renderHistList()"/>
       <button class="ib" onclick="openHistory()">↻ Refresh</button>
       <button class="ib" onclick="closeHistory()">✕ Close</button>
     </div>
@@ -571,6 +576,7 @@ Returns: Most of our items come with free 30-day returns. Some items are not eli
     <textarea class="product-ta" id="productInput" placeholder="TITLE: [Product title]&#10;&#10;DESCRIPTION:&#10;[Paste description...]&#10;&#10;SPECS:&#10;- Brand:&#10;- Weight:"></textarea>
     <div class="vp-bar"><span class="vp-led" id="vpLed"></span><span id="vpStatus">VeRO check — paste product details to start</span><span class="vp-dim">· checks <b id="vpBarCount">0</b> eBay VeRO-list brands + big brands</span><span class="vp-dim">·</span><button type="button" onclick="openVPList()">View / search the list</button></div>
     <div id="vpAlert" style="display:none;"></div>
+    <div id="histDup" class="hist-dup" style="display:none;"></div>
     <div class="comp-title-wrap">
       <label class="brand-title-opt" style="margin-top:0;"><input type="checkbox" id="multiVar" onchange="saveDraftDebounced()"/> <span>📦 Multi-Variation Listing <span style="color:var(--dim);font-weight:400;">(check karein jab aapne ek hi listing ke liye kai variations ki descriptions paste ki hon — sizes / colors / pack qty)</span></span></label>
     </div>
@@ -694,7 +700,7 @@ window.onload=function(){
   var cm=localStorage.getItem('slf_cm'); if(cm){setCustomMode(cm);}
   slfMigratePolicy();
   var po=localStorage.getItem('slf_po'); if(po) document.getElementById('policyText').value=po;
-  document.getElementById('productInput').addEventListener('input',function(){updateCharCount();saveDraftDebounced();slfVPLiveDebounced();});
+  document.getElementById('productInput').addEventListener('input',function(){updateCharCount();saveDraftDebounced();slfVPLiveDebounced();slfHDupSoon();});
   document.getElementById('brandName').addEventListener('input',slfVPLiveDebounced);
   try{ document.getElementById('vpBarCount').textContent=slfVPLoad().list.length.toLocaleString(); }catch(e){}
   try{ document.getElementById('histName').value=slfHGet('slf_asst'); document.getElementById('histUrl').value=slfHGet('slf_hist_url'); document.getElementById('histCode').value=slfHGet('slf_hist_code'); slfHStatus(); setTimeout(slfHFlush,3000); }catch(e){}
@@ -2841,7 +2847,7 @@ async function openHistory(){
   document.getElementById('histList').innerHTML='<div class="hist-empty">Loading…</div>';
   document.getElementById('histDetail').innerHTML='';
   try{
-    var d=await slfHFetchList(400);
+    var d=await slfHFetchList(1000);
     if(!d.ok) throw new Error(d.error||'error');
     slfHRows=d.rows||[];
     var names={}; slfHRows.forEach(function(r){ names[r.assistant]=1; });
@@ -2863,24 +2869,72 @@ function slfHGoSettings(){
 }
 function closeHistory(){ document.getElementById('histOv').classList.remove('show'); }
 function slfHDay(d){ var x=new Date(d); return x.getFullYear()+'-'+(x.getMonth()+1)+'-'+x.getDate(); }
+// ── matching a source title (word-based, ignores dashes, case, punctuation, word order) ──
+var SLF_H_STOP={'the':1,'and':1,'for':1,'with':1,'of':1,'a':1,'an':1,'in':1,'to':1,'by':1,'on':1};
+function slfHTok(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').filter(function(w){ return w.length>1 && !SLF_H_STOP[w]; }); }
+function slfHScore(q, text){
+  var qt=slfHTok(q); if(!qt.length) return 0;
+  var have={}; slfHTok(text).forEach(function(w){ have[w]=1; });
+  var hit=0; qt.forEach(function(w){ if(have[w]) hit++; });
+  return hit/qt.length;
+}
 function renderHistList(){
-  var when=document.getElementById('histWhen').value, who=document.getElementById('histWho').value, q=(document.getElementById('histQ').value||'').toLowerCase().trim();
+  var when=document.getElementById('histWhen').value, who=document.getElementById('histWho').value, q=(document.getElementById('histQ').value||'').trim();
   var now=new Date(), today=slfHDay(now), yest=slfHDay(new Date(now-86400000)), week=now-7*86400000;
+  var searching=q.length>0;
   var rows=slfHRows.filter(function(r){
     if(who && r.assistant!==who) return false;
+    if(searching) return true;                       // a search looks through ALL dates
     if(when==='today' && slfHDay(r.time)!==today) return false;
     if(when==='yesterday' && slfHDay(r.time)!==yest) return false;
     if(when==='week' && new Date(r.time)<week) return false;
-    if(q && (r.title+' '+(r.ref||'')+' '+r.client+' '+r.assistant).toLowerCase().indexOf(q)<0) return false;
     return true;
   });
-  document.getElementById('histCount').textContent=rows.length+' listing'+(rows.length===1?'':'s');
-  document.getElementById('histList').innerHTML = rows.length ? rows.map(function(r){
+  if(searching){
+    var ql=q.toLowerCase();
+    rows=rows.map(function(r){
+      var txt=(r.ref||'')+' '+r.title+' '+r.client+' '+r.assistant;
+      var sc=Math.max(slfHScore(q, r.ref||''), slfHScore(q, txt)*0.95, txt.toLowerCase().indexOf(ql)>-1?1:0);
+      return {r:r, sc:sc};
+    }).filter(function(x){ return x.sc>=0.6; }).sort(function(a,b){ return b.sc-a.sc || (new Date(b.r.time)-new Date(a.r.time)); }).map(function(x){ x.r._sc=x.sc; return x.r; });
+  }
+  var noRef=slfHRows.length && !slfHRows.some(function(r){ return 'ref' in r; });
+  document.getElementById('histCount').textContent=rows.length+' listing'+(rows.length===1?'':'s')+(searching?' found (all dates)':'');
+  document.getElementById('histList').innerHTML = (noRef?'<div class="hist-empty" style="padding:10px 14px;text-align:left;color:#fbbf24;">To search by the source title, update the History script (new version). Until then search uses the tool\'s titles only.</div>':'')
+    + (rows.length ? rows.map(function(r){
     var t=new Date(r.time);
-    return '<div class="hist-row" onclick="openHistItem(\''+escHtml(r.id)+'\',this)"><div class="hist-row-t">'+escHtml(r.title||'(no title)')+'</div>'
-      +(r.ref?'<div class="hist-row-ref">📌 '+escHtml(r.ref)+'</div>':'')
-      +'<div class="hist-row-m">'+t.toLocaleDateString()+' '+t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' · <b>'+escHtml(r.assistant)+'</b> · '+escHtml(r.client)+' · '+escHtml((r.platform||'').toUpperCase())+(r.market?' '+escHtml(r.market):'')+'</div></div>';
-  }).join('') : '<div class="hist-empty">No listings for this filter.</div>';
+    return '<div class="hist-row" data-id="'+escHtml(r.id)+'" onclick="openHistItem(\''+escHtml(r.id)+'\',this)">'
+      +(r.ref?'<div class="hist-row-ref" style="margin:0 0 4px 0;font-size:12px;">📌 '+escHtml(r.ref)+'</div>':'')
+      +'<div class="hist-row-t">'+escHtml(slfHTitle(r.title)||'(no title)')+'</div>'
+      +'<div class="hist-row-m">'+t.toLocaleDateString()+' '+t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' · <b>'+escHtml(r.assistant)+'</b> · '+escHtml(r.client)+' · '+escHtml((r.platform||'').toUpperCase())+(r.market?' '+escHtml(r.market):'')
+      +(searching&&r._sc<1?' · '+Math.round(r._sc*100)+'% match':'')+'</div></div>';
+  }).join('') : '<div class="hist-empty">'+(searching?'No listing matches this title.':'No listings for this filter.')+'</div>');
+  if(searching && rows.length===1){ var el=document.querySelector('.hist-row'); if(el && !el.classList.contains('on')) openHistItem(rows[0].id, el); }
+}
+// open History straight on one listing (from the "already created" banner)
+async function slfHOpenId(id, query){
+  await openHistory();
+  if(query){ document.getElementById('histQ').value=query; renderHistList(); }
+  var el=document.querySelector('.hist-row[data-id="'+id+'"]');
+  openHistItem(id, el);
+}
+// ── "already created?" check while pasting a product ──
+var slfHCache={t:0, rows:[]}, _slfHDupT=null;
+function slfHDupSoon(){ clearTimeout(_slfHDupT); _slfHDupT=setTimeout(slfHDupCheck, 1200); }
+async function slfHDupCheck(){
+  var box=document.getElementById('histDup'); if(!box) return;
+  var ref=slfHRef((document.getElementById('productInput').value||''));
+  if(!slfHOn() || ref.length<12){ box.style.display='none'; return; }
+  try{
+    if(Date.now()-slfHCache.t>90000){ var d=await slfHFetchList(1000); if(d.ok){ slfHCache={t:Date.now(), rows:d.rows||[]}; slfHRows=slfHCache.rows; } }
+  }catch(e){ return; }
+  var best=slfHCache.rows.map(function(r){ return {r:r, sc:Math.min(slfHScore(ref, r.ref||''), slfHScore(r.ref||'', ref))}; })
+    .filter(function(x){ return x.sc>=0.8; }).sort(function(a,b){ return b.sc-a.sc; }).slice(0,3);
+  if(!best.length){ box.style.display='none'; return; }
+  box.innerHTML='<div class="hist-dup-h">♻ This product was already created — open it instead of generating again (saves credits)</div>'
+    + best.map(function(x){ var r=x.r, t=new Date(r.time);
+      return '<div class="hist-dup-row" onclick="slfHOpenId(\''+escHtml(r.id)+'\')"><b>'+escHtml(slfHTitle(r.title))+'</b><span>'+t.toLocaleDateString()+' · '+escHtml(r.assistant)+' · '+escHtml(r.client)+' — Open ›</span></div>'; }).join('');
+  box.style.display='block';
 }
 var slfHCur=null;
 async function openHistItem(id, el){
