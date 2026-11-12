@@ -584,6 +584,10 @@ Returns: Most of our items come with free 30-day returns. Some items are not eli
       <div class="comp-title-lbl">🏆 Competitor's eBay Title <span style="color:var(--dim);font-weight:400;">(optional — paste a top seller's title to beat it)</span></div>
       <input type="text" class="comp-title-inp" id="compTitle" placeholder="Paste competitor's eBay title here (optional)..." oninput="saveDraftDebounced()"/>
     </div>
+    <div class="comp-title-wrap">
+      <div class="comp-title-lbl">✍ My Instructions <span style="color:var(--dim);font-weight:400;">(optional — English ya Roman Urdu mein likhein: kya ADD karna hai aur kya NAHI likhna)</span></div>
+      <textarea class="img-urls-inp" id="userNote" style="min-height:64px;" placeholder="Misaal:&#10;title mai &quot;Waterproof&quot; zaroor add karo&#10;description mai Christmas ka zikr na karna&#10;don't mention &quot;BPA free&quot; anywhere" oninput="saveDraftDebounced()"></textarea>
+    </div>
     <div class="comp-title-wrap" id="ttKwWrap" style="display:none;">
       <div class="comp-title-lbl">📈 TikTok Trending Keywords <span style="color:var(--dim);font-weight:400;">(optional — paste the keywords TikTok suggests in Product Opportunity; comma or line separated)</span></div>
       <textarea class="img-urls-inp" id="ttTrendKws" placeholder="e.g. jar opener for weak grip, kitchen gadgets, easy open lids" oninput="saveDraftDebounced()"></textarea>
@@ -2172,6 +2176,34 @@ async function claudeCall(apiKey,prompt,maxTok){
   return full;
 }
 
+// ── Seller's own instructions (English or Roman Urdu) ──
+function slfUserNote(){ return ((document.getElementById('userNote')||{}).value||'').trim(); }
+function slfUserNoteBlock(){
+  var n=slfUserNote(); if(!n) return '';
+  return '\n\n=== SELLER\'S OWN INSTRUCTIONS — MUST FOLLOW ===\n'
+    +'The seller wrote these instructions for THIS listing. They may be in English or Roman Urdu (Urdu written in English letters, e.g. "add karo" = add it, "zaroor" = must, "na karna / mat likhna / nahi chahiye / hata do" = do not write it / remove it, "title mai" = in the title, "description mai" = in the description).\n'
+    +'Seller\'s instructions:\n<<<\n'+n+'\n>>>\n'
+    +'How to apply them:\n'
+    +'1. ADD requests: include the requested word, phrase or point in the exact place the seller named (title, second title, HTML heading, description, key features, specifications or item specifics). If no place is named, use the most natural place. In a title, fit it in and still keep the title 76-80 characters by dropping a weaker keyword.\n'
+    +'2. AVOID / REMOVE requests: never write that word, phrase, claim or topic ANYWHERE in the listing (every section, both titles, tags, SEO metadata) — even if it appears in the product data or the keyword lists. Rephrase around it.\n'
+    +'3. These instructions override the keyword lists, the competitor title and your own style choices.\n'
+    +'4. Two limits stay in force: do not add a brand or trademark that would break the VeRO rules above, and do not state a measurement or fact that is not true for this product. If an instruction would break either, follow the rest and skip only that part.\n'
+    +'5. Do not mention these instructions in the listing itself.\n';
+}
+// words the seller asked to keep OUT, when written in quotes — checked again after the AI replies
+function slfUserAvoidTerms(){
+  var out=[];
+  slfUserNote().split('\n').forEach(function(l){
+    if(!/(\bna\b|\bnah?i\b|\bmat\b|don'?t|do not|avoid|remove|without|never|hata|nikal|exclude|\bno\b)/i.test(l)) return;
+    (l.match(/["“”]([^"“”]{2,60})["“”]/g)||[]).forEach(function(q){ out.push(q.slice(1,-1).trim()); });
+  });
+  return out.filter(Boolean);
+}
+function slfUserNoteCheck(text){
+  var hits=slfUserAvoidTerms().filter(function(t){ return new RegExp('(^|[^a-z0-9])'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?=[^a-z0-9]|$)','i').test(text||''); });
+  if(hits.length) showErr('⚠ Your instructions said not to use: '+hits.map(function(h){return '"'+h+'"';}).join(', ')+' — but it is still in the listing. Edit it out before you list, or press Generate again.');
+}
+
 // The AI sometimes writes section headings its own way ("**TITLE**", "## Title", "TITLE:", "1. TITLE", "═══ TITLE ═══")
 // or wraps the reply in ``` fences. Turn every such heading back into "=== TITLE ===" so no section is lost.
 var SLF_MARKER_ALIAS={'SECOND TITLE':'TITLE 2','ALTERNATE TITLE':'TITLE 2','TITLE TWO':'TITLE 2','EBAY TITLE 2':'TITLE 2','EBAY TITLE':'TITLE','LISTING TITLE':'TITLE','HEADING':'HTML HEADING','PRODUCT DESCRIPTION':'DESCRIPTION','FEATURES':'KEY FEATURES',
@@ -2587,6 +2619,7 @@ async function generate(){
     try{
       // room for the full listing — you only pay for what is actually written, so a higher cap costs nothing extra
       var maxT=isMultiVar?16000:8000;
+      ebayPrompt+=slfUserNoteBlock();
       var r=slfNormalizeMarkers(await claudeCall(apiKey,ebayPrompt,maxT));
       if(!slfHasCore(r)){
         // the reply came back in the wrong shape — ask once more, strictly, instead of showing an empty listing
@@ -2602,6 +2635,7 @@ async function generate(){
       if(window.slfLastStop==='max_tokens') console.warn('Listing reply hit the length limit — the last section may be short.');
       fullTxt=slfForcePolicies(slfCleanListing(r), policy);
       // no brand set → eBay value "Does Not Apply" (the AI sometimes still writes "Unbranded")
+      setTimeout(function(){ slfUserNoteCheck(fullTxt); },50);
       if(!((document.getElementById('brandName')||{}).value||'').trim()) fullTxt=fullTxt.replace(/^(\s*[-•*]?\s*Brand\s*:\s*)Unbranded\b/gmi,'$1Does Not Apply');
     }
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
@@ -2702,7 +2736,7 @@ async function generate(){
     +'SELLING POINT example: "Fits a wide range of lid sizes, so one adjustable tool covers sauce jars, pickle jars and bottles instead of several single-size gadgets."\n'
     +'Note how the title reads as flowing phrases rather than stacked keywords and covers several different search angles (product type, material, feature, audience, compatibility). That sample title is about 230 characters — yours should be slightly longer, 245-255, using the remaining space for another real search phrase.\n\n'
     +'RAW SOURCE DATA:\n'+product;
-    try{var rt=await claudeCall(apiKey,tiktokPrompt,5000);tiktokTxt=rt;}
+    try{var rt=await claudeCall(apiKey,tiktokPrompt+slfUserNoteBlock(),5000);tiktokTxt=rt;slfUserNoteCheck(rt);}
     catch(e){showErr('API Error: '+e.message);setLoading(false);return;}
   }
 
@@ -2766,7 +2800,7 @@ function slfHPayload(){
     secret:c.code, assistant:c.name||'(no name)',
     client:((document.getElementById('clientSelect')||{}).value||'')||'(manual)',
     platform:platform, market:(typeof market!=='undefined'?market:'').toUpperCase(),
-    source:(document.getElementById('productInput').value||'')
+    source:(document.getElementById('productInput').value||'')+(slfUserNote()?'\n\n[My instructions]\n'+slfUserNote():'')
   };
   if(platform==='tiktok'){
     S=slfSections(tiktokTxt);
@@ -2969,6 +3003,7 @@ function saveSession(){
     var data={
       product: document.getElementById('productInput').value,
       compTitle: document.getElementById('compTitle').value,
+      userNote: document.getElementById('userNote').value,
       brandName: document.getElementById('brandName').value,
       brandInTitle: document.getElementById('brandInTitle').checked,
       ttTrendKws: document.getElementById('ttTrendKws').value,
@@ -3001,6 +3036,7 @@ function saveDraftDebounced(){
       var data = raw ? JSON.parse(raw) : {};
       data.product = document.getElementById('productInput').value;
       data.compTitle = document.getElementById('compTitle').value;
+      data.userNote = document.getElementById('userNote').value;
       data.brandName = document.getElementById('brandName').value;
       data.brandInTitle = document.getElementById('brandInTitle').checked;
       data.ttTrendKws = document.getElementById('ttTrendKws').value;
@@ -3025,6 +3061,7 @@ function restoreSession(){
       setTimeout(function(){ try{slfVPLive();}catch(e){} },0);
     }
     if(d.compTitle){ document.getElementById('compTitle').value = d.compTitle; }
+    document.getElementById('userNote').value = d.userNote||'';
     if(d.brandName){ document.getElementById('brandName').value = d.brandName; }
     if(typeof d.brandInTitle==='boolean'){ document.getElementById('brandInTitle').checked = d.brandInTitle; }
     if(d.ttTrendKws){ document.getElementById('ttTrendKws').value = d.ttTrendKws; }
@@ -4548,6 +4585,7 @@ function clearAll(){
   document.getElementById('productInput').value='';
   setTimeout(function(){ try{slfVPLive();}catch(e){} },0);
   document.getElementById('compTitle').value='';
+  document.getElementById('userNote').value='';
   document.getElementById('brandName').value='';
   document.getElementById('brandInTitle').checked=false;
   document.getElementById('ttTrendKws').value='';
