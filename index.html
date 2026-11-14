@@ -432,6 +432,16 @@ body{background:var(--ink);color:var(--snow);font-family:'Geist',sans-serif;font
   </div>
 </div>
 
+<div class="confirm-overlay" id="ukRulesOv" onclick="if(event.target===this)closeUKRules()">
+  <div class="vp-list-box">
+    <div class="vp-list-hd">
+      <div class="vp-list-ttl"><span>🇬🇧 eBay UK Compliance Rules — <span id="ukRulesCount">0</span></span><button class="vp-list-x" onclick="closeUKRules()">✕</button></div>
+      <div class="vp-list-meta">Product types that eBay UK bans or only allows with conditions, taken from eBay UK's policy pages (Nov 2026) and UK law. This is guidance, not legal advice — eBay changes its rules, so a product missing from this list is not guaranteed to be allowed.</div>
+      <input class="vp-list-search" id="ukRulesSearch" type="text" placeholder="Search… e.g. thermometer, charger, baby" oninput="renderUKRules(this.value)"/>
+    </div>
+    <div class="vp-list-body" id="ukRulesBody"></div>
+  </div>
+</div>
 <div class="confirm-overlay" id="vpListOv" onclick="if(event.target===this)closeVPList()">
   <div class="vp-list-box">
     <div class="vp-list-hd">
@@ -576,13 +586,15 @@ Returns: Most of our items come with free 30-day returns. Some items are not eli
     <textarea class="product-ta" id="productInput" placeholder="TITLE: [Product title]&#10;&#10;DESCRIPTION:&#10;[Paste description...]&#10;&#10;SPECS:&#10;- Brand:&#10;- Weight:"></textarea>
     <div class="vp-bar"><span class="vp-led" id="vpLed"></span><span id="vpStatus">VeRO check — paste product details to start</span><span class="vp-dim">· checks <b id="vpBarCount">0</b> eBay VeRO-list brands + big brands</span><span class="vp-dim">·</span><button type="button" onclick="openVPList()">View / search the list</button></div>
     <div id="vpAlert" style="display:none;"></div>
+    <div class="vp-bar" id="ukBar" style="display:none;"><span class="vp-led" id="ukLed"></span><span id="ukStatus">🇬🇧 UK compliance check</span><span class="vp-dim">· checks <b id="ukBarCount">0</b> eBay UK product rules</span><span class="vp-dim">·</span><button type="button" onclick="openUKRules()">View the rules</button></div>
+    <div id="ukAlert" style="display:none;margin-top:9px;"></div>
     <div id="histDup" class="hist-dup" style="display:none;"></div>
     <div class="comp-title-wrap">
       <label class="brand-title-opt" style="margin-top:0;"><input type="checkbox" id="multiVar" onchange="saveDraftDebounced()"/> <span>📦 Multi-Variation Listing <span style="color:var(--dim);font-weight:400;">(check karein jab aapne ek hi listing ke liye kai variations ki descriptions paste ki hon — sizes / colors / pack qty)</span></span></label>
     </div>
     <div class="comp-title-wrap">
       <div class="comp-title-lbl">🏆 Competitor's eBay Title <span style="color:var(--dim);font-weight:400;">(optional — paste a top seller's title to beat it)</span></div>
-      <input type="text" class="comp-title-inp" id="compTitle" placeholder="Paste competitor's eBay title here (optional)..." oninput="saveDraftDebounced()"/>
+      <input type="text" class="comp-title-inp" id="compTitle" placeholder="Paste competitor's eBay title here (optional)..." oninput="saveDraftDebounced();slfVPLiveDebounced()"/>
     </div>
     <div class="comp-title-wrap">
       <div class="comp-title-lbl">✍ My Instructions <span style="color:var(--dim);font-weight:400;">(optional — English ya Roman Urdu mein likhein: kya ADD karna hai aur kya NAHI likhna)</span></div>
@@ -757,6 +769,7 @@ function setMarket(m){
   localStorage.setItem('slf_market', m);
   if(typeof refreshSeasonUI==='function') refreshSeasonUI();
   document.querySelectorAll('.market-btn').forEach(function(b){b.classList.toggle('market-on', b.getAttribute('data-market')===m);});
+  try{ slfUKLive(); }catch(e){}
 }
 
 function setDesign(name){
@@ -788,6 +801,7 @@ function syncPlatformUI(){
   var ls=document.getElementById('layoutSection'); if(ls) ls.style.display = (platform==='ebay') ? '' : 'none';
   var cs=document.getElementById('clientSection'); if(cs) cs.style.display = (platform==='ebay') ? '' : 'none';
   var tw=document.getElementById('ttKwWrap'); if(tw) tw.style.display = (platform==='tiktok') ? 'block' : 'none';
+  try{ slfUKLive(); }catch(e){}
 }
 
 function setPlatform(p,btn){platform=p;document.querySelectorAll('#platOpts .p-opt').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');syncPlatformUI();}
@@ -813,7 +827,7 @@ function confirmOffPage(btn){
   openConfirm();
 }
 function openConfirm(){document.getElementById('confirmOverlay').classList.add('show');}
-function closeConfirm(){document.getElementById('confirmOverlay').classList.remove('show');pendingAction=null;pendingBtn=null;}
+function closeConfirm(){document.getElementById('confirmOverlay').classList.remove('show');pendingAction=null;pendingBtn=null;window._slfVPAck=false;window._slfUKAck=false;}
 function confirmProceed(){
   var action=pendingAction, btn=pendingBtn;
   document.getElementById('confirmOverlay').classList.remove('show');
@@ -830,6 +844,9 @@ function confirmProceed(){
     clearAll();
   } else if(action==='vpgen'){
     window._slfVPAck=true;
+    generate();
+  } else if(action==='ukgen'){
+    window._slfUKAck=true;
     generate();
   }
 }
@@ -1659,6 +1676,7 @@ function slfVPLive(){
       +slfVPRowsHtml(r.check,'check')+'</div>';
   }
   box.innerHTML=h; box.style.display=h?'block':'none';
+  try{ slfUKLive(); }catch(e){}
   // status light
   var led=document.getElementById('vpLed'), st=document.getElementById('vpStatus'); if(!led||!st) return;
   var bl=slfVPBrandLine(prod), bname=brandBox.trim()||bl;
@@ -1693,6 +1711,309 @@ function slfVPGate(product){
   openConfirm();
   slfVPLive();
   return true;
+}
+
+// ══ UK COMPLIANCE CHECK (eBay UK) ═════════════════════════════
+// Like the VeRO check, but for product TYPES that eBay UK bans or only allows with conditions.
+// RED  = do not list (banned, or needs paperwork a dropshipper normally can't show).
+// AMBER = can be listed only if the conditions shown are met.
+// Red words found only in the description (not the title) show as amber "mentioned".
+var SLF_UK_SRC={
+  ps:['eBay UK – Product safety policy','https://www.ebay.co.uk/help/policies/prohibited-restricted-items/product-safety-policy?id=4300'],
+  el:['eBay UK – Electrical & electronic equipment policy','https://www.ebay.co.uk/help/policies/prohibited-restricted-items/electrical-electronic-equipment-policy?id=4302'],
+  md:['eBay UK – Medical devices policy','https://www.ebay.co.uk/help/policies/prohibited-restricted-items/medical-devices-policy?id=4322'],
+  pa:['eBay UK – Products that need pre-approval','https://www.ebay.co.uk/help/policies/prohibited-restricted-items/products-require-preapproval-policy?id=5271'],
+  rx:['eBay UK – Drugs, supplements & medicines policy','https://www.ebay.co.uk/help/policies/prohibited-restricted-items/prescription-drugs-supplements-otc-drugs-policy?id=5048'],
+  kn:['eBay UK – Knives & bladed items policy','https://www.ebay.co.uk/help/policies/prohibited-restricted-items/knives-policy?id=5047'],
+  cs:['eBay UK – Cosmetics policy','https://www.ebay.co.uk/help/policies/prohibited-restricted-items/cosmetics-policy?id=4290'],
+  uk:['UK law','']
+};
+var SLF_UK_MED_NEED='List only if the listing can show the MHRA registration, the UKCA or CE mark (with the Approved Body number where needed), and say whether it is sterile / non-sterile and whether it is an IVD. Supplier pages from Amazon / Walmart normally cannot give you this — recommendation: do not list.';
+var SLF_UK_RULES=[
+  // ───────── RED: do not list ─────────
+  {id:'usplug', l:'red', t:'any', n:'US mains power (110–120V / US plug)', s:'el',
+   re:/\b(110|115|120|125)\s*-?\s*v(olts?|ac)?\b|\bus (plug|standard plug|wall plug)\b|\bamerican plug\b|\btype[- ]?a plug\b|\b2[- ]prong(ed)? plug\b|\bnorth american plug\b/,
+   not:/\b(100|110)\s*v?\s*(-|~|to|\/)\s*(220|230|240)\s*v?\b|\b2[2-4]0\s*v?\s*\/\s*1[12]0|\buk plug\b|bs\s*1363|\buk 3[- ]pin\b|universal voltage|dual voltage/,
+   why:'This item is made for US mains power. UK mains items must come with a fitted UK 3-pin plug (BS 1363), run on 230V and carry UKCA/CE marking (Plugs & Sockets Regulations 1994, Electrical Equipment Safety Regulations 2016). US-plug items are one of the most common reasons UK listings get removed.',
+   need:'Do not list unless the item you ship is the UK version (UK plug, 230V).'},
+  {id:'medban', l:'red', n:'Banned medical device', s:'md',
+   re:/\b(pulse\s*)?ox[iy]meters?\b|\bspo2\b|\btens (unit|machine|device|pads?)\b|\bems (unit|machine|device|trainer|belt|muscle)|muscle stimulator|electro ?stimulat|\bnebuli[sz]ers?\b|\bc-?pap\b|\bbi-?pap\b|oxygen concentrator|contact lens|cosplay lens|\bsyringes?\b|hypodermic|insulin needles?/,
+   why:'eBay UK does not allow these medical devices at all (e.g. pulse oximeters, TENS/EMS units, nebulisers, CPAP, oxygen concentrators, contact lenses incl. coloured/cosmetic ones, needles).',
+   need:'Do not list.'},
+  {id:'medreg', l:'red', n:'Medical device — MHRA registration needed', s:'md',
+   re:/blood pressure (monitor|machine|cuff)|sphygmomanometer|\bbp monitor|glucose (meter|monitor|test)|glucometer|blood sugar (meter|monitor|test)|\blancets?\b|test strips|hearing (aid|amplifier)|sound amplifier|\becg\b|\bekg\b/,
+   why:'This is a medical device. eBay UK only allows it when it is registered with the MHRA and properly marked. Hearing aids also need an HCPC-registered seller.',
+   need:SLF_UK_MED_NEED},
+  {id:'thermo', l:'red', n:'Medical thermometer', s:'md', f:function(title, all){
+    var re=/thermometers?\b|temporal scanner/;
+    var med=/forehead|\bear\b|\bbody\b|\bbaby|infant|newborn|\bkids?\b|child|fever|\boral\b|rectal|clinical|medical|temporal|non[- ]contact|no[- ]touch|basal|ovulation|human|adult|axillary|underarm|armpit/;
+    var non=/\bmeat\b|food|cook|bbq|barbecue|grill|kitchen|\boven\b|candy|sugar|\bjam\b|fry|frying|\bmilk\b|wine|aquarium|fish ?tank|\bpool\b|\bspa\b|\bbath\b|\bwater\b|\broom\b|indoor|outdoor|fridge|freezer|greenhouse|compost|soil|\bcar\b|hygrometer|humidity|weather|\bwall\b|garden|incubator|reptile|vivarium|brew|soap|industrial|\bgun\b|\blaser\b|\bhvac\b|\bpizza|smoker/;
+    var m=title.match(re), w='title';
+    if(!m){ m=all.match(re); w='text'; }
+    if(!m) return null;
+    var ctx = w==='title' ? title : all;
+    if(non.test(title) || (w==='text' && non.test(all))) return null;   // kitchen / room / pool thermometers are not medical devices
+    if(med.test(ctx)) return {m:m[0], w:w, l: w==='title'?'red':'amber'};
+    return {m:m[0], w:w, l:'amber', why:'A thermometer used on people (forehead / ear / body / baby) is a medical device on eBay UK. Kitchen, room or pool thermometers are fine.', need:'If it is for body temperature: '+SLF_UK_MED_NEED+' If it is a kitchen / room / pool thermometer, make that clear in the title.'};
+   },
+   why:'Body thermometers (forehead / ear / baby / fever) are medical devices. eBay UK removes them unless the listing shows MHRA registration and UKCA/CE marking — a very common UK violation.',
+   need:SLF_UK_MED_NEED},
+  {id:'babysleep', l:'red', n:'Banned baby sleep product', s:'ps',
+   re:/inclined (baby )?sleeper|rock(er|ing)? sleeper|\b(cot|crib) bumpers?\b|bumper pads?|sleep positioner|baby positioner|baby nest|baby pod|sleepyhead|(baby|infant|newborn) lounger|weighted\W+(?:\w+\W+){0,3}(baby|infant|newborn|toddler|swaddle|sleep ?sack)|(baby|infant|newborn|toddler)\W+(?:\w+\W+){0,3}weighted|(baby|infant) helmet|head shaping|flat head (pillow|helmet)|\bsids\b|cot death/,
+   why:'eBay UK bans inclined sleepers, cot bumpers, sleep positioners / nests / loungers, weighted baby blankets / swaddles / sleep sacks, baby helmets and anything claiming to prevent SIDS.',
+   need:'Do not list.'},
+  {id:'magnet', l:'red', n:'Small magnet toy', s:'ps',
+   re:/magnet(ic)? balls?|neodymium (balls?|spheres?|cubes?)|bucky ?balls?|neo ?cubes?|magnetic (putty|beads|fidget|sand)|fidget magnets?|ferrofluid/,
+   why:'Small magnets are only allowed as fasteners in Business & Industrial. Magnet balls, cubes, putty and fidget magnets are banned (swallowing risk).',
+   need:'Do not list.'},
+  {id:'sand', l:'red', n:'Play / coloured sand product', s:'ps',
+   re:/\bplay ?sand\b|colou?red sand|kinetic sand|magic sand|moon sand|space sand|sand art|sand\W+(?:\w+\W+){0,2}stress ball|stress ball\W+(?:\w+\W+){0,3}sand|sand (filled )?door ?stop|door ?stop\W+(?:\w+\W+){0,3}sand|sandbox sand/,
+   why:'eBay UK does not allow play sand, coloured sand, sand stress balls or sand doorstops to be sold in or posted to the UK (asbestos risk).',
+   need:'Do not list.'},
+  {id:'cells', l:'red', n:'Loose lithium-ion cells', s:'ps',
+   re:/\b(18650|21700|26650|14500|16340|18350)\b/,
+   why:'Loose 18650-type lithium-ion cells cannot be sold on eBay UK. A torch or device with the cell built in is different.',
+   need:'Do not list loose cells. If the cell is built into a device, make that clear.'},
+  {id:'laserhi', l:'red', n:'High-power laser', s:'ps',
+   re:/(high[- ]power(ed)?|tactical|burning|military|astronomy|star ?pointer)\b[^\n]{0,20}laser|laser[^\n]{0,25}\b(\d{2,}|[2-9])\s*mw\b|\bclass\s*(3r|3b|iiia|iiib|4|iv)\b/,
+   why:'Only lasers of 1mW or less (class 1, 1M, 1C, 2, 2M) are allowed. "High powered", "tactical" or burning lasers are banned.',
+   need:'Do not list.'},
+  {id:'lighternov', l:'red', n:'Novelty / giant lighter', s:'ps',
+   re:/novelty lighter|giant lighter|(gun|pistol|toy|bullet|grenade|car|phone|figure)[- ]shaped lighter|lighter (shaped like|toy)/,
+   why:'Novelty lighters (shaped like toys, guns etc.) and giant lighters are banned.', need:'Do not list.'},
+  {id:'jammer', l:'red', n:'Signal jammer', s:'el',
+   re:/\bjammers?\b|gps blocker|signal blocker/, not:/pouch|\bbag\b|wallet|sleeve|faraday/,
+   why:'Signal jammers / blockers (phone, GPS, WiFi) are illegal in the UK and banned on eBay.', need:'Do not list.'},
+  {id:'spycam', l:'red', n:'Hidden / disguised camera', s:'el',
+   re:/hidden (spy )?cam(era)?|spy cam(era)?|covert cam(era)?|pinhole cam(era)?|nanny cam|camera (hidden|disguised)|(usb|charger|plug|clock|pen|smoke detector|outlet|socket)[- ](spy |hidden )?cam(era)?\b/,
+   why:'Hidden cameras disguised as everyday items (plugs, chargers, clocks, pens) are banned on eBay UK.', need:'Do not list.'},
+  {id:'energysave', l:'red', n:'"Energy saving" device', s:'el',
+   re:/energy[- ]sav(ing|er) (device|box|plug)|power saver|electricity sav(er|ing)/,
+   why:'Plug-in "energy saving" / "power saver" boxes are banned on eBay UK.', need:'Do not list.'},
+  {id:'cartamper', l:'red', n:'Car tampering device', s:'el',
+   re:/mileage (correction|blocker|stopper)|odometer (correction|modif|programm|blocker)|(dpf|egr|adblue|nox) (delete|emulator|remover|removal)|\bdecat\b|(lambda|o2) (eliminator|spacer)|traffic (light|signal) (changer|controller)/,
+   why:'Odometer / mileage changers, emissions delete kits and traffic light changers are banned.', need:'Do not list.'},
+  {id:'iptv', l:'red', n:'"Fully loaded" TV box / card sharing', s:'el',
+   re:/fully loaded|jailbroken|card ?sharing|free (sky|channels|tv) box/,
+   why:'Boxes or sticks sold to watch paid TV for free, and satellite card-sharing decoders, are banned.', need:'Do not list.'},
+  {id:'ebikechg', l:'red', n:'Universal e-bike / e-scooter charger', s:'ps',
+   re:/universal\W+(?:\w+\W+){0,2}(e-?bike|electric bike|e-?scooter|electric scooter)\W+(?:\w+\W+){0,1}charger|(e-?bike|electric bike|e-?scooter|electric scooter)\W+(?:\w+\W+){0,2}charger\W+(?:\w+\W+){0,3}universal/,
+   why:'E-bike / e-scooter chargers must be made for a specific battery. "Universal" chargers are banned (fire risk).', need:'Do not list.'},
+  {id:'weapon', l:'red', n:'Prohibited weapon', s:'kn',
+   re:/pepper spray|stun gun|\btaser|\bcs spray|pava spray|electric (shock )?baton|stun baton|knuckle ?dusters?|brass knuckles?|telescopic baton|expandable baton|extendable baton|throwing stars?|shuriken|blow ?pipe/,
+   why:'Pepper spray, stun guns, knuckle dusters, extendable batons, throwing stars and blowpipes are illegal in the UK and banned on eBay.', need:'Do not list.'},
+  {id:'knife', l:'red', n:'Knife / sharp blade', s:'kn',
+   re:/\bknife\b|\bknives\b|\bdaggers?\b|\bswords?\b|samurai|katana|machete|karambit|balisong|switch ?blade|multi[- ]?tool|leatherman|swiss army|razor blades?|scalpel|box cutter|craft knife|stanley knife|utility knife|cleaver|tomahawk|battle axe|throwing axe|viking axe|double[- ](headed|bit) axe/,
+   not:/(knife|knives) (sharpener|sharpening|rack|holder|stand|magnet|magnetic strip|organi[sz]er|drawer insert)|sharpening stone|whetstone|cutlery|flatware|silverware|butter knife|plastic knives?|(foam|toy|plastic|inflatable|wooden|cardboard|balloon|light) ?swords?|lightsaber/,
+   why:'eBay UK bans kitchen knives (incl. block sets), pocket / folding / Swiss Army knives, multi-tools, craft / Stanley / utility knives, razor and surgical blades, swords, daggers and weapon-style axes.',
+   need:'Do not list. (Dining cutlery sets, scissors, axes / hatchets, saws and pizza cutters are allowed with age checks.)'},
+  {id:'firework', l:'red', n:'Fireworks / pyrotechnics', s:'uk',
+   re:/firework|sparklers?\b|firecrackers?|smoke (bomb|grenade)/, not:/sparkler candle|cake sparkler|firework (print|pattern|design|lights?|projector)/,
+   why:'Fireworks are explosives. They cannot be posted, and UK law restricts who can sell them.', need:'Do not list.'},
+  {id:'vapedisp', l:'red', n:'Disposable vape', s:'pa',
+   re:/disposable (vape|e-?cig)|\b\d{3,5}\s*puffs?\b|puff bar|elf ?bar|lost mary/,
+   why:'Disposable vapes have been banned from sale in the UK since 1 June 2025. Other vaping products need eBay pre-approval.', need:'Do not list.'},
+  {id:'medicine', l:'red', n:'Medicine (OTC / prescription)', s:'rx',
+   re:/melatonin|tylenol|advil|motrin|aleve|nyquil|dayquil|benadryl|zyrtec|claritin|allegra|mucinex|pepto[- ]bismol|robitussin|excedrin|midol|ibuprofen|paracetamol|acetaminophen|\baspirin\b|naproxen|loratadine|cetirizine|diphenhydramine|omeprazole|hydrocortisone|minoxidil|lidocaine|antihistamine|\bmedicated\b|pain relie(f|ver) (tablets|caplets|capsules|pills|gel)/,
+   why:'Private sellers cannot sell any medicines. Business sellers may sell only GSL medicines with a UK marketing authorisation (PL number), with ingredients, directions, expiry date and warnings in the listing. US medicines (Tylenol, NyQuil, US melatonin — melatonin is prescription-only in the UK) have no UK authorisation.',
+   need:'Do not list.'},
+  {id:'bleach', l:'red', n:'Skin bleaching / prescription cosmetic', s:'cs',
+   re:/hydroquinone|clobetasol|tretinoin|betamethasone|skin bleach(ing)?|bleaching (cream|lotion|soap|serum)|mercury (soap|cream)/,
+   why:'Creams with hydroquinone, mercury or prescription steroids / retinoids are illegal cosmetics in the UK. Trading Standards prosecute eBay sellers for these.', need:'Do not list.'},
+  {id:'waterbeads', l:'red', n:'Water beads', s:'ps',
+   re:/water ?beads|orbeez|gel beads|hydrogel beads|jelly beads|water balls? (gel|beads)|gel blaster ammo/,
+   why:'Water beads are not allowed in Toys. They may only be listed in Home & Garden as vase filler, with a clear "not a toy / keep away from children" disclaimer.',
+   need:'Do not list as a toy or sensory product. Only as vase filler in Home & Garden, with the disclaimer.'},
+  {id:'snus', l:'red', n:'Snus / chewing tobacco', s:'uk', re:/\bsnus\b|chewing tobacco/,
+   why:'Oral tobacco (snus) is illegal to sell in the UK, and eBay does not allow tobacco.', need:'Do not list.'},
+  {id:'metaldehyde', l:'red', n:'Metaldehyde slug pellets', s:'uk', re:/metaldehyde/,
+   why:'Metaldehyde slug pellets are banned in Great Britain.', need:'Do not list.'},
+
+  // ───────── AMBER: allowed only with conditions ─────────
+  {id:'charger', l:'amber', t:'title', n:'Charger / plug / power adapter', s:'el',
+   re:/charger|power (adapter|adaptor|supply|strip)|\bac adapt|plug[- ]in\b|wall plug|plug adapt|travel adapt|extension (lead|cord|socket|cable)|surge protector|\bmains\b/,
+   why:'Mains electrical items must meet the Electrical Equipment (Safety) Regulations 2016 and the Plugs & Sockets Regulations 1994: UK 3-pin plug (BS 1363) or a permanently fixed adapter, 230V, UKCA/CE mark. Unbranded and US-plug chargers are removed often.',
+   need:'Only list if the supplier item comes with a UK 3-pin plug and UKCA/CE marking. USB cables and battery-only items are fine.'},
+  {id:'appliance', l:'amber', t:'title', n:'Mains appliance', s:'el',
+   re:/hair (dryer|straightener|curler)|flat iron|curling (iron|wand)|\bkettle\b|toaster|air fryer|\bblender\b|space heater|electric heater|coffee maker|rice cooker|slow cooker|pressure cooker|microwave|vacuum cleaner|\bhumidifier|dehumidifier|electric blanket|heating pad|heated (blanket|throw)/,
+   why:'Mains appliances sourced from the US come with a US plug and 120V — not legal to sell in the UK.',
+   need:'Make sure the item you ship is the UK version (UK plug, 230V, UKCA/CE).'},
+  {id:'powerbank', l:'amber', t:'title', n:'Power bank / lithium battery', s:'ps',
+   re:/power ?bank|portable charger|lithium (battery|batteries)|li-?ion (battery|batteries)|jump starter/,
+   why:'Lithium batteries must be UKCA/CE marked and posted under the carrier\'s lithium battery rules.', need:'Only list branded, UKCA/CE-marked stock.'},
+  {id:'button', l:'amber', t:'any', n:'Button / coin battery', s:'ps',
+   re:/button (cell|batter)|coin (cell|batter)|\bcr20(32|25|16)\b|\blr4[14]\b|\bag1[03]\b/,
+   why:'Products with button / coin batteries must have the battery compartment secured (screw) and meet PAS 7055 warnings and packaging (swallowing risk for children).',
+   need:'List only if the battery is secured and the packaging carries the warning.'},
+  {id:'laser', l:'amber', t:'title', n:'Laser pointer', s:'ps', re:/laser pointer|laser pen|cat laser|laser toy/,
+   why:'Only lasers of 1mW or less (class 1, 1M, 1C, 2, 2M) are allowed.', need:'List only if the listing states the class and ≤1mW.'},
+  {id:'lighter', l:'amber', t:'title', n:'Lighter', s:'ps', re:/\blighters?\b/, not:/novelty|giant/,
+   why:'Lighters must be child-resistant (EN ISO 9994 / EN 13869).', need:'List only child-resistant lighters, never novelty shapes.'},
+  {id:'smoke', l:'amber', t:'title', n:'Smoke / CO alarm', s:'ps', re:/smoke (alarm|detector)|carbon monoxide|\bco (alarm|detector)/,
+   why:'Smoke and CO alarms are only allowed from approved brands. Unbranded ones are not allowed.', need:'List only approved, branded alarms.'},
+  {id:'ebike', l:'amber', t:'title', n:'E-bike / e-scooter / hoverboard', s:'pa',
+   re:/e-?bike|electric (bike|bicycle)|e-?scooter|electric scooter|hoverboard|self[- ]balancing|conversion kit/,
+   why:'Business sellers only. E-bikes: BS EN 15194, max 250W and 25 km/h. Batteries: BS EN 50604. Chargers must be made for the specific battery.', need:'List only if your account is a business account and the item meets these standards.'},
+  {id:'preapp', l:'amber', t:'title', n:'Needs eBay pre-approval (helmet / car seat / cot)', s:'pa',
+   re:/(bike|bicycle|cycling|cycle|scooter|skate|kids?|child(ren)?'?s?) helmet|car seat|booster seat|isofix|\bcots?\b|\bcribs?\b|travel cot|bassinet|moses basket/,
+   why:'Bicycle helmets (BS EN 1078), child car seats (UN R44 / R129) and cots (BS EN 716) need eBay pre-approval (90 days selling, 100+ sales, £1,000+, Above Standard). New only.', need:'List only if the account is pre-approved for this category.'},
+  {id:'babytoy', l:'amber', t:'title', n:'Baby toy', s:'pa',
+   re:/(baby|infant|newborn|toddler)[^\n]{0,20}(toy|rattle|teether|play ?mat|play ?gym|mobile)|\brattles?\b|\bteethers?\b|teething (toy|ring)/,
+   why:'Baby toys can only be sold by a UK-registered business and need UKCA/CE marking (EN 71).', need:'List only from a UK-registered business account.'},
+  {id:'toy', l:'amber', t:'title', n:'Toy', s:'ps', re:/\btoys?\b|plush|stuffed animal|building blocks|\bslime\b|squishy|fidget/,
+   why:'Toys need UKCA/CE marking (EN 71), age warnings, and the manufacturer / UK importer name and address on the toy or packaging.', need:'List only if the supplier item is marked and labelled for the UK.'},
+  {id:'magtoy', l:'amber', t:'title', n:'Magnetic toy', s:'ps', re:/magnetic (tiles|blocks|building|toy)|magna[- ]?tiles/,
+   why:'Toys must not have small loose magnets. Large enclosed magnets (magnetic tiles) need EN 71 / UKCA-CE marking.', need:'List only if the magnets are fully enclosed and the toy is marked.'},
+  {id:'swaddle', l:'amber', t:'title', n:'Swaddle / sleep sack', s:'ps', re:/swaddle|sleep ?sack|wearable blanket|baby sleeping bag/,
+   why:'Weighted swaddles and sleep sacks are banned. Only plain, non-weighted ones with no safe-sleep or SIDS claims are allowed.', need:'Check it is not weighted and the text makes no SIDS / safe-sleep claims.'},
+  {id:'dummy', l:'amber', t:'title', n:'Dummy / pacifier', s:'ps', re:/\bdumm(y|ies)\b|pacifier|soother|dummy clip/,
+   why:'Dummies (EN 1400) and dummy clips (EN 12586) must meet the safety standards and carry the warnings.', need:'List only marked, compliant stock.'},
+  {id:'nightwear', l:'amber', t:'title', n:'Children\'s nightwear', s:'uk',
+   re:/(kids?|children'?s?|girls?|boys?|toddler|baby)[^\n]{0,25}(pyjamas?|pajamas?|nightwear|nightdress|nightgown|dressing gown|bath ?robe)/,
+   why:'Children\'s nightwear must meet the UK Nightwear Safety Regulations (flammability) and carry the flammability label.', need:'List only if the item is labelled for the UK.'},
+  {id:'medsoft', l:'amber', t:'title', n:'Health / support product', s:'md',
+   re:/stethoscope|(knee|back|wrist|ankle|elbow|neck) (brace|support)|posture corrector|\bbandages?\b|first aid|compression (socks|stockings|sleeve)|orthotic|plantar fasciitis|hernia belt|cervical collar|wheelchair|walking stick|crutch|rollator|commode|massager/,
+   why:'If the listing makes a medical claim (treats, relieves, prevents, cures), the item counts as a medical device and needs MHRA registration and UKCA/CE marking.', need:'List as a general item with no medical claims, or only with MHRA registration.'},
+  {id:'ivd', l:'amber', t:'title', n:'Home test kit', s:'pa', re:/covid|lateral flow|antigen test|pregnancy test|ovulation test|drug test|test kit/,
+   why:'Test kits are in-vitro diagnostic devices (UKCA/CE, MHRA). Covid tests need eBay pre-approval.', need:'List only UK-marked kits, with pre-approval where needed.'},
+  {id:'supp', l:'amber', t:'title', n:'Vitamins / supplements', s:'rx',
+   re:/supplement|vitamins?\b|capsules|softgels|gummies|probiotic|collagen|protein powder|pre-?workout|creatine|ashwagandha|biotin|\bomega\b/,
+   why:'Must be new and sealed, not expired, with the expiry date in the item specifics, labels in English, and no health claims the MHRA has not approved.',
+   need:'Add the expiry date to item specifics. Use no "cures / treats / prevents" wording.'},
+  {id:'weight', l:'amber', t:'title', n:'Weight-loss product', s:'rx', re:/weight loss|fat burn|appetite suppress|diet pills?|slimming (pills?|tablets?|capsules?|tea)|keto pills?/,
+   why:'Unapproved or extreme weight-loss claims are banned.', need:'Remove weight-loss claims. Pills / capsules: check the ingredients are legal in the UK.'},
+  {id:'cosm', l:'amber', t:'title', n:'Cosmetic / skincare', s:'cs',
+   re:/(face|eye|hand|body|night|day|skin|foot|anti[- ]?aging|anti[- ]?ageing|moisturi[sz]ing|whitening|lightening|brightening|retinol|vitamin c|hyaluronic) (cream|serum|lotion|gel|oil|mask)|\bserum\b|\blotion\b|moisturi[sz]er|shampoo|lipstick|lip (gloss|balm|tint|oil)|mascara|eyeliner|eye ?shadow|nail polish|gel polish|hair (dye|colou?r|oil|mask|serum)|sunscreen|sun cream|sunblock|\bspf\s?\d|deodorant|antiperspirant|perfume|eau de (parfum|toilette|cologne)|cologne|body (wash|spray|mist|butter|scrub)|face (wash|cleanser)|toothpaste|mouthwash|make-?up|concealer|bb cream|cc cream|beard oil|skin ?care/,
+   why:'Cosmetics sold in the UK need a UK Responsible Person, a UK notification (SCPN), an English ingredient list (INCI) and a batch number. US cosmetics usually have none of these.',
+   need:'List only UK-labelled stock (UK Responsible Person on the pack). No medical claims.'},
+  {id:'teeth', l:'amber', t:'any', n:'Teeth whitening', s:'cs', re:/teeth whitening|tooth whitening|whitening strips|carbamide peroxide|hydrogen peroxide/,
+   why:'In the UK, teeth whitening products sold to the public may contain at most 0.1% hydrogen peroxide. US strips and gels (often 6–10%) are illegal here.', need:'List only if the product is 0.1% hydrogen peroxide or less (or peroxide-free).'},
+  {id:'cbd', l:'amber', t:'title', n:'CBD product', s:'pa', re:/\bcbd\b|cannabidiol|delta[- ]?[89]|\bthc\b/,
+   why:'CBD needs eBay pre-approval, and any THC (incl. delta-8 / delta-9) is illegal in the UK.', need:'List only if pre-approved and THC-free.'},
+  {id:'vape', l:'amber', t:'title', n:'Vape / e-cigarette', s:'pa', re:/\bvapes?\b|e-?cig|e-?liquid|vape (kit|pod)|pod kit|nicotine/,
+   why:'E-cigarettes and e-liquids need eBay pre-approval. Disposable vapes are banned in the UK.', need:'List only if pre-approved.'},
+  {id:'alcohol', l:'amber', t:'title', n:'Alcohol', s:'pa',
+   re:/\d+(\.\d+)?\s*% (abv|vol)\b|\babv\b|(wine|whisk(e)?y|vodka|\bgin\b|\brum\b|tequila|\bbeer\b|liqueur|champagne)[^\n]{0,30}\b\d+(\.\d+)?\s*(cl|ml|l)\b|\b\d+(\.\d+)?\s*(cl|ml|l)\b[^\n]{0,30}(wine|whisk(e)?y|vodka|\bgin\b|\brum\b|tequila|\bbeer\b|liqueur|champagne)/,
+   why:'Alcohol needs eBay pre-approval and age checks.', need:'List only if pre-approved.'},
+  {id:'formula', l:'amber', t:'title', n:'Baby formula', s:'pa', re:/(baby|infant|toddler) (formula|milk powder)|formula milk/,
+   why:'Business sellers only. Must be sealed and in date.', need:'List only from a business account.'},
+  {id:'usfood', l:'amber', t:'title', n:'Food / sweets / drinks', s:'uk', re:/\bcandy\b|\bsweets\b|chewing gum|energy drinks?|\bsnacks?\b|\bsoda\b|protein bars?/,
+   why:'Food sold in the UK needs English labelling, allergens and a UK importer address. Some US sweets and drinks contain colours or additives not allowed in GB.', need:'List only UK-labelled stock.'},
+  {id:'pest', l:'amber', t:'title', n:'Pesticide / weed or bug killer', s:'uk',
+   re:/pesticide|insecticide|weed ?killer|herbicide|rodenticide|rat poison|bug spray|fly spray|ant killer|slug pellets|fungicide|wasp killer/,
+   why:'Pesticides need a GB authorisation number (MAPP / HSE number) on the label. Professional-use products cannot be sold to the public.', need:'List only amateur-use products with a MAPP number.'},
+  {id:'drone', l:'amber', t:'title', n:'Drone', s:'uk', re:/\bdrones?\b|quadcopter/,
+   why:'UK drone rules (CAA): drones of 250g or more need registration. Newer drones need a UK class mark.', need:'Say the weight and class mark in the listing.'},
+  {id:'radio', l:'amber', t:'title', n:'Two-way radio / walkie-talkie', s:'el',
+   re:/walkie[- ]?talkie|two[- ]way radio|ham radio|baofeng|uv-?5r|uv-?82|\bcb radio|fm transmitter|fm modulator/,
+   why:'Only licence-free PMR446 radios (446 MHz, 0.5W) are legal to use without a licence. Wide-band (Baofeng type), unapproved CB radios and FM transmitters / modulators are restricted on eBay UK.', need:'List only UKCA/CE PMR446 radios, or state clearly that a licence is needed.'},
+  {id:'replica', l:'amber', t:'title', n:'Airsoft / BB / replica gun', s:'uk',
+   re:/airsoft|\bbb gun|air (rifle|pistol)|replica (gun|pistol|rifle)|imitation (gun|firearm)|crossbow|gel blaster/,
+   why:'Realistic imitation firearms are restricted in the UK (VCRA 2006 — two-tone colour or a defence), and air weapons / crossbows are 18+ only.', need:'Check eBay\'s weapons policy before listing.'},
+  {id:'blade', l:'amber', t:'title', n:'Bladed item (allowed with age checks)', s:'kn',
+   re:/\baxe\b|hatchet|scissors|shears|\bsaws?\b|chainsaw|straight razor|cut[- ]?throat razor|pizza cutter|letter opener|\bchisels?\b|billhook|secateurs|pruners?|dermaplan/,
+   why:'Allowed only if the buyer confirms 18+, you use a UK age-verified delivery service (no parcel lockers or PO boxes), and the stock is in the UK when it sells.', need:'List only if you can send it with age-verified delivery from UK stock.'},
+  {id:'seeds', l:'amber', t:'title', n:'Seeds / live plants', s:'uk', re:/\bseeds\b|live plants?|\bbulbs\b(?! (light|led))|saplings?|cuttings/,
+   why:'Plants and many seeds shipped into GB from abroad need a phytosanitary certificate.', need:'List only stock that is already in the UK.'}
+];
+
+function slfUKOn(){ return (typeof market!=='undefined' && market==='gb') && (typeof platform==='undefined' || platform!=='tiktok'); }
+function slfUKNorm(s){ return String(s||'').toLowerCase().replace(/[‐-―]/g,'-').replace(/[‘’]/g,"'"); }
+function slfUKMatch(R, s){ var m=s.match(R.re); if(!m) return null; if(R.not && R.not.test(s)) return null; return m[0]; }
+function slfUKScan(product, extraTitle){
+  var all=slfUKNorm(product+'\n'+(extraTitle||'')), title=slfUKNorm(slfHRef(product)+'\n'+(extraTitle||''));
+  var out={red:[], amber:[]};
+  SLF_UK_RULES.forEach(function(R){
+    var hit=null, where='', lvl=R.l, why=R.why, need=R.need;
+    if(R.f){
+      var r=R.f(title, all); if(!r) return;
+      hit=r.m; where=r.w; lvl=r.l; if(r.why) why=r.why; if(r.need) need=r.need;
+    } else {
+      var mt=slfUKMatch(R, title);
+      if(mt){ hit=mt; where='title'; }
+      else if(R.l==='red' || R.t==='any'){ var ma=slfUKMatch(R, all); if(ma){ hit=ma; where='text'; } }
+      if(!hit) return;
+      if(R.l==='red' && where==='text' && R.t!=='any') lvl='amber';
+    }
+    var row={r:R, hit:hit.trim(), where:where, why:why, need:need, mentioned:(R.l==='red' && lvl==='amber')};
+    (lvl==='red'?out.red:out.amber).push(row);
+  });
+  return out;
+}
+function slfUKRowsHtml(rows){
+  return rows.map(function(x){
+    var src=SLF_UK_SRC[x.r.s]||SLF_UK_SRC.uk;
+    var link=src[1]?'<a class="vp-link" href="'+src[1]+'" target="_blank" rel="noopener">'+escHtml(src[0])+' ↗</a>':'<span class="vp-dim" style="font-size:10px;">Source: '+escHtml(src[0])+'</span>';
+    var mention=x.mentioned?'<div class="vp-why" style="color:#fbbf24;">Found only in the description / specs, not in the title. If this IS the product, treat it as red: do not list.</div>':'';
+    return '<div class="vp-item"><div class="vp-line">'+escHtml(x.r.n)+' <span class="vp-arrow">— found "<b>'+escHtml(x.hit)+'</b>" in the '+(x.where==='title'?'title':'description / specs')+'</span></div>'
+      +'<div class="vp-why">'+escHtml(x.why)+'</div>'
+      +'<div class="vp-why"><b style="color:var(--snow);">What to do:</b> '+escHtml(x.need)+'</div>'+mention
+      +'<div style="margin-top:3px;">'+link+'</div></div>';
+  }).join('');
+}
+function slfUKLive(){
+  var bar=document.getElementById('ukBar'), box=document.getElementById('ukAlert'); if(!bar||!box) return;
+  if(!slfUKOn()){ bar.style.display='none'; box.style.display='none'; box.innerHTML=''; return; }
+  bar.style.display='flex';
+  var prod=(document.getElementById('productInput').value||''), comp=((document.getElementById('compTitle')||{}).value||'');
+  var led=document.getElementById('ukLed'), st=document.getElementById('ukStatus');
+  var cnt=document.getElementById('ukBarCount'); if(cnt) cnt.textContent=SLF_UK_RULES.length;
+  if(!prod.trim() && !comp.trim()){ led.className='vp-led'; st.innerHTML='🇬🇧 UK compliance check — paste product details to start'; box.style.display='none'; box.innerHTML=''; return; }
+  var r=slfUKScan(prod, comp), h='';
+  if(r.red.length){
+    h+='<div class="vp-alert vp-red"><div class="vp-head">🚫 UK compliance — do not list this product on eBay UK</div>'
+      +'<div class="vp-sub">eBay UK bans this product type, or only allows it with paperwork a dropshipper normally cannot show. Listings like this get removed, and repeated removals can restrict the account.</div>'
+      +slfUKRowsHtml(r.red)+'</div>';
+  }
+  if(r.amber.length){
+    h+='<div class="vp-alert vp-amber"><div class="vp-head">⚠ UK compliance — allowed only with conditions</div>'
+      +'<div class="vp-sub">You can list this product only if the conditions below are met. If you are not sure, don\'t list it.</div>'
+      +slfUKRowsHtml(r.amber)+'</div>';
+  }
+  box.innerHTML=h; box.style.display=h?'block':'none';
+  if(r.red.length){ led.className='vp-led bad'; st.innerHTML='🇬🇧 <b class="vp-st-bad">UK: do not list</b> — see below'; }
+  else if(r.amber.length){ led.className='vp-led warn'; st.innerHTML='🇬🇧 <b class="vp-st-warn">UK: '+r.amber.length+' condition'+(r.amber.length===1?'':'s')+' to check</b> — see below'; }
+  else { led.className='vp-led ok'; st.innerHTML='🇬🇧 <b class="vp-st-ok">UK compliance check OK</b> — no banned or restricted product type found'; }
+}
+// Before generating: stop and warn when the product is red for eBay UK
+function slfUKGate(product){
+  if(!slfUKOn() || platform!=='ebay') return false;
+  var r=slfUKScan(product, ((document.getElementById('compTitle')||{}).value||''));
+  if(!r.red.length) return false;
+  var names=r.red.map(function(x){return x.r.n+' ("'+x.hit+'")';});
+  document.getElementById('confirmIcon').textContent='🇬🇧';
+  document.getElementById('confirmTitle').textContent='UK Compliance Risk';
+  document.getElementById('confirmMsg').textContent='This product looks like: '+names.slice(0,3).join(', ')+(names.length>3?' and '+(names.length-3)+' more':'')
+    +'. eBay UK does not allow it, or only with paperwork you probably cannot show. Recommendation: do NOT list it on eBay UK. Generate anyway?';
+  document.getElementById('confirmYesBtn').textContent='Generate Anyway';
+  pendingAction='ukgen'; pendingBtn=null;
+  openConfirm();
+  slfUKLive();
+  return true;
+}
+// Searchable rules list
+function openUKRules(){
+  document.getElementById('ukRulesSearch').value='';
+  document.getElementById('ukRulesCount').textContent=SLF_UK_RULES.length;
+  renderUKRules('');
+  document.getElementById('ukRulesOv').classList.add('show');
+}
+function closeUKRules(){ document.getElementById('ukRulesOv').classList.remove('show'); }
+function renderUKRules(q){
+  q=slfUKNorm(q).trim();
+  var h='', n=0;
+  [['red','🚫 Do not list'],['amber','⚠ Allowed only with conditions']].forEach(function(g){
+    var rows=SLF_UK_RULES.filter(function(R){ return R.l===g[0] && (!q || slfUKNorm(R.n+' '+R.why+' '+R.need).indexOf(q)>-1); });
+    if(!rows.length) return;
+    h+='<div class="vp-letter" style="color:'+(g[0]==='red'?'#fb7185':'#fbbf24')+';">'+g[1]+' ('+rows.length+')</div>';
+    rows.forEach(function(R){
+      var src=SLF_UK_SRC[R.s]||SLF_UK_SRC.uk; n++;
+      h+='<div style="padding:8px 2px;border-bottom:1px solid rgba(255,255,255,0.04);"><div style="font-size:12.5px;color:var(--snow);font-weight:600;">'+escHtml(R.n)+'</div>'
+        +'<div class="vp-why">'+escHtml(R.why)+'</div><div class="vp-why"><b style="color:var(--snow);">What to do:</b> '+escHtml(R.need)+'</div>'
+        +(src[1]?'<a class="vp-link" style="margin-left:0;" href="'+src[1]+'" target="_blank" rel="noopener">'+escHtml(src[0])+' ↗</a>':'<span class="vp-dim" style="font-size:10px;">Source: '+escHtml(src[0])+'</span>')+'</div>';
+    });
+  });
+  document.getElementById('ukRulesBody').innerHTML=h||'<div class="vp-empty">No rule matches "'+escHtml(q)+'". (Not on this list does not mean a product is allowed.)</div>';
 }
 
 // Searchable A–Z list
@@ -2406,7 +2727,9 @@ async function generate(){
   if(slfHOn() && !slfHCfg().name){ showErr('⚠ Type your name in the sidebar (📜 Team History) first, so this listing is saved under your name.'); return; }
   // eBay VeRO list check — warn before spending credits on a product that should not be listed
   if(!window._slfVPAck){ if(slfVPGate(product)) return; }
-  window._slfVPAck=false;
+  // eBay UK compliance check — banned / restricted product types
+  if(!window._slfUKAck){ if(slfUKGate(product)) return; }
+  window._slfVPAck=false; window._slfUKAck=false;
 
   closeSidebarMobile();
   hideErr(); setLoading(true);
